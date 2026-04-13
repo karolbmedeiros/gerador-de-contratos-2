@@ -8,6 +8,7 @@ from datetime import datetime
 from io import BytesIO
 import json
 import platform
+import re
 import subprocess
 import unicodedata
 import uuid
@@ -52,15 +53,14 @@ def _converter_pdf(caminho_docx: str, caminho_pdf: str):
             gerado.rename(caminho_pdf)
 
 
-def _slugify(nome: str) -> str:
-    """Minúsculas, sem acentos, espaços → underscore, sem caracteres especiais."""
-    norm = unicodedata.normalize('NFD', nome)
+def _slugify(texto: str) -> str:
+    """Maiúsculas, sem acentos, espaços → underscore, sem caracteres especiais."""
+    norm = unicodedata.normalize('NFD', texto)
     norm = ''.join(c for c in norm if unicodedata.category(c) != 'Mn')
-    norm = norm.lower().strip()
-    import re as _re
-    norm = _re.sub(r'[^a-z0-9\s]', '', norm)
-    norm = _re.sub(r'\s+', '_', norm)
-    return norm or "sem_nome"
+    norm = norm.upper().strip()
+    norm = re.sub(r'[^A-Z0-9\s]', '', norm)
+    norm = re.sub(r'\s+', '_', norm)
+    return norm or "SEM_NOME"
 
 
 def detectar_tipo(filename: str):
@@ -194,8 +194,8 @@ def gerar_contrato_route():
             ]
             dados = {c: request.form.get(c, "") for c in campos}
             nome_pessoa   = dados["locatario_nome"]
-            data_slug     = datetime.now().strftime("%d.%m.%Y")
-            nome_saida    = f"contrato_locacao_{_slugify(nome_pessoa)}_{data_slug}.docx"
+            ano           = datetime.now().strftime("%Y")
+            nome_saida    = f"{ano}_{_slugify(dados.get('veiculo_placa', ''))}_{_slugify(nome_pessoa)}.docx"
             caminho_saida = str(CONTRATOS_FOLDER / nome_saida)
             gerar_docx(dados, caminho_saida, template_path=str(template_path))
 
@@ -203,7 +203,7 @@ def gerar_contrato_route():
             avalista_nome  = request.form.get("avalista_nome_notif", "")
             nome_pessoa    = avalista_nome
             data_slug      = datetime.now().strftime("%d.%m.%Y")
-            nome_saida     = f"notificacao_avalista_{_slugify(avalista_nome)}_{data_slug}.docx"
+            nome_saida     = f"NOTIFICACAO_AVALISTA_{_slugify(avalista_nome)}_{data_slug}.docx"
             caminho_saida  = str(CONTRATOS_FOLDER / nome_saida)
 
             gerar_notificacao_avalista(
@@ -219,7 +219,7 @@ def gerar_contrato_route():
             locatario_nome_inad = request.form.get("locatario_nome_inad", "")
             nome_pessoa         = locatario_nome_inad
             data_slug           = datetime.now().strftime("%d.%m.%Y")
-            nome_saida          = f"notificacao_inadimplente_{_slugify(locatario_nome_inad)}_{data_slug}.docx"
+            nome_saida          = f"NOTIFICACAO_INADIMPLENTE_{_slugify(locatario_nome_inad)}_{data_slug}.docx"
             caminho_saida       = str(CONTRATOS_FOLDER / nome_saida)
 
             gerar_notificacao_inadimplente(
@@ -237,7 +237,7 @@ def gerar_contrato_route():
             devedor_nome  = request.form.get("devedor_nome", "")
             nome_pessoa   = devedor_nome
             data_slug     = datetime.now().strftime("%d.%m.%Y")
-            nome_saida    = f"quitacao_divida_{_slugify(devedor_nome)}_{data_slug}.docx"
+            nome_saida    = f"QUITACAO_DIVIDA_{_slugify(devedor_nome)}_{data_slug}.docx"
             caminho_saida = str(CONTRATOS_FOLDER / nome_saida)
 
             gerar_termo_quitacao(
