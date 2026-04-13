@@ -1,0 +1,4 @@
+flask>=3.0
+werkzeug>=3.0
+docx2pdf>=0.1.8
+num2words>=0.5.13

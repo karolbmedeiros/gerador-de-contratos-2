@@ -1,0 +1,403 @@
+"""
+Gerador de Contrato de Locação - ATIVUZ
+Módulo reutilizável pela aplicação Flask.
+"""
+
+import json
+import re
+import tempfile
+import zipfile
+from datetime import datetime
+from pathlib import Path
+
+
+CAMPOS = {
+    "locatario_nome":     "Nome completo do LOCATÁRIO",
+    "locatario_rg":       "RG do LOCATÁRIO",
+    "locatario_cpf":      "CPF do LOCATÁRIO",
+    "locatario_endereco": "Endereço do LOCATÁRIO",
+    "locatario_cep":      "CEP do LOCATÁRIO",
+    "locatario_telefone": "Telefone do LOCATÁRIO",
+    "avalista_nome":      "Nome completo do AVALISTA",
+    "avalista_cpf":       "CPF do AVALISTA",
+    "avalista_endereco":  "Endereço do AVALISTA",
+    "avalista_telefone":  "Telefone do AVALISTA",
+    "veiculo_descricao":  "Descrição do veículo",
+    "veiculo_marca":      "Marca do veículo",
+    "veiculo_modelo":     "Modelo do veículo",
+    "veiculo_ano":        "Ano de fabricação",
+    "veiculo_motor":      "Número do motor",
+    "veiculo_chassi":     "Número do chassi",
+    "veiculo_cor":        "Cor do veículo",
+    "veiculo_placa":      "Placa do veículo",
+    "contrato_inicio":    "Data de início da locação",
+    "contrato_duracao":   "Duração em meses",
+    "valor_semanal":      "Valor semanal da locação (R$)",
+    "data_dia":           "Dia da assinatura",
+    "data_mes":           "Mês da assinatura por extenso",
+    "data_ano":           "Ano da assinatura",
+    "testemunha1_nome":   "Nome da Testemunha 1",
+    "testemunha1_rg":     "RG da Testemunha 1",
+    "testemunha1_cpf":    "CPF da Testemunha 1",
+    "testemunha2_nome":   "Nome da Testemunha 2",
+    "testemunha2_rg":     "RG da Testemunha 2",
+    "testemunha2_cpf":    "CPF da Testemunha 2",
+}
+
+# Ordem exata das 43 ocorrências de [ ] no template
+ORDEM_OCORRENCIAS = [
+    "locatario_nome",
+    "locatario_rg",
+    "locatario_cpf",
+    "locatario_endereco",
+    "locatario_cep",
+    "locatario_telefone",
+    "avalista_nome",
+    "avalista_cpf",
+    "avalista_endereco",
+    "avalista_telefone",
+    "locatario_telefone",
+    "veiculo_descricao",
+    "veiculo_marca",
+    "veiculo_modelo",
+    "veiculo_ano",
+    "veiculo_motor",
+    "veiculo_chassi",
+    "veiculo_cor",
+    "veiculo_placa",
+    "contrato_inicio",
+    "contrato_duracao",
+    "valor_semanal",
+    "locatario_nome",
+    "locatario_rg",
+    "locatario_cpf",
+    "locatario_endereco",
+    "locatario_cep",
+    "locatario_telefone",
+    "avalista_nome",
+    "avalista_cpf",
+    "avalista_endereco",
+    "avalista_telefone",
+    "data_dia",
+    "data_mes",
+    "data_ano",
+    "locatario_nome",
+    "locatario_cpf",
+    "avalista_nome",
+    "avalista_cpf",
+    "testemunha1_nome",
+    "testemunha1_rg",
+    "testemunha1_cpf",
+    "testemunha2_nome",
+    "testemunha2_rg",
+    "testemunha2_cpf",
+]
+
+
+def substituir_campos(xml_text: str, dados: dict) -> str:
+    padrao = re.compile(r'\[ \]')
+    contador = [0]
+
+    def substituir(match):
+        idx = contador[0]
+        contador[0] += 1
+        if idx < len(ORDEM_OCORRENCIAS):
+            chave = ORDEM_OCORRENCIAS[idx]
+            valor = dados.get(chave, "").strip()
+            return valor if valor else "[ ]"
+        return match.group(0)
+
+    return padrao.sub(substituir, xml_text)
+
+
+def gerar_docx(dados: dict, caminho_saida: str, template_path: str = None):
+    """Descompacta o template, substitui os campos e recompacta."""
+    template = Path(template_path) if template_path else Path(__file__).parent / "TEMPLATE_CODE.docx"
+
+    if not template.exists():
+        raise FileNotFoundError(f"Template não encontrado: {template}")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+
+        with zipfile.ZipFile(template, "r") as z:
+            z.extractall(tmp)
+
+        doc_xml = tmp / "word" / "document.xml"
+        texto = doc_xml.read_text(encoding="utf-8")
+        texto_modificado = substituir_campos(texto, dados)
+        doc_xml.write_text(texto_modificado, encoding="utf-8")
+
+        saida = Path(caminho_saida)
+        saida.parent.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as z:
+            for arquivo in tmp.rglob("*"):
+                if arquivo.is_file():
+                    z.write(arquivo, arquivo.relative_to(tmp))
+
+
+def nome_arquivo_saida(dados: dict) -> str:
+    nome = dados.get("locatario_nome", "contrato").split()[0].lower()
+    hoje = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"contrato_{nome}_{hoje}.docx"
+
+
+def gerar_termo_quitacao(
+    devedor_nome: str,
+    devedor_cpf: str,
+    placa: str,
+    mes_referencia_fipe: str,
+    valor_fipe: float,
+    percentual_fipe: float,
+    meias_diarias: float,
+    entrada: float,
+    num_parcelas_pagas: int,
+    valor_parcela_paga: float,
+    num_parcelas_semanais: int,
+    valor_parcela_semanal: float,
+    data_primeira_parcela: str,
+    data_assinatura: str,
+    caminho_saida: str,
+    template_path: str = None,
+):
+    """Gera o Termo de Quitação a partir do template TERMO_QUITACAO_TEMPLATE.docx."""
+    from decimal import Decimal
+    from num2words import num2words
+
+    def _fmt(valor: float) -> str:
+        """Formata valor monetário no padrão BR: 1.234,56"""
+        return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def _ext(valor: float) -> str:
+        """Retorna valor monetário por extenso em português via num2words currency."""
+        return num2words(Decimal(str(round(valor, 2))), lang="pt_BR", to="currency")
+
+    # Cálculos
+    valor_percentual_fipe = valor_fipe * (percentual_fipe / 100)
+    total_divida          = valor_percentual_fipe + meias_diarias
+    total_parcelas_pagas  = num_parcelas_pagas * valor_parcela_paga
+    total_pago            = entrada + total_parcelas_pagas
+    saldo_devedor         = total_divida - total_pago
+    ultima_parcela        = saldo_devedor - (num_parcelas_semanais * valor_parcela_semanal)
+
+    # 21 substituições na ordem exata dos marcadores [ ] do template
+    substituicoes = [
+        # 0   devedor_nome
+        devedor_nome,
+        # 1   devedor_cpf
+        devedor_cpf,
+        # 2   placa
+        placa,
+        # 3   mes_referencia_fipe  (ex: "dezembro 2025")
+        mes_referencia_fipe,
+        # 4   valor_fipe formatado  (ex: "54.724,00")
+        _fmt(valor_fipe),
+        # 5   valor_percentual_fipe + extenso  (ex: "10.944,80 (dez mil...)")
+        f"{_fmt(valor_percentual_fipe)} ({_ext(valor_percentual_fipe)})",
+        # 6   meias_diarias + extenso  (ex: "1.200,00 (um mil e duzentos reais)")
+        f"{_fmt(meias_diarias)} ({_ext(meias_diarias)})",
+        # 7   total_divida + extenso
+        f"{_fmt(total_divida)} ({_ext(total_divida)})",
+        # 8   entrada + extenso  (ex: "4.000,00 (quatro mil reais)")
+        f"{_fmt(entrada)} ({_ext(entrada)})",
+        # 9   descricao_parcelas_pagas  (ex: "2 parcelas de R$ 345,00 (trezentos e quarenta e cinco reais)")
+        f"{num_parcelas_pagas} parcelas de R$ {_fmt(valor_parcela_paga)} ({_ext(valor_parcela_paga)})",
+        # 10  total_parcelas_pagas  (ex: "690,00")
+        _fmt(total_parcelas_pagas),
+        # 11  total_pago  (ex: "4.690,00")
+        _fmt(total_pago),
+        # 12  total_pago_extenso  (ex: "(quatro mil seiscentos e noventa reais)")
+        f"({_ext(total_pago)})",
+        # 13  saldo_devedor  (ex: "7.454,80")
+        _fmt(saldo_devedor),
+        # 14  saldo_devedor_extenso  (ex: "(sete mil quatrocentos e cinquenta e quatro reais e oitenta centavos)")
+        f"({_ext(saldo_devedor)})",
+        # 15  descricao_parcelamento  (ex: "37 parcelas semanais de R$ 200,00 (duzentos reais)")
+        f"{num_parcelas_semanais} parcelas semanais de R$ {_fmt(valor_parcela_semanal)} ({_ext(valor_parcela_semanal)})",
+        # 16  descricao_ultima_parcela  (ex: "1 última parcela no valor de R$ 54,80 (cinquenta e quatro reais e oitenta centavos)")
+        f"1 última parcela no valor de R$ {_fmt(ultima_parcela)} ({_ext(ultima_parcela)})",
+        # 17  data_primeira_parcela
+        data_primeira_parcela,
+        # 18  data_assinatura
+        data_assinatura,
+        # 19  devedor_nome (repetição na assinatura)
+        devedor_nome,
+        # 20  devedor_cpf (repetição na assinatura)
+        devedor_cpf,
+    ]
+
+    template = Path(template_path) if template_path else Path(__file__).parent / "TERMO_QUITACAO_TEMPLATE.docx"
+    if not template.exists():
+        raise FileNotFoundError(f"Template não encontrado: {template}")
+
+    padrao = re.compile(r'\[ \]')
+
+    def _substituir(xml_text: str) -> str:
+        contador = [0]
+
+        def _sub(match):
+            idx = contador[0]
+            contador[0] += 1
+            if idx < len(substituicoes):
+                return substituicoes[idx]
+            return match.group(0)
+
+        return padrao.sub(_sub, xml_text)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+
+        with zipfile.ZipFile(template, "r") as z:
+            z.extractall(tmp)
+
+        doc_xml = tmp / "word" / "document.xml"
+        texto = doc_xml.read_text(encoding="utf-8")
+        doc_xml.write_text(_substituir(texto), encoding="utf-8")
+
+        saida = Path(caminho_saida)
+        saida.parent.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as z:
+            for arquivo in tmp.rglob("*"):
+                if arquivo.is_file():
+                    z.write(arquivo, arquivo.relative_to(tmp))
+
+
+def gerar_notificacao_avalista(
+    avalista_nome: str,
+    data_contrato: str,
+    locatario_nome: str,
+    valor_debito: float,
+    caminho_saida: str,
+    template_path: str = None,
+):
+    """Gera a Notificação ao Avalista a partir do template NOTIFICACAO_AVALISTA_TEMPLATE.docx."""
+    from decimal import Decimal
+    from num2words import num2words
+
+    def _fmt(valor: float) -> str:
+        return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def _ext(valor: float) -> str:
+        return num2words(Decimal(str(round(valor, 2))), lang="pt_BR", to="currency")
+
+    # 6 substituições na ordem exata dos marcadores [ ] do template
+    substituicoes = [
+        # 0  avalista_nome
+        avalista_nome,
+        # 1  data_contrato  (ex: "12/04/2026")
+        data_contrato,
+        # 2  locatario_nome
+        locatario_nome,
+        # 3  valor_debito formatado  (ex: "1.500,00")
+        _fmt(valor_debito),
+        # 4  valor_extenso  (ex: "mil e quinhentos reais")
+        _ext(valor_debito),
+        # 5  data_geracao automática  (ex: "Natal, 14/04/2026")
+        datetime.now().strftime("%d/%m/%Y"),
+    ]
+
+    template = Path(template_path) if template_path else Path(__file__).parent / "NOTIFICACAO_AVALISTA_TEMPLATE.docx"
+    if not template.exists():
+        raise FileNotFoundError(f"Template não encontrado: {template}")
+
+    padrao = re.compile(r'\[ \]')
+
+    def _substituir(xml_text: str) -> str:
+        contador = [0]
+
+        def _sub(match):
+            idx = contador[0]
+            contador[0] += 1
+            if idx < len(substituicoes):
+                return substituicoes[idx]
+            return match.group(0)
+
+        return padrao.sub(_sub, xml_text)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+
+        with zipfile.ZipFile(template, "r") as z:
+            z.extractall(tmp)
+
+        doc_xml = tmp / "word" / "document.xml"
+        texto = doc_xml.read_text(encoding="utf-8")
+        doc_xml.write_text(_substituir(texto), encoding="utf-8")
+
+        saida = Path(caminho_saida)
+        saida.parent.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as z:
+            for arquivo in tmp.rglob("*"):
+                if arquivo.is_file():
+                    z.write(arquivo, arquivo.relative_to(tmp))
+
+
+def gerar_notificacao_inadimplente(
+    locatario_nome: str,
+    data_contrato: str,
+    valor_debito: float,
+    caminho_saida: str,
+    template_path: str = None,
+):
+    """Gera a Notificação ao Inadimplente a partir do template NOTIFICACAO_INADIMPLENTE_TEMPLATE.docx."""
+    from decimal import Decimal
+    from num2words import num2words
+
+    def _fmt(valor: float) -> str:
+        return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    def _ext(valor: float) -> str:
+        return num2words(Decimal(str(round(valor, 2))), lang="pt_BR", to="currency")
+
+    # 5 substituições na ordem exata dos marcadores [ ] do template
+    substituicoes = [
+        # 0  locatario_nome
+        locatario_nome,
+        # 1  data_contrato  (ex: "12/04/2026")
+        data_contrato,
+        # 2  valor_debito formatado  (ex: "1.500,00")
+        _fmt(valor_debito),
+        # 3  valor_extenso  (ex: "mil e quinhentos reais")
+        _ext(valor_debito),
+        # 4  data_geracao automática  (ex: "Natal, 14/04/2026")
+        datetime.now().strftime("%d/%m/%Y"),
+    ]
+
+    template = Path(template_path) if template_path else Path(__file__).parent / "NOTIFICACAO_INADIMPLENTE_TEMPLATE.docx"
+    if not template.exists():
+        raise FileNotFoundError(f"Template não encontrado: {template}")
+
+    padrao = re.compile(r'\[ \]')
+
+    def _substituir(xml_text: str) -> str:
+        contador = [0]
+
+        def _sub(match):
+            idx = contador[0]
+            contador[0] += 1
+            if idx < len(substituicoes):
+                return substituicoes[idx]
+            return match.group(0)
+
+        return padrao.sub(_sub, xml_text)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+
+        with zipfile.ZipFile(template, "r") as z:
+            z.extractall(tmp)
+
+        doc_xml = tmp / "word" / "document.xml"
+        texto = doc_xml.read_text(encoding="utf-8")
+        doc_xml.write_text(_substituir(texto), encoding="utf-8")
+
+        saida = Path(caminho_saida)
+        saida.parent.mkdir(parents=True, exist_ok=True)
+
+        with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as z:
+            for arquivo in tmp.rglob("*"):
+                if arquivo.is_file():
+                    z.write(arquivo, arquivo.relative_to(tmp))

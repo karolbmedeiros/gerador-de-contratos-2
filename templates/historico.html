@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}Histórico — ATIVUZ{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Histórico</h1>
+  <p class="page-sub">Todos os contratos gerados</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Contratos gerados</h2>
+    <span class="badge">{{ historico|length }}</span>
+  </div>
+
+  {% if historico %}
+  <div class="table-wrap" id="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Template</th>
+          <th>Data / Hora</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tabela-historico">
+        {% for item in historico %}
+        <tr id="row-{{ item.id }}">
+          <td>
+            <span class="locatario-name">{{ item.locatario_nome or '—' }}</span>
+          </td>
+          <td class="text-muted">{{ item.template }}</td>
+          <td class="text-muted">{{ item.data_hora }}</td>
+          <td class="td-action">
+            <button type="button" class="btn btn-outline btn-sm"
+                    data-arquivo="{{ item.arquivo }}"
+                    onclick="abrirModalDownload(this.dataset.arquivo)">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                   viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Baixar
+            </button>
+            <button type="button" class="btn btn-danger btn-sm"
+                    data-id="{{ item.id }}"
+                    data-nome="{{ item.locatario_nome or item.arquivo }}"
+                    onclick="confirmarExclusao(this.dataset.id, this.dataset.nome)">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                   viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Excluir
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- empty-state revelado via JS quando todas as linhas são removidas -->
+  <div class="empty-state" id="empty-state" style="display:none">
+    <svg width="40" height="40" fill="none" stroke="#94a3b8" stroke-width="1.5"
+         viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <p>Nenhum contrato gerado ainda.</p>
+    <p class="text-muted">
+      <a href="{{ url_for('pagina_gerar') }}" class="alert-link">Gere seu primeiro contrato.</a>
+    </p>
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <svg width="40" height="40" fill="none" stroke="#94a3b8" stroke-width="1.5"
+         viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <p>Nenhum contrato gerado ainda.</p>
+    <p class="text-muted">
+      <a href="{{ url_for('pagina_gerar') }}" class="alert-link">Gere seu primeiro contrato.</a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── Modal de formato de download ── -->
+<div class="modal-overlay" id="modal-download" onclick="if(event.target===this) fecharModalDownload()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-download-titulo">
+    <h2 class="modal-titulo" id="modal-download-titulo">Escolha o formato</h2>
+    <p class="modal-sub">Como deseja baixar o arquivo?</p>
+
+    <div class="modal-formatos" id="modal-dl-formatos">
+      <button type="button" class="btn-formato btn-formato-word" id="btn-dl-word"
+              onclick="baixarFormato('docx')">
+        <span class="formato-icone">📄</span>
+        <span class="formato-nome">Word</span>
+        <span class="formato-ext">.docx</span>
+      </button>
+      <button type="button" class="btn-formato btn-formato-pdf" id="btn-dl-pdf"
+              onclick="baixarFormato('pdf')">
+        <span class="formato-icone">📕</span>
+        <span class="formato-nome">PDF</span>
+        <span class="formato-ext">.pdf</span>
+      </button>
+    </div>
+
+    <div class="modal-erro" id="modal-dl-erro" style="display:none">
+      <svg width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2"
+           viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="modal-dl-erro-msg"></span>
+    </div>
+
+    <button type="button" class="btn-modal-cancelar" onclick="fecharModalDownload()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ── Modal de confirmação de exclusão ── -->
+<div class="modal-overlay" id="modal-excluir" onclick="if(event.target===this) fecharModalExcluir()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-excluir-titulo">
+    <h2 class="modal-titulo" id="modal-excluir-titulo">Confirmar exclusão</h2>
+    <p class="modal-sub">
+      Tem certeza que deseja excluir o contrato de
+      <strong id="modal-excluir-nome"></strong>?
+      Esta ação não pode ser desfeita.
+    </p>
+    <div style="display:flex; gap:0.75rem; margin-top:1.5rem">
+      <button type="button" class="btn btn-danger btn-lg" style="flex:1"
+              id="btn-confirmar-excluir" onclick="executarExclusao()">
+        Excluir
+      </button>
+      <button type="button" class="btn btn-outline btn-lg" style="flex:1"
+              onclick="fecharModalExcluir()">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Download com escolha de formato ─────────────────────────────────────────
+
+let _downloadFilename = null;
+
+function abrirModalDownload(filename) {
+  _downloadFilename = filename;
+  document.getElementById('modal-dl-formatos').style.display = 'grid';
+  document.getElementById('modal-dl-erro').style.display    = 'none';
+  document.getElementById('btn-dl-word').disabled = false;
+  document.getElementById('btn-dl-pdf').disabled  = false;
+  document.getElementById('btn-dl-word').innerHTML =
+    `<span class="formato-icone">📄</span><span class="formato-nome">Word</span><span class="formato-ext">.docx</span>`;
+  document.getElementById('btn-dl-pdf').innerHTML  =
+    `<span class="formato-icone">📕</span><span class="formato-nome">PDF</span><span class="formato-ext">.pdf</span>`;
+  document.getElementById('modal-download').classList.add('aberto');
+}
+
+function fecharModalDownload() {
+  document.getElementById('modal-download').classList.remove('aberto');
+  _downloadFilename = null;
+}
+
+async function baixarFormato(formato) {
+  if (!_downloadFilename) return;
+
+  if (formato === 'docx') {
+    window.location.href = `/historico/download/${encodeURIComponent(_downloadFilename)}`;
+    fecharModalDownload();
+    return;
+  }
+
+  // PDF — fetch + blob
+  const btnPdf   = document.getElementById('btn-dl-pdf');
+  const btnWord  = document.getElementById('btn-dl-word');
+  btnPdf.disabled  = true;
+  btnWord.disabled = true;
+  btnPdf.innerHTML = `
+    <svg class="spin" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"
+         viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+    <span class="formato-nome">Gerando...</span>`;
+
+  try {
+    const resp = await fetch(`/historico/download-pdf/${encodeURIComponent(_downloadFilename)}`);
+    const ct = resp.headers.get('content-type') || '';
+
+    if (ct.includes('application/json')) {
+      const data = await resp.json();
+      document.getElementById('modal-dl-formatos').style.display = 'none';
+      document.getElementById('modal-dl-erro-msg').textContent   = data.error;
+      document.getElementById('modal-dl-erro').style.display     = 'flex';
+      return;
+    }
+
+    const blob = await resp.blob();
+    const disposition = resp.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename[^;=\n]*=['"]?([^'"\n]+)['"]?/);
+    const filename = match ? match[1] : _downloadFilename.replace('.docx', '.pdf');
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    fecharModalDownload();
+
+  } catch (_) {
+    document.getElementById('modal-dl-formatos').style.display = 'none';
+    document.getElementById('modal-dl-erro-msg').textContent   = 'Erro de conexão. Tente novamente.';
+    document.getElementById('modal-dl-erro').style.display     = 'flex';
+  }
+}
+
+// ── Exclusão ─────────────────────────────────────────────────────────────────
+
+let _excluirId = null;
+
+function confirmarExclusao(id, nome) {
+  _excluirId = id;
+  document.getElementById('modal-excluir-nome').textContent = nome;
+  const btn = document.getElementById('btn-confirmar-excluir');
+  btn.disabled = false;
+  btn.textContent = 'Excluir';
+  document.getElementById('modal-excluir').classList.add('aberto');
+}
+
+function fecharModalExcluir() {
+  document.getElementById('modal-excluir').classList.remove('aberto');
+  _excluirId = null;
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { fecharModalDownload(); fecharModalExcluir(); }
+});
+
+async function executarExclusao() {
+  if (!_excluirId) return;
+  const btn = document.getElementById('btn-confirmar-excluir');
+  btn.disabled = true;
+  btn.textContent = 'Excluindo…';
+
+  try {
+    const resp = await fetch(`/historico/excluir/${_excluirId}`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.ok) {
+      document.getElementById(`row-${_excluirId}`)?.remove();
+
+      const badge = document.querySelector('.badge');
+      if (badge) badge.textContent = Math.max(0, parseInt(badge.textContent) - 1);
+
+      const tbody = document.getElementById('tabela-historico');
+      if (tbody && tbody.querySelectorAll('tr').length === 0) {
+        document.getElementById('table-wrap').style.display = 'none';
+        document.getElementById('empty-state').style.display = '';
+      }
+    }
+  } catch (_) {
+    btn.disabled = false;
+    btn.textContent = 'Excluir';
+  }
+
+  fecharModalExcluir();
+}
+</script>
+{% endblock %}

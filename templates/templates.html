@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Templates — ATIVUZ{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Templates</h1>
+  <p class="page-sub">Gerencie os modelos de contrato .docx</p>
+</div>
+
+<!-- Upload card -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Enviar novo template</h2>
+  </div>
+  <form action="{{ url_for('upload_template') }}" method="post" enctype="multipart/form-data"
+        class="upload-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="nome">Nome do template</label>
+        <input type="text" id="nome" name="nome" class="form-input"
+               placeholder="Ex: Contrato Padrão 2026" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="arquivo">Arquivo .docx</label>
+        <div class="file-input-wrap">
+          <input type="file" id="arquivo" name="arquivo" accept=".docx"
+                 class="file-input" required onchange="showFileName(this)">
+          <label for="arquivo" class="file-label">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                 viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="file-name-label">Escolher arquivo...</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+           viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Enviar Template
+    </button>
+  </form>
+</div>
+
+<!-- Templates list -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Templates salvos</h2>
+    <span class="badge">{{ templates|length }}</span>
+  </div>
+
+  {% if templates %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tamanho</th>
+          <th>Enviado em</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in templates %}
+        <tr>
+          <td>
+            <div class="file-row">
+              <svg width="16" height="16" fill="none" stroke="#2563eb" stroke-width="2"
+                   viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/></svg>
+              <span class="file-name">{{ t.nome }}</span>
+            </div>
+          </td>
+          <td class="text-muted">{{ t.tamanho_kb }} KB</td>
+          <td class="text-muted">{{ t.data }}</td>
+          <td class="td-action">
+            <form action="{{ url_for('excluir_template', filename=t.filename) }}"
+                  method="post"
+                  onsubmit="return confirm('Excluir o template {{ t.nome }}?')">
+              <button type="submit" class="btn btn-danger btn-sm">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                     viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6"/><path d="M14 11v6"/>
+                  <path d="M9 6V4h6v2"/></svg>
+                Excluir
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <svg width="40" height="40" fill="none" stroke="#94a3b8" stroke-width="1.5"
+         viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/></svg>
+    <p>Nenhum template enviado ainda.</p>
+    <p class="text-muted">Use o formulário acima para enviar seu primeiro modelo .docx.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function showFileName(input) {
+  const label = document.getElementById('file-name-label');
+  label.textContent = input.files.length ? input.files[0].name : 'Escolher arquivo...';
+}
+</script>
+{% endblock %}
