@@ -20,10 +20,12 @@ app.secret_key = "ativuz-secret-2026"
 
 UPLOAD_FOLDER = Path("uploads")
 CONTRATOS_FOLDER = Path("contratos")
+TEMP_FOLDER = Path("temp_preview")
 HISTORICO_FILE = Path("historico.json")
 
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 CONTRATOS_FOLDER.mkdir(exist_ok=True)
+TEMP_FOLDER.mkdir(exist_ok=True)
 if not HISTORICO_FILE.exists():
     HISTORICO_FILE.write_text("[]", encoding="utf-8")
 
@@ -102,6 +104,72 @@ def save_historico(h):
     HISTORICO_FILE.write_text(json.dumps(h, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _gerar_para_caminho(form, tipo, template_path_str, caminho_saida):
+    """Gera o documento para caminho_saida. Retorna nome_pessoa."""
+    if tipo == "locacao":
+        campos = [
+            "locatario_nome", "locatario_rg", "locatario_cpf",
+            "locatario_endereco", "locatario_cep", "locatario_telefone",
+            "avalista_nome", "avalista_cpf", "avalista_endereco", "avalista_telefone",
+            "veiculo_descricao", "veiculo_marca", "veiculo_modelo", "veiculo_ano",
+            "veiculo_motor", "veiculo_chassi", "veiculo_cor", "veiculo_placa",
+            "contrato_inicio", "contrato_duracao", "valor_semanal",
+            "data_dia", "data_mes", "data_ano",
+            "testemunha1_nome", "testemunha1_rg", "testemunha1_cpf",
+            "testemunha2_nome", "testemunha2_rg", "testemunha2_cpf",
+        ]
+        dados = {c: form.get(c, "") for c in campos}
+        gerar_docx(dados, caminho_saida, template_path=template_path_str)
+        return dados["locatario_nome"]
+
+    elif tipo == "notificacao":
+        avalista_nome = form.get("avalista_nome_notif", "")
+        gerar_notificacao_avalista(
+            avalista_nome  = avalista_nome,
+            data_contrato  = form.get("data_contrato", ""),
+            locatario_nome = form.get("locatario_nome_notif", ""),
+            valor_debito   = float(form.get("valor_debito") or 0),
+            caminho_saida  = caminho_saida,
+            template_path  = template_path_str,
+        )
+        return avalista_nome
+
+    elif tipo == "inadimplente":
+        locatario_nome_inad = form.get("locatario_nome_inad", "")
+        gerar_notificacao_inadimplente(
+            locatario_nome = locatario_nome_inad,
+            data_contrato  = form.get("data_contrato_inad", ""),
+            valor_debito   = float(form.get("valor_debito_inad") or 0),
+            caminho_saida  = caminho_saida,
+            template_path  = template_path_str,
+        )
+        return locatario_nome_inad
+
+    else:  # quitacao
+        def _f(campo): return float(form.get(campo) or 0)
+        def _i(campo): return int(float(form.get(campo) or 0))
+        devedor_nome = form.get("devedor_nome", "")
+        gerar_termo_quitacao(
+            devedor_nome          = devedor_nome,
+            devedor_cpf           = form.get("devedor_cpf", ""),
+            placa                 = form.get("placa", ""),
+            mes_referencia_fipe   = form.get("mes_referencia_fipe", ""),
+            valor_fipe            = _f("valor_fipe"),
+            percentual_fipe       = _f("percentual_fipe"),
+            meias_diarias         = _f("meias_diarias"),
+            entrada               = _f("entrada"),
+            num_parcelas_pagas    = _i("num_parcelas_pagas"),
+            valor_parcela_paga    = _f("valor_parcela_paga"),
+            num_parcelas_semanais = _i("num_parcelas_semanais"),
+            valor_parcela_semanal = _f("valor_parcela_semanal"),
+            data_primeira_parcela = form.get("data_primeira_parcela", ""),
+            data_assinatura       = form.get("data_assinatura", ""),
+            caminho_saida         = caminho_saida,
+            template_path         = template_path_str,
+        )
+        return devedor_nome
+
+
 # ── página 1 — Templates ──────────────────────────────────
 
 @app.route("/")
@@ -178,87 +246,25 @@ def gerar_contrato_route():
 
     formato = request.form.get("formato", "docx")
 
+    # ── Nome do arquivo de saída ──────────────────────────
+    if tipo == "locacao":
+        ano        = datetime.now().strftime("%Y")
+        nome_saida = f"{ano}_{_slugify(request.form.get('veiculo_placa', ''))}_{_slugify(request.form.get('locatario_nome', ''))}.docx"
+    elif tipo == "notificacao":
+        data_slug  = datetime.now().strftime("%d.%m.%Y")
+        nome_saida = f"NOTIFICACAO_AVALISTA_{_slugify(request.form.get('avalista_nome_notif', ''))}_{data_slug}.docx"
+    elif tipo == "inadimplente":
+        data_slug  = datetime.now().strftime("%d.%m.%Y")
+        nome_saida = f"NOTIFICACAO_INADIMPLENTE_{_slugify(request.form.get('locatario_nome_inad', ''))}_{data_slug}.docx"
+    else:  # quitacao
+        data_slug  = datetime.now().strftime("%d.%m.%Y")
+        nome_saida = f"QUITACAO_DIVIDA_{_slugify(request.form.get('devedor_nome', ''))}_{data_slug}.docx"
+
+    caminho_saida = str(CONTRATOS_FOLDER / nome_saida)
+
     # ── Gerar documento ───────────────────────────────────
     try:
-        if tipo == "locacao":
-            campos = [
-                "locatario_nome", "locatario_rg", "locatario_cpf",
-                "locatario_endereco", "locatario_cep", "locatario_telefone",
-                "avalista_nome", "avalista_cpf", "avalista_endereco", "avalista_telefone",
-                "veiculo_descricao", "veiculo_marca", "veiculo_modelo", "veiculo_ano",
-                "veiculo_motor", "veiculo_chassi", "veiculo_cor", "veiculo_placa",
-                "contrato_inicio", "contrato_duracao", "valor_semanal",
-                "data_dia", "data_mes", "data_ano",
-                "testemunha1_nome", "testemunha1_rg", "testemunha1_cpf",
-                "testemunha2_nome", "testemunha2_rg", "testemunha2_cpf",
-            ]
-            dados = {c: request.form.get(c, "") for c in campos}
-            nome_pessoa   = dados["locatario_nome"]
-            ano           = datetime.now().strftime("%Y")
-            nome_saida    = f"{ano}_{_slugify(dados.get('veiculo_placa', ''))}_{_slugify(nome_pessoa)}.docx"
-            caminho_saida = str(CONTRATOS_FOLDER / nome_saida)
-            gerar_docx(dados, caminho_saida, template_path=str(template_path))
-
-        elif tipo == "notificacao":
-            avalista_nome  = request.form.get("avalista_nome_notif", "")
-            nome_pessoa    = avalista_nome
-            data_slug      = datetime.now().strftime("%d.%m.%Y")
-            nome_saida     = f"NOTIFICACAO_AVALISTA_{_slugify(avalista_nome)}_{data_slug}.docx"
-            caminho_saida  = str(CONTRATOS_FOLDER / nome_saida)
-
-            gerar_notificacao_avalista(
-                avalista_nome  = avalista_nome,
-                data_contrato  = request.form.get("data_contrato", ""),
-                locatario_nome = request.form.get("locatario_nome_notif", ""),
-                valor_debito   = float(request.form.get("valor_debito") or 0),
-                caminho_saida  = caminho_saida,
-                template_path  = str(template_path),
-            )
-
-        elif tipo == "inadimplente":
-            locatario_nome_inad = request.form.get("locatario_nome_inad", "")
-            nome_pessoa         = locatario_nome_inad
-            data_slug           = datetime.now().strftime("%d.%m.%Y")
-            nome_saida          = f"NOTIFICACAO_INADIMPLENTE_{_slugify(locatario_nome_inad)}_{data_slug}.docx"
-            caminho_saida       = str(CONTRATOS_FOLDER / nome_saida)
-
-            gerar_notificacao_inadimplente(
-                locatario_nome = locatario_nome_inad,
-                data_contrato  = request.form.get("data_contrato_inad", ""),
-                valor_debito   = float(request.form.get("valor_debito_inad") or 0),
-                caminho_saida  = caminho_saida,
-                template_path  = str(template_path),
-            )
-
-        else:  # quitacao
-            def _f(campo): return float(request.form.get(campo) or 0)
-            def _i(campo): return int(float(request.form.get(campo) or 0))
-
-            devedor_nome  = request.form.get("devedor_nome", "")
-            nome_pessoa   = devedor_nome
-            data_slug     = datetime.now().strftime("%d.%m.%Y")
-            nome_saida    = f"QUITACAO_DIVIDA_{_slugify(devedor_nome)}_{data_slug}.docx"
-            caminho_saida = str(CONTRATOS_FOLDER / nome_saida)
-
-            gerar_termo_quitacao(
-                devedor_nome          = devedor_nome,
-                devedor_cpf           = request.form.get("devedor_cpf", ""),
-                placa                 = request.form.get("placa", ""),
-                mes_referencia_fipe   = request.form.get("mes_referencia_fipe", ""),
-                valor_fipe            = _f("valor_fipe"),
-                percentual_fipe       = _f("percentual_fipe"),
-                meias_diarias         = _f("meias_diarias"),
-                entrada               = _f("entrada"),
-                num_parcelas_pagas    = _i("num_parcelas_pagas"),
-                valor_parcela_paga    = _f("valor_parcela_paga"),
-                num_parcelas_semanais = _i("num_parcelas_semanais"),
-                valor_parcela_semanal = _f("valor_parcela_semanal"),
-                data_primeira_parcela = request.form.get("data_primeira_parcela", ""),
-                data_assinatura       = request.form.get("data_assinatura", ""),
-                caminho_saida         = caminho_saida,
-                template_path         = str(template_path),
-            )
-
+        nome_pessoa = _gerar_para_caminho(request.form, tipo, str(template_path), caminho_saida)
     except Exception as e:
         return jsonify({"error": f"Erro ao gerar contrato: {e}"}), 500
 
@@ -305,6 +311,51 @@ def gerar_contrato_route():
         download_name=nome_saida,
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
+
+
+@app.route("/preview-contrato", methods=["POST"])
+def preview_contrato():
+    import mammoth
+
+    template_filename = request.form.get("template", "")
+    if not template_filename:
+        return jsonify({"error": "Selecione um template."}), 400
+
+    template_path = UPLOAD_FOLDER / secure_filename(template_filename)
+    if not template_path.exists():
+        return jsonify({"error": "Template não encontrado."}), 400
+
+    tipo = detectar_tipo(template_filename)
+    if tipo is None:
+        return jsonify({"error": "Template não reconhecido."}), 400
+
+    temp_id = uuid.uuid4().hex
+    caminho_temp = str(TEMP_FOLDER / f"{temp_id}.docx")
+
+    try:
+        _gerar_para_caminho(request.form, tipo, str(template_path), caminho_temp)
+    except Exception as e:
+        return jsonify({"error": f"Erro ao gerar pré-visualização: {e}"}), 500
+
+    try:
+        with open(caminho_temp, "rb") as f:
+            result = mammoth.convert_to_html(f)
+        html = result.value
+    except Exception as e:
+        Path(caminho_temp).unlink(missing_ok=True)
+        return jsonify({"error": f"Erro ao converter para HTML: {e}"}), 500
+
+    return jsonify({"html": html, "temp_id": temp_id})
+
+
+@app.route("/cleanup-temp/<temp_id>", methods=["POST"])
+def cleanup_temp(temp_id):
+    if not re.match(r'^[0-9a-f]{32}$', temp_id):
+        abort(400)
+    caminho = TEMP_FOLDER / f"{temp_id}.docx"
+    if caminho.exists():
+        caminho.unlink()
+    return jsonify({"ok": True})
 
 
 # ── página 3 — Histórico ──────────────────────────────────
@@ -365,6 +416,50 @@ def excluir_contrato(entry_id):
         historico = [e for e in historico if e.get("id") != entry_id]
         save_historico(historico)
     return jsonify({"ok": True})
+
+
+@app.route("/historico/exportar-excel")
+def exportar_historico_excel():
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    historico = list(reversed(get_historico()))
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Histórico"
+
+    cabecalho = ["Locatário", "Template", "Data / Hora", "Nome do Arquivo"]
+    ws.append(cabecalho)
+    for cell in ws[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1E3A5F")
+        cell.alignment = Alignment(horizontal="center")
+
+    for item in historico:
+        ws.append([
+            item.get("locatario_nome", ""),
+            item.get("template", ""),
+            item.get("data_hora", ""),
+            item.get("arquivo", ""),
+        ])
+
+    for col in ws.columns:
+        max_len = max((len(str(cell.value or "")) for cell in col), default=0)
+        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 60)
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    data_hoje = datetime.now().strftime("%d-%m-%Y")
+    nome_arquivo = f"HISTORICO_ATIVUZ_{data_hoje}.xlsx"
+
+    return send_file(
+        buf,
+        as_attachment=True,
+        download_name=nome_arquivo,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 if __name__ == "__main__":
