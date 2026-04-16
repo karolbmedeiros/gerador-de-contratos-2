@@ -570,10 +570,10 @@ def processar_vistoria():
     try:
         gerar_vistoria_entrega(dados, fotos_paths, caminho_docx, str(VISTORIA_TEMPLATE))
     except Exception as e:
+        import traceback; traceback.print_exc()
         for p in fotos_paths:
             p.unlink(missing_ok=True)
-        flash(f"Erro ao gerar vistoria: {e}", "erro")
-        return redirect(url_for("pagina_vistoria"))
+        return jsonify({"error": f"Erro ao gerar vistoria: {e}"}), 500
 
     for p in fotos_paths:
         p.unlink(missing_ok=True)

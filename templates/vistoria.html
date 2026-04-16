@@ -388,13 +388,6 @@ async function gerarVistoria(formato) {
 
     const ct = resp.headers.get('content-type') || '';
 
-    // Erro JSON
-    if (ct.includes('application/json')) {
-      const data = await resp.json();
-      alert(data.error || 'Erro ao gerar vistoria.');
-      return;
-    }
-
     // Redirect (erro no servidor) — o fetch segue o redirect e retorna HTML
     if (!resp.ok || resp.redirected || ct.includes('text/html')) {
       window.location.href = resp.url;
@@ -402,6 +395,10 @@ async function gerarVistoria(formato) {
     }
 
     const data = await resp.json();
+    if (data.error) {
+      alert(data.error);
+      return;
+    }
     // Navega diretamente para a URL do servidor — funciona em iOS, Android e desktop.
     // O browser faz o download nativo via Content-Disposition: attachment.
     window.location.href = data.download_url;

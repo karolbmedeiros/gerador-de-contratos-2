@@ -702,18 +702,17 @@ def gerar_vistoria_entrega(dados, fotos: list, caminho_saida: str, template_path
     if sig_r:
         tbl2.rows[0].cells[1].paragraphs[0].add_run(f" {sig_r}")
 
-    # ── Fotos ao final do documento ───────────────────────────────────────────
+    # ── Fotos logo apos as assinaturas (sem quebra de pagina) ────────────────
     if fotos:
-        doc.add_page_break()
-        h = doc.add_paragraph("Fotos")
-        try:
-            h.style = doc.styles["Heading 2"]
-        except KeyError:
-            pass
+        tbl2_element = tbl2._element
+        insert_after = tbl2_element
         for foto_path in fotos:
             try:
-                doc.add_picture(str(foto_path), width=Inches(5.5))
-                doc.add_paragraph()
+                doc.add_picture(str(foto_path), width=Inches(7.5))
+                pic_para = doc.paragraphs[-1]._element
+                pic_para.getparent().remove(pic_para)
+                insert_after.addnext(pic_para)
+                insert_after = pic_para
             except Exception:
                 pass
 
