@@ -631,37 +631,37 @@ def gerar_vistoria_entrega(dados, fotos: list, caminho_saida: str, template_path
     #   linhas 1,4,7,10,13: labels S/N/A
     #   linhas 2,5,8,11,14: celulas de checkbox [    ]
     checklist = [
-        # chk_row, S, N, A,  chave
+        # chk_row, S,  N,  A,  chave
         (2,  0,  1,  2,  "acc_calotas"),
         (2,  3,  5,  7,  "acc_buzina"),
         (2,  8,  9,  10, "acc_doc_crlv"),
         (2,  11, 12, 13, "acc_triangulo"),
-        (2,  14, 15, 16, "acc_antena"),
-        (2,  17, 18, 19, "acc_sensor_re"),
+        (2,  14, 16, 17, "acc_antena"),
+        (2,  18, 20, 21, "acc_sensor_re"),
         (5,  0,  1,  2,  "acc_som"),
         (5,  3,  4,  6,  "acc_tapetes"),
         (5,  8,  9,  10, "acc_limpadores"),
         (5,  11, 12, 13, "acc_chave_roda"),
-        (5,  14, 15, 16, "acc_vidros"),
-        (5,  17, 18, 19, "acc_oleo_motor"),
+        (5,  14, 16, 17, "acc_vidros"),
+        (5,  18, 20, 21, "acc_oleo_motor"),
         (8,  0,  1,  2,  "acc_alarme"),
         (8,  3,  4,  6,  "acc_lampadas"),
         (8,  8,  9,  10, "acc_macaco"),
         (8,  11, 12, 13, "acc_estepe"),
-        (8,  14, 15, 16, "acc_gnv"),
-        (8,  17, 18, 19, "acc_agua"),
+        (8,  14, 16, 17, "acc_gnv"),
+        (8,  18, 20, 21, "acc_agua"),
         (11, 0,  1,  2,  "acc_borracha_psg_d"),
         (11, 3,  4,  6,  "acc_borr_mtr"),
         (11, 8,  9,  10, "acc_asa_urubu_dd"),
         (11, 11, 12, 13, "acc_asa_urub_td"),
-        (11, 14, 15, 16, "acc_tapete_mala"),
-        (11, 17, 18, 19, "acc_tampa_prx"),
+        (11, 14, 16, 17, "acc_tapete_mala"),
+        (11, 18, 20, 21, "acc_tampa_prx"),
         (14, 0,  1,  2,  "acc_borracha_psg_t"),
         (14, 3,  4,  6,  "acc_borr_mtr_t"),
         (14, 8,  9,  10, "acc_asa_urubu_de"),
         (14, 11, 12, 13, "acc_asa_urub_te"),
-        (14, 14, 15, 16, "acc_bagagito"),
-        (14, 17, 18, 19, "acc_linguet"),
+        (14, 14, 16, 17, "acc_bagagito"),
+        (14, 18, 20, 21, "acc_linguet"),
     ]
     sna_col = {"S": 0, "N": 1, "A": 2}
     for chk_row, s_col, n_col, a_col, key in checklist:
