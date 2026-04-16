@@ -578,7 +578,7 @@ def processar_vistoria():
     for p in fotos_paths:
         p.unlink(missing_ok=True)
 
-    # ── Histórico ─────────────────────────────────────────────────────────────
+    # ── Histórico + resposta ──────────────────────────────────────────────────
     if formato == "docx":
         historico = get_historico()
         historico.append({
@@ -589,12 +589,7 @@ def processar_vistoria():
             "arquivo": nome_docx,
         })
         save_historico(historico)
-        return send_file(
-            caminho_docx,
-            as_attachment=True,
-            download_name=nome_docx,
-            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        )
+        return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_docx)})
 
     try:
         _converter_pdf(caminho_docx, caminho_pdf)
@@ -612,12 +607,18 @@ def processar_vistoria():
     })
     save_historico(historico)
 
-    return send_file(
-        caminho_pdf,
-        as_attachment=True,
-        download_name=nome_pdf,
-        mimetype="application/pdf",
-    )
+    return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_pdf)})
+
+
+@app.route("/vistoria/download/<nome>")
+def baixar_vistoria(nome):
+    caminho = CONTRATOS_FOLDER / nome
+    if not caminho.exists() or caminho.parent.resolve() != CONTRATOS_FOLDER.resolve():
+        abort(404)
+    ext = caminho.suffix.lower()
+    mime = "application/pdf" if ext == ".pdf" else \
+           "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    return send_file(str(caminho), as_attachment=True, download_name=nome, mimetype=mime)
 
 
 if __name__ == "__main__":

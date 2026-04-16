@@ -401,23 +401,10 @@ async function gerarVistoria(formato) {
       return;
     }
 
-    const blob = await resp.blob();
-    const disposition = resp.headers.get('content-disposition') || '';
-    const match = disposition.match(/filename[^;=\n]*=['"]?([^'"\n]+)['"]?/);
-    const filename = match ? match[1] : (formato === 'docx' ? 'vistoria.docx' : 'vistoria.pdf');
-
-    const url = URL.createObjectURL(blob);
-
-    // iOS Safari não suporta o atributo download em blob URLs.
-    // window.open abre o arquivo diretamente no browser/app — funciona em iOS e Android.
-    const aberto = window.open(url, '_blank');
-    if (!aberto) {
-      // Popup bloqueado (ex: desktop sem interação) — usa o fallback de anchor
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click(); a.remove();
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    const data = await resp.json();
+    // Navega diretamente para a URL do servidor — funciona em iOS, Android e desktop.
+    // O browser faz o download nativo via Content-Disposition: attachment.
+    window.location.href = data.download_url;
 
   } catch (_) {
     alert('Erro de conexão. Tente novamente.');
