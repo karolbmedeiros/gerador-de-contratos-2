@@ -813,8 +813,30 @@ def gerar_vistoria_nova(dados: dict, foto_path, caminho_saida: str) -> None:
         doc_xml_path = tmp / "word" / "document.xml"
         xml = doc_xml_path.read_text(encoding='utf-8')
 
+        # Campos normais: substituição simples
         for key, value in dados.items():
-            xml = xml.replace(f'[{key}]', _safe_xml(value or ''))
+            if not key.startswith('acc_'):
+                xml = xml.replace(f'[{key}]', _safe_xml(value or ''))
+
+        # Acessórios: substituir o run inteiro para aplicar a cor correta
+        _ACC_CORES = {'S': '1A6B1A', 'N': 'CC0000', 'A': 'D4AC0D'}
+        for key, value in dados.items():
+            if not key.startswith('acc_'):
+                continue
+            cor = _ACC_CORES.get((value or '').upper(), '333333')
+            novo_run = (
+                f'<w:r><w:rPr><w:b/><w:bCs/>'
+                f'<w:color w:val="{cor}"/>'
+                f'<w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>'
+                f'<w:t>{_safe_xml(value or "")}</w:t></w:r>'
+            )
+            xml = re.sub(
+                r'<w:r><w:rPr><w:b/><w:bCs/><w:color w:val="[^"]*"/>'
+                r'<w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>'
+                r'<w:t>\[' + re.escape(key) + r'\]</w:t></w:r>',
+                novo_run,
+                xml,
+            )
 
         doc_xml_path.write_text(xml, encoding='utf-8')
 
