@@ -723,6 +723,22 @@ def gerar_vistoria_entrega(dados, fotos: list, caminho_saida: str, template_path
 
 # ── Helpers para gerar_vistoria_nova ────────────────────────────────────────
 
+def _join_fragmented_runs(xml: str) -> str:
+    """Remove proofErr e une runs consecutivos com mesmo rPr (corrige marcadores fragmentados)."""
+    xml = re.sub(r'<w:proofErr\b[^>]*/>', '', xml)
+    pattern = re.compile(
+        r'<w:r>(<w:rPr>.*?</w:rPr>)'
+        r'(<w:t(?:\s[^>]*)?>)(.*?)</w:t></w:r>'
+        r'<w:r>\1\2(.*?)</w:t></w:r>',
+        re.DOTALL,
+    )
+    prev = None
+    while prev != xml:
+        prev = xml
+        xml = pattern.sub(r'<w:r>\1\2\3\4</w:t></w:r>', xml)
+    return xml
+
+
 def _safe_xml(text: str) -> str:
     return (text
         .replace('&', '&amp;')
@@ -812,6 +828,7 @@ def gerar_vistoria_nova(dados: dict, foto_path, caminho_saida: str) -> None:
 
         doc_xml_path = tmp / "word" / "document.xml"
         xml = doc_xml_path.read_text(encoding='utf-8')
+        xml = _join_fragmented_runs(xml)
 
         # Campos normais: substituição simples
         for key, value in dados.items():
