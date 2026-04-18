@@ -675,10 +675,13 @@ def gerar_vistoria_route():
             foto.save(str(p))
             foto_path = str(p)
 
+    formato    = request.form.get("formato", "docx").lower()
     placa_slug = _slugify(dados["placa"] or "PLACA")
     data_slug  = agora.strftime("%d.%m.%Y")
     nome_docx  = f"VISTORIA_{placa_slug}_{data_slug}.docx"
+    nome_pdf   = nome_docx.replace(".docx", ".pdf")
     caminho_docx = str(CONTRATOS_FOLDER / nome_docx)
+    caminho_pdf  = str(CONTRATOS_FOLDER / nome_pdf)
 
     try:
         gerar_vistoria_nova(dados, foto_path, caminho_docx)
@@ -689,17 +692,27 @@ def gerar_vistoria_route():
         if foto_path:
             Path(foto_path).unlink(missing_ok=True)
 
+    arquivo_historico = nome_docx
+
+    if formato == "pdf":
+        try:
+            _converter_pdf(caminho_docx, caminho_pdf)
+            arquivo_historico = nome_pdf
+        except Exception as e:
+            return jsonify({"error": f"Erro ao converter para PDF: {e}"}), 422
+
     historico = get_historico()
     historico.append({
         "id": uuid.uuid4().hex,
         "locatario_nome": dados["cliente_nome"],
         "data_hora": agora.strftime("%d/%m/%Y %H:%M"),
         "template": "VISTORIA",
-        "arquivo": nome_docx,
+        "arquivo": arquivo_historico,
     })
     save_historico(historico)
 
-    return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_docx)})
+    nome_download = nome_pdf if formato == "pdf" else nome_docx
+    return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_download)})
 
 
 @app.route("/vistoria/download/<nome>")
