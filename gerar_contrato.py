@@ -719,3 +719,130 @@ def gerar_vistoria_entrega(dados, fotos: list, caminho_saida: str, template_path
     saida = _Path(caminho_saida)
     saida.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(saida))
+
+
+# ── Helpers para gerar_vistoria_nova ────────────────────────────────────────
+
+def _safe_xml(text: str) -> str:
+    return (text
+        .replace('&', '&amp;')
+        .replace('<', '&lt;')
+        .replace('>', '&gt;')
+        .replace('"', '&quot;'))
+
+
+def _img_emu(path: str):
+    import struct
+    MAX_W = 5_486_400  # 6 pol
+    p = Path(path)
+    data = p.read_bytes()
+    w, h = 800, 600
+    ext = p.suffix.lower()
+    try:
+        if ext == '.png':
+            w, h = struct.unpack('>II', data[16:24])
+        elif ext in ('.jpg', '.jpeg'):
+            i = 2
+            while i < len(data) - 4:
+                if data[i] != 0xFF:
+                    break
+                marker = data[i + 1]
+                if marker in (0xC0, 0xC1, 0xC2):
+                    h, w = struct.unpack('>HH', data[i + 5:i + 9])
+                    break
+                length = struct.unpack('>H', data[i + 2:i + 4])[0]
+                i += 2 + length
+    except Exception:
+        pass
+    emu_per_px = 914400 // 96
+    cx = w * emu_per_px
+    cy = h * emu_per_px
+    if cx > MAX_W:
+        cy = cy * MAX_W // cx
+        cx = MAX_W
+    return cx, cy
+
+
+def _inline_drawing_xml(r_id: str, cx: int, cy: int, pic_id: int, name: str) -> str:
+    return (
+        '<w:p><w:r><w:drawing>'
+        '<wp:inline distT="0" distB="0" distL="0" distR="0"'
+        ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">'
+        f'<wp:extent cx="{cx}" cy="{cy}"/>'
+        '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+        f'<wp:docPr id="{pic_id}" name="{name}"/>'
+        '<wp:cNvGraphicFramePr/>'
+        '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+        '<pic:nvPicPr>'
+        f'<pic:cNvPr id="{pic_id}" name="{name}"/>'
+        '<pic:cNvPicPr/>'
+        '</pic:nvPicPr>'
+        '<pic:blipFill>'
+        f'<a:blip r:embed="{r_id}"'
+        ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>'
+        '<a:stretch><a:fillRect/></a:stretch>'
+        '</pic:blipFill>'
+        '<pic:spPr>'
+        f'<a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm>'
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>'
+        '</pic:spPr>'
+        '</pic:pic>'
+        '</a:graphicData>'
+        '</a:graphic>'
+        '</wp:inline>'
+        '</w:drawing></w:r></w:p>'
+    )
+
+
+def gerar_vistoria_nova(dados: dict, foto_path, caminho_saida: str) -> None:
+    """Preenche VISTORIA_TEMPLATE1_marcado.docx substituindo marcadores [campo] por nome."""
+    import shutil
+
+    template = Path(__file__).parent / "docx_templates" / "VISTORIA_TEMPLATE1_marcado.docx"
+    if not template.exists():
+        raise FileNotFoundError(f"Template não encontrado: {template}")
+
+    with tempfile.TemporaryDirectory() as tmp_str:
+        tmp = Path(tmp_str)
+
+        with zipfile.ZipFile(template, 'r') as z:
+            z.extractall(tmp)
+
+        doc_xml_path = tmp / "word" / "document.xml"
+        xml = doc_xml_path.read_text(encoding='utf-8')
+
+        for key, value in dados.items():
+            xml = xml.replace(f'[{key}]', _safe_xml(value or ''))
+
+        doc_xml_path.write_text(xml, encoding='utf-8')
+
+        if foto_path:
+            ext = Path(foto_path).suffix.lower()
+            media_name = f"foto_upload{ext}"
+            shutil.copy2(foto_path, tmp / "word" / "media" / media_name)
+
+            rels_path = tmp / "word" / "_rels" / "document.xml.rels"
+            rels = rels_path.read_text(encoding='utf-8')
+            new_rel = (
+                '<Relationship Id="rId11"'
+                ' Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"'
+                f' Target="media/{media_name}"/>'
+            )
+            rels = rels.replace('</Relationships>', new_rel + '</Relationships>')
+            rels_path.write_text(rels, encoding='utf-8')
+
+            cx, cy = _img_emu(foto_path)
+            drawing = _inline_drawing_xml("rId11", cx, cy, 100, "foto_upload")
+
+            xml = doc_xml_path.read_text(encoding='utf-8')
+            xml = xml.replace('</w:body>', drawing + '</w:body>')
+            doc_xml_path.write_text(xml, encoding='utf-8')
+
+        saida = Path(caminho_saida)
+        saida.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(saida, 'w', zipfile.ZIP_DEFLATED) as z:
+            for f in tmp.rglob('*'):
+                if f.is_file():
+                    z.write(f, f.relative_to(tmp))

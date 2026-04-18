@@ -13,7 +13,7 @@ import subprocess
 import unicodedata
 import uuid
 
-from gerar_contrato import gerar_docx, gerar_termo_quitacao, gerar_notificacao_avalista, gerar_notificacao_inadimplente, gerar_vistoria_entrega, nome_arquivo_saida
+from gerar_contrato import gerar_docx, gerar_termo_quitacao, gerar_notificacao_avalista, gerar_notificacao_inadimplente, gerar_vistoria_entrega, gerar_vistoria_nova, nome_arquivo_saida
 
 app = Flask(__name__)
 app.secret_key = "ativuz-secret-2026"
@@ -608,6 +608,95 @@ def processar_vistoria():
     save_historico(historico)
 
     return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_pdf)})
+
+
+@app.route("/vistoria/gerar", methods=["POST"])
+def gerar_vistoria_route():
+    agora = datetime.now()
+    dados = {
+        "cliente_nome":      request.form.get("cliente_nome", ""),
+        "cliente_telefone":  request.form.get("cliente_telefone", ""),
+        "cliente_endereco":  request.form.get("cliente_endereco", ""),
+        "preenchido_por":    request.form.get("preenchido_por", ""),
+        "data_vistoria":     agora.strftime("%d/%m/%Y"),
+        "veiculo":           request.form.get("veiculo", ""),
+        "placa":             request.form.get("placa", "").upper(),
+        "cor":               request.form.get("cor", ""),
+        "ano":               request.form.get("ano", ""),
+        "chassi":            request.form.get("chassi", ""),
+        "numero_motor":      request.form.get("numero_motor", ""),
+        "data_hora":         agora.strftime("%d/%m/%Y %H:%M"),
+        "hodometro_entrega": request.form.get("hodometro_entrega", ""),
+        "hodometro_retorno": request.form.get("hodometro_retorno", ""),
+        "combustivel":       request.form.get("combustivel", ""),
+        "acc_calotas":          request.form.get("acc_calotas", ""),
+        "acc_buzina":           request.form.get("acc_buzina", ""),
+        "acc_doc_crlv":         request.form.get("acc_doc_crlv", ""),
+        "acc_triangulo":        request.form.get("acc_triangulo", ""),
+        "acc_antena":           request.form.get("acc_antena", ""),
+        "acc_sensor_re":        request.form.get("acc_sensor_re", ""),
+        "acc_som":              request.form.get("acc_som", ""),
+        "acc_tapetes":          request.form.get("acc_tapetes", ""),
+        "acc_limpadores":       request.form.get("acc_limpadores", ""),
+        "acc_chave_roda":       request.form.get("acc_chave_roda", ""),
+        "acc_vidros_eletricos": request.form.get("acc_vidros_eletricos", ""),
+        "acc_oleo_motor":       request.form.get("acc_oleo_motor", ""),
+        "acc_alarme":           request.form.get("acc_alarme", ""),
+        "acc_lampadas":         request.form.get("acc_lampadas", ""),
+        "acc_macaco":           request.form.get("acc_macaco", ""),
+        "acc_estepe":           request.form.get("acc_estepe", ""),
+        "acc_gnv":              request.form.get("acc_gnv", ""),
+        "acc_agua":             request.form.get("acc_agua", ""),
+        "acc_borr_psg_dir":     request.form.get("acc_borr_psg_dir", ""),
+        "acc_borr_mtr_dir":     request.form.get("acc_borr_mtr_dir", ""),
+        "acc_asa_dd":           request.form.get("acc_asa_dd", ""),
+        "acc_asa_td":           request.form.get("acc_asa_td", ""),
+        "acc_tapete_mala":      request.form.get("acc_tapete_mala", ""),
+        "acc_tampa_parachoque": request.form.get("acc_tampa_parachoque", ""),
+        "acc_borr_psg_tras":    request.form.get("acc_borr_psg_tras", ""),
+        "acc_borr_mtr_tras":    request.form.get("acc_borr_mtr_tras", ""),
+        "acc_asa_de":           request.form.get("acc_asa_de", ""),
+        "acc_asa_te":           request.form.get("acc_asa_te", ""),
+        "acc_bagagito":         request.form.get("acc_bagagito", ""),
+        "acc_lingueta":         request.form.get("acc_lingueta", ""),
+        "obs_gerais":        request.form.get("obs_gerais", ""),
+        "desc_sintomas":     request.form.get("desc_sintomas", ""),
+    }
+
+    foto_path = None
+    foto = request.files.get("foto")
+    if foto and foto.filename:
+        ext = Path(secure_filename(foto.filename)).suffix.lower()
+        if ext in ('.jpg', '.jpeg', '.png'):
+            p = TEMP_FOLDER / f"{uuid.uuid4().hex}{ext}"
+            foto.save(str(p))
+            foto_path = str(p)
+
+    placa_slug = _slugify(dados["placa"] or "PLACA")
+    data_slug  = agora.strftime("%d.%m.%Y")
+    nome_docx  = f"VISTORIA_{placa_slug}_{data_slug}.docx"
+    caminho_docx = str(CONTRATOS_FOLDER / nome_docx)
+
+    try:
+        gerar_vistoria_nova(dados, foto_path, caminho_docx)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({"error": f"Erro ao gerar vistoria: {e}"}), 500
+    finally:
+        if foto_path:
+            Path(foto_path).unlink(missing_ok=True)
+
+    historico = get_historico()
+    historico.append({
+        "id": uuid.uuid4().hex,
+        "locatario_nome": dados["cliente_nome"],
+        "data_hora": agora.strftime("%d/%m/%Y %H:%M"),
+        "template": "VISTORIA",
+        "arquivo": nome_docx,
+    })
+    save_historico(historico)
+
+    return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_docx)})
 
 
 @app.route("/vistoria/download/<nome>")

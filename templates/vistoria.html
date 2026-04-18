@@ -3,7 +3,6 @@
 
 {% block content %}
 <style>
-/* ── S/N/A toggle ────────────────────────────────────────────────────────── */
 .sna-row {
   display: flex;
   align-items: center;
@@ -12,33 +11,20 @@
   border-bottom: 1px solid #f1f5f9;
 }
 .sna-row:last-child { border-bottom: none; }
-.sna-label {
-  flex: 1;
-  font-size: 0.82rem;
-  color: #374151;
-}
+.sna-label { flex: 1; font-size: 0.82rem; color: #374151; }
 .sna-toggle { display: flex; gap: 3px; flex-shrink: 0; }
 .sna-btn {
-  width: 30px;
-  height: 26px;
-  border: 1.5px solid #d1d5db;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.72rem;
-  color: #9ca3af;
+  width: 30px; height: 26px;
+  border: 1.5px solid #d1d5db; background: #fff;
+  border-radius: 4px; cursor: pointer;
+  font-weight: 700; font-size: 0.72rem; color: #9ca3af;
   transition: background 0.1s, color 0.1s, border-color 0.1s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
+  display: flex; align-items: center; justify-content: center; padding: 0;
 }
 .sna-btn:hover { background: #f3f4f6; color: #374151; }
 .sna-s.sna-sel { background: #16a34a; color: #fff; border-color: #16a34a; }
 .sna-n.sna-sel { background: #dc2626; color: #fff; border-color: #dc2626; }
 .sna-a.sna-sel { background: #d97706; color: #fff; border-color: #d97706; }
-/* checklist grid */
 .checklist-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -46,63 +32,29 @@
   gap: 0;
 }
 @media (max-width: 640px) { .checklist-grid { grid-template-columns: 1fr; } }
-/* combustível radio */
-.radio-group { display: flex; gap: 1rem; flex-wrap: wrap; }
-.radio-item { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.88rem; }
-.radio-item input[type="radio"] { accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer; }
-/* foto upload */
-.foto-drop {
-  border: 2px dashed #cbd5e1;
-  border-radius: 8px;
-  padding: 2rem;
-  text-align: center;
-  color: #64748b;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  position: relative;
-}
-.foto-drop:hover { border-color: #3b82f6; }
-.foto-drop input[type="file"] {
-  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-}
-.foto-preview {
-  display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem;
-}
-.foto-thumb {
-  width: 72px; height: 72px; object-fit: cover;
-  border-radius: 6px; border: 1px solid #e2e8f0;
-}
 </style>
 
 <div class="page-header">
   <h1 class="page-title">Vistoria de Entrega</h1>
-  <p class="page-sub">Preencha o formulário e baixe o .docx preenchido</p>
+  <p class="page-sub">Ordem de Serviço e Vistoria de Veículo — preencha e baixe o documento</p>
 </div>
 
-{% if not template_ok %}
-<div class="alert alert-erro">
-  Template <strong>Vistoria_de_Entrega_TEMPLATE_1.docx</strong> não encontrado em
-  <code>docx_templates/</code>. Coloque o arquivo na pasta e recarregue a página.
-</div>
-{% endif %}
+<form action="{{ url_for('gerar_vistoria_route') }}" method="post" enctype="multipart/form-data" id="form-vistoria">
 
-<form action="{{ url_for('processar_vistoria') }}" method="post"
-      enctype="multipart/form-data" id="form-vistoria">
-
-  <!-- ── Identificação ── -->
+  <!-- ── Dados do Cliente ── -->
   <div class="card">
     <div class="card-header">
-      <h2 class="card-title"><span class="section-pill pill-blue">Identificação</span></h2>
+      <h2 class="card-title"><span class="section-pill pill-blue">Dados do Cliente</span></h2>
     </div>
     <div class="form-grid">
       <div class="form-group col-2">
-        <label class="form-label" for="cliente">Cliente</label>
-        <input type="text" name="cliente" id="cliente" class="form-input"
+        <label class="form-label" for="cliente_nome">Cliente</label>
+        <input type="text" name="cliente_nome" id="cliente_nome" class="form-input"
                placeholder="Nome completo do cliente">
       </div>
       <div class="form-group">
-        <label class="form-label" for="tel">Telefone</label>
-        <input type="text" name="tel" id="tel" class="form-input"
+        <label class="form-label" for="cliente_telefone">Telefone</label>
+        <input type="text" name="cliente_telefone" id="cliente_telefone" class="form-input"
                placeholder="(84) 99999-9999">
       </div>
       <div class="form-group">
@@ -111,23 +63,17 @@
                placeholder="Nome do responsável">
       </div>
       <div class="form-group col-2">
-        <label class="form-label" for="endereco">Endereço</label>
-        <input type="text" name="endereco" id="endereco" class="form-input"
+        <label class="form-label" for="cliente_endereco">Endereço</label>
+        <input type="text" name="cliente_endereco" id="cliente_endereco" class="form-input"
                placeholder="Rua, número, bairro, cidade/UF">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Data</label>
-        <input type="text" class="form-input" id="data-auto" readonly
-               style="color:#64748b; background:#f1f5f9; cursor:default;">
-        <input type="hidden" name="data" id="data-hidden">
       </div>
     </div>
   </div>
 
-  <!-- ── Veículo ── -->
+  <!-- ── Dados do Veículo ── -->
   <div class="card">
     <div class="card-header">
-      <h2 class="card-title"><span class="section-pill pill-green">Veículo</span></h2>
+      <h2 class="card-title"><span class="section-pill pill-green">Dados do Veículo</span></h2>
     </div>
     <div class="form-grid">
       <div class="form-group col-2">
@@ -138,48 +84,46 @@
       <div class="form-group">
         <label class="form-label" for="placa">Placa</label>
         <input type="text" name="placa" id="placa" class="form-input"
-               placeholder="ABC-1234" style="text-transform:uppercase">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="ano">Ano</label>
-        <input type="text" name="ano" id="ano" class="form-input" placeholder="2020/2021">
+               placeholder="ABC1D23" style="text-transform:uppercase">
       </div>
       <div class="form-group">
         <label class="form-label" for="cor">Cor</label>
-        <input type="text" name="cor" id="cor" class="form-input" placeholder="Preto">
+        <input type="text" name="cor" id="cor" class="form-input" placeholder="Prata">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="ano">Ano</label>
+        <input type="text" name="ano" id="ano" class="form-input" placeholder="2022">
       </div>
       <div class="form-group col-2">
         <label class="form-label" for="chassi">Número CHASSI</label>
         <input type="text" name="chassi" id="chassi" class="form-input"
-               placeholder="9BWZZZ377VT004251">
+               placeholder="9BD158476N0123456">
       </div>
       <div class="form-group col-2">
-        <label class="form-label" for="motor">Número Motor</label>
-        <input type="text" name="motor" id="motor" class="form-input"
-               placeholder="ABC123456">
+        <label class="form-label" for="numero_motor">Número Motor</label>
+        <input type="text" name="numero_motor" id="numero_motor" class="form-input"
+               placeholder="131A1000000">
       </div>
       <div class="form-group">
-        <label class="form-label" for="hodometro_entrega">Hodômetro Entrega (km)</label>
+        <label class="form-label" for="hodometro_entrega">Hodômetro Entrega</label>
         <input type="text" name="hodometro_entrega" id="hodometro_entrega" class="form-input"
-               placeholder="45000">
+               placeholder="45.200 km">
       </div>
       <div class="form-group">
-        <label class="form-label" for="hodometro_retorno">Hodômetro Retorno (km)</label>
+        <label class="form-label" for="hodometro_retorno">Hodômetro Retorno</label>
         <input type="text" name="hodometro_retorno" id="hodometro_retorno" class="form-input"
-               placeholder="45500">
+               placeholder="—">
       </div>
       <div class="form-group col-2">
         <label class="form-label">Combustível</label>
-        <div class="radio-group" style="padding-top:0.25rem">
-          <label class="radio-item">
-            <input type="radio" name="combustivel" value="MT"> MT (cheio)
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap; padding-top:0.25rem">
+          {% for val, label in [('1/4','1/4'),('MT','MT (metade)'),('3/4','3/4'),('TC','TC (cheio)')] %}
+          <label style="display:flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:0.88rem;">
+            <input type="radio" name="combustivel" value="{{ val }}"
+                   style="accent-color:#3b82f6; width:16px; height:16px; cursor:pointer;">
+            {{ label }}
           </label>
-          <label class="radio-item">
-            <input type="radio" name="combustivel" value="6/8"> 6/8
-          </label>
-          <label class="radio-item">
-            <input type="radio" name="combustivel" value="TC"> TC (tanque cheio)
-          </label>
+          {% endfor %}
         </div>
       </div>
     </div>
@@ -191,40 +135,38 @@
       <h2 class="card-title"><span class="section-pill pill-blue">Acessórios / Checklist</span></h2>
     </div>
     <div class="checklist-grid">
-
       {% set itens = [
-        ('calotas',          'Calotas'),
-        ('buzina',           'Buzina'),
-        ('doc_crlv',         'Doc. CRLV'),
-        ('triangulo',        'Triângulo'),
-        ('antena',           'Antena'),
-        ('sensor_re',        'Sensor de ré'),
-        ('som',              'Som'),
-        ('tapetes',          'Tapetes'),
-        ('limpadores',       'Limpadores'),
-        ('chave_roda',       'Chave de roda'),
-        ('vidros',           'Vidros'),
-        ('oleo_motor',       'Óleo motor'),
-        ('alarme',           'Alarme'),
-        ('lampadas',         'Lâmpadas'),
-        ('macaco',           'Macaco'),
-        ('estepe',           'Estepe'),
-        ('gnv',              'GNV'),
-        ('agua',             'Água'),
-        ('borracha_psg_d',   'Borracha Psg D'),
-        ('borracha_mtr_d',   'Borracha Mtr D'),
-        ('asa_urubu_dd',     'Asa urubu DD'),
-        ('asa_urubu_td',     'Asa urubu TD'),
-        ('tapete_mala',      'Tapete/Mala'),
-        ('tampa_paraxq',     'Tampa paraxq'),
-        ('borracha_psg_t',   'Borracha Psg T'),
-        ('borracha_mtr_t',   'Borracha Mtr T'),
-        ('asa_urubu_de',     'Asa urubu DE'),
-        ('asa_urubu_te',     'Asa urubu TE'),
-        ('bagagito',         'Bagagito'),
-        ('lingueta',         'Lingueta'),
+        ('acc_calotas',          'Calotas'),
+        ('acc_buzina',           'Buzina'),
+        ('acc_doc_crlv',         'DOC. CRLV'),
+        ('acc_triangulo',        'Triângulo Sinaliz.'),
+        ('acc_antena',           'Antena'),
+        ('acc_sensor_re',        'Sensor de Ré'),
+        ('acc_som',              'Som / Alto-falante'),
+        ('acc_tapetes',          'Tapetes'),
+        ('acc_limpadores',       'Limpadores'),
+        ('acc_chave_roda',       'Chave de Roda'),
+        ('acc_vidros_eletricos', 'Vidros Elétricos'),
+        ('acc_oleo_motor',       'Óleo do Motor'),
+        ('acc_alarme',           'Alarme / Travas'),
+        ('acc_lampadas',         'Lâmpadas'),
+        ('acc_macaco',           'Macaco Mecânico'),
+        ('acc_estepe',           'Estepe'),
+        ('acc_gnv',              'Func. GNV'),
+        ('acc_agua',             'Água'),
+        ('acc_borr_psg_dir',     'Borracha PSG Dir.'),
+        ('acc_borr_mtr_dir',     'Borracha MTR Dir.'),
+        ('acc_asa_dd',           'Asa Urubu D.D.'),
+        ('acc_asa_td',           'Asa Urubu T.D.'),
+        ('acc_tapete_mala',      'Tapete de Mala'),
+        ('acc_tampa_parachoque', 'Tampa Para-choque'),
+        ('acc_borr_psg_tras',    'Borracha PSG Tras.'),
+        ('acc_borr_mtr_tras',    'Borracha MTR Tras.'),
+        ('acc_asa_de',           'Asa Urubu D.E.'),
+        ('acc_asa_te',           'Asa Urubu T.E.'),
+        ('acc_bagagito',         'Bagagito'),
+        ('acc_lingueta',         'Lingueta'),
       ] %}
-
       {% for key, label in itens %}
       <div class="sna-row">
         <span class="sna-label">{{ label }}</span>
@@ -236,88 +178,48 @@
         <input type="hidden" name="{{ key }}" id="hid_{{ key }}" value="">
       </div>
       {% endfor %}
-
     </div>
   </div>
 
-  <!-- ── Danos / Observações / Sintomas ── -->
+  <!-- ── Observações ── -->
   <div class="card">
     <div class="card-header">
       <h2 class="card-title"><span class="section-pill pill-red">Observações</span></h2>
     </div>
     <div class="form-grid">
       <div class="form-group col-2">
-        <label class="form-label" for="danos">Danos</label>
-        <textarea name="danos" id="danos" class="form-input" rows="3"
-                  placeholder="Descreva os danos visíveis..."></textarea>
-      </div>
-      <div class="form-group col-2">
-        <label class="form-label" for="observacoes">Observações gerais</label>
-        <textarea name="observacoes" id="observacoes" class="form-input" rows="2"
+        <label class="form-label" for="obs_gerais">Observações Gerais</label>
+        <textarea name="obs_gerais" id="obs_gerais" class="form-input" rows="3"
                   placeholder="Observações gerais..."></textarea>
       </div>
       <div class="form-group col-2">
-        <label class="form-label" for="sintomas">Descrição dos sintomas</label>
-        <textarea name="sintomas" id="sintomas" class="form-input" rows="4"
+        <label class="form-label" for="desc_sintomas">Descrição dos Sintomas</label>
+        <textarea name="desc_sintomas" id="desc_sintomas" class="form-input" rows="4"
                   placeholder="Descreva os sintomas detalhadamente..."></textarea>
       </div>
     </div>
   </div>
 
-  <!-- ── Fotos ── -->
+  <!-- ── Foto ── -->
   <div class="card">
     <div class="card-header">
-      <h2 class="card-title"><span class="section-pill pill-blue">Fotos</span></h2>
-    </div>
-    <div style="padding: 0 1.5rem 1.5rem;">
-      <div class="foto-drop" id="foto-drop">
-        <input type="file" name="fotos" id="fotos-input" accept=".jpg,.jpeg,.png"
-               multiple onchange="previsualizarFotos(this)">
-        <svg width="32" height="32" fill="none" stroke="#94a3b8" stroke-width="1.5"
-             viewBox="0 0 24 24" style="margin:0 auto 0.5rem">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <circle cx="8.5" cy="8.5" r="1.5"/>
-          <polyline points="21 15 16 10 5 21"/>
-        </svg>
-        <p style="font-size:0.88rem; color:#64748b; margin:0">
-          Clique ou arraste fotos aqui <span style="color:#94a3b8">(JPG, PNG)</span>
-        </p>
-      </div>
-      <div class="foto-preview" id="foto-preview"></div>
-    </div>
-  </div>
-
-  <!-- ── Assinaturas ── -->
-  <div class="card">
-    <div class="card-header">
-      <h2 class="card-title"><span class="section-pill pill-green">Assinaturas</span></h2>
+      <h2 class="card-title"><span class="section-pill pill-blue">Foto do Veículo</span></h2>
     </div>
     <div class="form-grid">
-      <div class="form-group">
-        <label class="form-label" for="assinatura_cliente">Assinatura — Cliente</label>
-        <input type="text" name="assinatura_cliente" id="assinatura_cliente" class="form-input"
-               placeholder="Nome legível do cliente">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="assinatura_responsavel">Assinatura — Responsável</label>
-        <input type="text" name="assinatura_responsavel" id="assinatura_responsavel" class="form-input"
-               placeholder="Nome legível do responsável">
+      <div class="form-group col-2">
+        <label class="form-label" for="foto">Foto (opcional)</label>
+        <input type="file" name="foto" id="foto" class="form-input" accept=".jpg,.jpeg,.png">
+        <span style="font-size:0.78rem; color:#64748b;">JPG ou PNG — inserida ao final do documento.</span>
       </div>
     </div>
   </div>
 
   <!-- ── Ação ── -->
   <div class="form-actions">
-    <button type="button" class="btn btn-primary btn-lg" id="btn-gerar" onclick="gerarVistoria('pdf')">
+    <button type="button" class="btn btn-primary btn-lg" id="btn-gerar" onclick="gerarVistoria()">
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
            viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
         <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      Gerar Vistoria (PDF)
-    </button>
-    <button type="button" class="btn btn-secondary btn-lg" id="btn-docx" onclick="gerarVistoria('docx')">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
-           viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/></svg>
       Baixar DOCX
     </button>
   </div>
@@ -325,20 +227,6 @@
 </form>
 
 <script>
-// ── Data automática ───────────────────────────────────────────────────────────
-(function() {
-  const now   = new Date();
-  const dd    = String(now.getDate()).padStart(2,'0');
-  const mm    = String(now.getMonth()+1).padStart(2,'0');
-  const yyyy  = now.getFullYear();
-  const hh    = String(now.getHours()).padStart(2,'0');
-  const min   = String(now.getMinutes()).padStart(2,'0');
-  const label = `${dd}/${mm}/${yyyy} ${hh}:${min}`;
-  document.getElementById('data-auto').value   = label;
-  document.getElementById('data-hidden').value = label;
-})();
-
-// ── Toggle S/N/A ─────────────────────────────────────────────────────────────
 function setSNA(btn, campo, valor) {
   const toggle = btn.closest('.sna-toggle');
   toggle.querySelectorAll('.sna-btn').forEach(b => b.classList.remove('sna-sel'));
@@ -346,33 +234,12 @@ function setSNA(btn, campo, valor) {
   document.getElementById('hid_' + campo).value = valor;
 }
 
-// ── Pré-visualizar fotos ──────────────────────────────────────────────────────
-function previsualizarFotos(input) {
-  const container = document.getElementById('foto-preview');
-  container.innerHTML = '';
-  Array.from(input.files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.className = 'foto-thumb';
-      img.title = file.name;
-      container.appendChild(img);
-    };
-    reader.readAsDataURL(file);
-  });
-}
+async function gerarVistoria() {
+  const form = document.getElementById('form-vistoria');
+  const btn  = document.getElementById('btn-gerar');
+  const orig = btn.innerHTML;
 
-// ── Submeter ─────────────────────────────────────────────────────────────────
-async function gerarVistoria(formato) {
-  const form    = document.getElementById('form-vistoria');
-  const btnPdf  = document.getElementById('btn-gerar');
-  const btnDocx = document.getElementById('btn-docx');
-  const btn     = formato === 'docx' ? btnDocx : btnPdf;
-  const htmlOrig = btn.innerHTML;
-
-  btnPdf.disabled  = true;
-  btnDocx.disabled = true;
+  btn.disabled = true;
   btn.innerHTML = `
     <svg class="spin" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
          viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -380,35 +247,23 @@ async function gerarVistoria(formato) {
 
   try {
     const fd = new FormData(form);
-    fd.set('formato', formato);
-    const resp = await fetch('{{ url_for("processar_vistoria") }}', {
+    const resp = await fetch('{{ url_for("gerar_vistoria_route") }}', {
       method: 'POST',
       body: fd,
     });
-
     const ct = resp.headers.get('content-type') || '';
-
-    // Redirect (erro no servidor) — o fetch segue o redirect e retorna HTML
     if (!resp.ok || resp.redirected || ct.includes('text/html')) {
       window.location.href = resp.url;
       return;
     }
-
     const data = await resp.json();
-    if (data.error) {
-      alert(data.error);
-      return;
-    }
-    // Navega diretamente para a URL do servidor — funciona em iOS, Android e desktop.
-    // O browser faz o download nativo via Content-Disposition: attachment.
+    if (data.error) { alert(data.error); return; }
     window.location.href = data.download_url;
-
   } catch (_) {
     alert('Erro de conexão. Tente novamente.');
   } finally {
-    btnPdf.disabled  = false;
-    btnDocx.disabled = false;
-    btn.innerHTML = htmlOrig;
+    btn.disabled  = false;
+    btn.innerHTML = orig;
   }
 }
 </script>
