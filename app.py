@@ -501,7 +501,7 @@ VISTORIA_TEMPLATE = DOCX_TEMPLATES / "VISTORIA_TESTE_1.docx"
 
 @app.route("/vistoria", methods=["GET"])
 def pagina_vistoria():
-    return render_template("vistoria.html", active="vistoria", vistoria=None, edit_id=None)
+    return render_template("vistoria.html", active="vistoria", vistoria=None, edit_id=None, acessorios={})
 
 
 @app.route("/vistoria", methods=["POST"])
@@ -737,6 +737,7 @@ def gerar_vistoria_route():
                 "obs_gerais":        dados["obs_gerais"],
                 "desc_sintomas":     dados["desc_sintomas"],
                 "arquivo_path":      storage_path,
+                "acessorios":        {k: v for k, v in dados.items() if k.startswith('acc_')},
             }).execute()
 
             if edit_id:
@@ -810,7 +811,8 @@ def editar_vistoria(vistoria_id):
     except Exception as e:
         flash(f"Erro ao buscar vistoria: {e}", "erro")
         return redirect(url_for("historico_vistorias"))
-    return render_template("vistoria.html", active="vistoria", vistoria=vistoria, edit_id=vistoria_id)
+    return render_template("vistoria.html", active="vistoria", vistoria=vistoria,
+                           edit_id=vistoria_id, acessorios=vistoria.get("acessorios") or {})
 
 
 @app.route("/historico/vistorias/download/<vistoria_id>/pdf")

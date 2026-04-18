@@ -248,6 +248,22 @@ function setSNA(btn, campo, valor) {
   document.getElementById('hid_' + campo).value = valor;
 }
 
+{% if acessorios %}
+(function() {
+  const acc = {{ acessorios | tojson }};
+  for (const [key, val] of Object.entries(acc)) {
+    if (!val || !['S','N','A'].includes(val.toUpperCase())) continue;
+    const hid = document.getElementById('hid_' + key);
+    if (!hid) continue;
+    hid.value = val;
+    const row = hid.closest('.sna-row');
+    const cls = val === 'S' ? 'sna-s' : val === 'N' ? 'sna-n' : 'sna-a';
+    const btn = row && row.querySelector('.sna-toggle .' + cls);
+    if (btn) btn.classList.add('sna-sel');
+  }
+})();
+{% endif %}
+
 async function salvarVistoria() {
   const form = document.getElementById('form-vistoria');
   const btn  = document.getElementById('btn-salvar');
