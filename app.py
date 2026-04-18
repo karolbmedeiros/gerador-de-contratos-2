@@ -722,53 +722,59 @@ def _gerar_vistoria_impl():
         if foto_path:
             Path(foto_path).unlink(missing_ok=True)
 
-    # ── Supabase: upload + registro ───────────────────────────────────────────
-    storage_path = None
+    # ── Supabase: upload + registro em background (evita timeout do Gunicorn) ──
     try:
         sb = _supabase()
-    except Exception:
+    except BaseException:
         import traceback; traceback.print_exc()
         sb = None
-    if sb:
-        try:
-            storage_path = f"vistorias/{nome_docx}"
-            sb.storage.from_("documentos").upload(
-                storage_path,
-                Path(caminho_docx).read_bytes(),
-                {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
-            )
-            sb.table("vistorias").insert({
-                "cliente":           dados["cliente_nome"],
-                "telefone":          dados["cliente_telefone"],
-                "endereco":          dados["cliente_endereco"],
-                "preenchido_por":    dados["preenchido_por"],
-                "veiculo":           dados["veiculo"],
-                "placa":             dados["placa"],
-                "cor":               dados["cor"],
-                "ano":               dados["ano"],
-                "chassi":            dados["chassi"],
-                "numero_motor":      dados["numero_motor"],
-                "data_hora":         dados["data_hora"],
-                "hodometro_entrega": dados["hodometro_entrega"],
-                "hodometro_retorno": dados["hodometro_retorno"],
-                "combustivel":       dados["combustivel"],
-                "obs_gerais":        dados["obs_gerais"],
-                "desc_sintomas":     dados["desc_sintomas"],
-                "arquivo_path":      storage_path,
-                "acessorios":        {k: v for k, v in dados.items() if k.startswith('acc_')},
-            }).execute()
 
-            if edit_id:
-                try:
-                    old = sb.table("vistorias").select("arquivo_path").eq("id", edit_id).single().execute()
-                    old_path = (old.data or {}).get("arquivo_path")
-                    if old_path and old_path != storage_path:
-                        sb.storage.from_("documentos").remove([old_path])
-                    sb.table("vistorias").delete().eq("id", edit_id).execute()
-                except Exception:
-                    pass
-        except Exception:
-            import traceback; traceback.print_exc()
+    if sb:
+        import threading
+        _storage_path = f"vistorias/{nome_docx}"
+        _docx_bytes   = Path(caminho_docx).read_bytes()
+        _insert       = {
+            "cliente":           dados["cliente_nome"],
+            "telefone":          dados["cliente_telefone"],
+            "endereco":          dados["cliente_endereco"],
+            "preenchido_por":    dados["preenchido_por"],
+            "veiculo":           dados["veiculo"],
+            "placa":             dados["placa"],
+            "cor":               dados["cor"],
+            "ano":               dados["ano"],
+            "chassi":            dados["chassi"],
+            "numero_motor":      dados["numero_motor"],
+            "data_hora":         dados["data_hora"],
+            "hodometro_entrega": dados["hodometro_entrega"],
+            "hodometro_retorno": dados["hodometro_retorno"],
+            "combustivel":       dados["combustivel"],
+            "obs_gerais":        dados["obs_gerais"],
+            "desc_sintomas":     dados["desc_sintomas"],
+            "arquivo_path":      _storage_path,
+            "acessorios":        {k: v for k, v in dados.items() if k.startswith('acc_')},
+        }
+        _edit_id = edit_id
+
+        def _bg():
+            try:
+                sb.storage.from_("documentos").upload(
+                    _storage_path, _docx_bytes,
+                    {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+                )
+                sb.table("vistorias").insert(_insert).execute()
+                if _edit_id:
+                    try:
+                        old = sb.table("vistorias").select("arquivo_path").eq("id", _edit_id).single().execute()
+                        old_path = (old.data or {}).get("arquivo_path")
+                        if old_path and old_path != _storage_path:
+                            sb.storage.from_("documentos").remove([old_path])
+                        sb.table("vistorias").delete().eq("id", _edit_id).execute()
+                    except Exception:
+                        pass
+            except Exception:
+                import traceback; traceback.print_exc()
+
+        threading.Thread(target=_bg, daemon=True).start()
 
     try:
         historico = get_historico()
