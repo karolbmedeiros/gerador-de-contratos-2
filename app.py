@@ -21,6 +21,12 @@ from gerar_contrato import gerar_docx, gerar_termo_quitacao, gerar_notificacao_a
 app = Flask(__name__)
 app.secret_key = "ativuz-secret-2026"
 
+
+@app.errorhandler(Exception)
+def handle_any_error(e):
+    import traceback; traceback.print_exc()
+    return jsonify({"error": str(e)}), 500
+
 # ── Supabase (opcional — só ativa se as env vars estiverem definidas) ─────────
 import os as _os
 
