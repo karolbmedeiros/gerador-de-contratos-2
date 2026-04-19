@@ -722,9 +722,9 @@ def _gerar_vistoria_impl():
         if foto_path:
             Path(foto_path).unlink(missing_ok=True)
 
-    # ── Supabase em background: create_client e upload fora do worker ────────
+    # ── Supabase: INSERT na thread principal (rápido), upload no background ────
     if _os.environ.get("SUPABASE_URL") and _os.environ.get("SUPABASE_KEY"):
-        import threading
+        import threading, traceback as _tb
         _storage_path = f"vistorias/{nome_docx}"
         _docx_bytes   = Path(caminho_docx).read_bytes()
         _insert       = {
@@ -747,29 +747,44 @@ def _gerar_vistoria_impl():
             "arquivo_path":      _storage_path,
             "acessorios":        {k: v for k, v in dados.items() if k.startswith('acc_')},
         }
-        _edit_id = edit_id
+
+        _old_storage_path = None
+        sb = _supabase()
+        if sb:
+            try:
+                sb.table("vistorias").insert(_insert).execute()
+            except Exception:
+                _tb.print_exc()
+            if edit_id:
+                try:
+                    old = sb.table("vistorias").select("arquivo_path").eq("id", edit_id).single().execute()
+                    _old_storage_path = (old.data or {}).get("arquivo_path")
+                    sb.table("vistorias").delete().eq("id", edit_id).execute()
+                except Exception:
+                    _tb.print_exc()
+
+        _ost = _old_storage_path
 
         def _bg():
             try:
-                sb = _supabase()
-                if not sb:
+                sb2 = _supabase()
+                if not sb2:
                     return
-                sb.storage.from_("documentos").upload(
-                    _storage_path, _docx_bytes,
-                    {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
-                )
-                sb.table("vistorias").insert(_insert).execute()
-                if _edit_id:
+                try:
+                    sb2.storage.from_("documentos").upload(
+                        _storage_path, _docx_bytes,
+                        {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                         "upsert": "true"},
+                    )
+                except Exception:
+                    _tb.print_exc()
+                if _ost and _ost != _storage_path:
                     try:
-                        old = sb.table("vistorias").select("arquivo_path").eq("id", _edit_id).single().execute()
-                        old_path = (old.data or {}).get("arquivo_path")
-                        if old_path and old_path != _storage_path:
-                            sb.storage.from_("documentos").remove([old_path])
-                        sb.table("vistorias").delete().eq("id", _edit_id).execute()
+                        sb2.storage.from_("documentos").remove([_ost])
                     except Exception:
                         pass
             except Exception:
-                import traceback; traceback.print_exc()
+                _tb.print_exc()
 
         threading.Thread(target=_bg, daemon=True).start()
 
