@@ -51,8 +51,6 @@ UPLOAD_FOLDER.mkdir(exist_ok=True)
 CONTRATOS_FOLDER.mkdir(exist_ok=True)
 TEMP_FOLDER.mkdir(exist_ok=True)
 DOCX_TEMPLATES.mkdir(exist_ok=True)
-if not HISTORICO_FILE.exists():
-    HISTORICO_FILE.write_text("[]", encoding="utf-8")
 
 
 # ── helpers ───────────────────────────────────────────────
