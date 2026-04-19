@@ -227,9 +227,13 @@
       </div>
       <div class="form-group col-2">
         <label class="form-label">Fotos do Veículo</label>
-        <input type="file" name="fotos_veiculo" id="fotos_veiculo" class="form-input"
-               accept=".jpg,.jpeg,.png" multiple>
-        <span style="font-size:0.78rem; color:#64748b;">Selecione 1 ou mais fotos — inseridas na ordem escolhida.</span>
+        <input type="file" name="fotos_veiculo" id="fotos_veiculo" accept=".jpg,.jpeg,.png" multiple style="display:none">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('fotos_veiculo').click()"
+                style="margin-bottom:0.5rem;">
+          + Adicionar fotos
+        </button>
+        <div id="fotos-lista" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.25rem;"></div>
+        <span style="font-size:0.78rem; color:#64748b;">Clique para adicionar — cada clique acumula novas fotos.</span>
       </div>
     </div>
   </div>
@@ -269,6 +273,51 @@ function setSNA(btn, campo, valor) {
   }
 })();
 {% endif %}
+
+// ── Acumulador de fotos do veículo ───────────────────────────────────────
+(function() {
+  const input = document.getElementById('fotos_veiculo');
+  const lista = document.getElementById('fotos-lista');
+  let dt = new DataTransfer();
+
+  input.addEventListener('change', function() {
+    for (const file of this.files) {
+      dt.items.add(file);
+    }
+    input.files = dt.files;
+    renderLista();
+    this.value = '';
+  });
+
+  function renderLista() {
+    lista.innerHTML = '';
+    Array.from(dt.files).forEach((file, idx) => {
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative; display:inline-block;';
+
+      const thumb = document.createElement('img');
+      thumb.src = URL.createObjectURL(file);
+      thumb.style.cssText = 'width:72px; height:72px; object-fit:cover; border-radius:6px; border:1.5px solid #e2e8f0;';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = '×';
+      btn.title = 'Remover';
+      btn.style.cssText = 'position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#dc2626; color:#fff; border:none; cursor:pointer; font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;';
+      btn.onclick = function() {
+        const newDt = new DataTransfer();
+        Array.from(dt.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
+        dt = newDt;
+        input.files = dt.files;
+        renderLista();
+      };
+
+      wrap.appendChild(thumb);
+      wrap.appendChild(btn);
+      lista.appendChild(wrap);
+    });
+  }
+})();
 
 async function salvarVistoria() {
   const form = document.getElementById('form-vistoria');
