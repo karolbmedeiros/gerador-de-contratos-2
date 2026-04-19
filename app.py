@@ -319,26 +319,7 @@ def gerar_contrato_route():
     except Exception:
         pass
 
-    # ── Locação → Supabase + redireciona para histórico ───
-    if tipo == "locacao":
-        _campos_loc = [
-            "locatario_nome", "locatario_rg", "locatario_cpf",
-            "locatario_endereco", "locatario_cep", "locatario_telefone",
-            "avalista_nome", "avalista_cpf", "avalista_endereco", "avalista_telefone",
-            "veiculo_descricao", "veiculo_marca", "veiculo_modelo", "veiculo_ano",
-            "veiculo_motor", "veiculo_chassi", "veiculo_cor", "veiculo_placa",
-            "contrato_inicio", "contrato_duracao", "valor_semanal",
-            "data_dia", "data_mes", "data_ano",
-            "testemunha1_nome", "testemunha1_rg", "testemunha1_cpf",
-            "testemunha2_nome", "testemunha2_rg", "testemunha2_cpf",
-        ]
-        _storage_path = f"contratos/{nome_saida}"
-        _insert_loc = {c: request.form.get(c, "") for c in _campos_loc}
-        _insert_loc["arquivo_path"] = _storage_path
-        _salvar_contrato_locacao(_insert_loc, caminho_saida, _storage_path)
-        return jsonify({"redirect_url": url_for("historico_contratos")})
-
-    # ── Outros tipos → download direto ────────────────────
+    # ── Download direto ────────────────────────────────────
     if formato == "pdf":
         nome_pdf    = nome_saida.replace(".docx", ".pdf")
         caminho_pdf = str(CONTRATOS_FOLDER / nome_pdf)

@@ -24,3 +24,43 @@ create table if not exists public.vistorias (
 
 -- RLS desativado (acesso via service role key)
 alter table public.vistorias disable row level security;
+
+
+-- ── Contratos de Locação ──────────────────────────────────────────────────────
+create table if not exists public.contratos_locacao (
+  id                  uuid primary key default gen_random_uuid(),
+  locatario_nome      text,
+  locatario_rg        text,
+  locatario_cpf       text,
+  locatario_endereco  text,
+  locatario_cep       text,
+  locatario_telefone  text,
+  avalista_nome       text,
+  avalista_cpf        text,
+  avalista_endereco   text,
+  avalista_telefone   text,
+  veiculo_descricao   text,
+  veiculo_marca       text,
+  veiculo_modelo      text,
+  veiculo_ano         text,
+  veiculo_motor       text,
+  veiculo_chassi      text,
+  veiculo_cor         text,
+  veiculo_placa       text,
+  contrato_inicio     text,
+  contrato_duracao    text,
+  valor_semanal       text,
+  data_dia            text,
+  data_mes            text,
+  data_ano            text,
+  testemunha1_nome    text,
+  testemunha1_rg      text,
+  testemunha1_cpf     text,
+  testemunha2_nome    text,
+  testemunha2_rg      text,
+  testemunha2_cpf     text,
+  arquivo_path        text,
+  criado_em           timestamptz default now()
+);
+
+alter table public.contratos_locacao disable row level security;
