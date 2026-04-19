@@ -836,7 +836,7 @@ def _inline_drawing_xml(r_id: str, cx: int, cy: int, pic_id: int, name: str) -> 
     )
 
 
-def gerar_vistoria_nova(dados: dict, foto_path, caminho_saida: str) -> None:
+def gerar_vistoria_nova(dados: dict, fotos: list, caminho_saida: str) -> None:
     """Preenche VISTORIA_TEMPLATE1_marcado.docx substituindo marcadores [campo] por nome."""
     import shutil
 
@@ -881,26 +881,33 @@ def gerar_vistoria_nova(dados: dict, foto_path, caminho_saida: str) -> None:
 
         doc_xml_path.write_text(xml, encoding='utf-8')
 
-        if foto_path:
-            ext = Path(foto_path).suffix.lower()
-            media_name = f"foto_upload{ext}"
-            shutil.copy2(foto_path, tmp / "word" / "media" / media_name)
-
+        fotos = [f for f in (fotos or []) if f]
+        if fotos:
             rels_path = tmp / "word" / "_rels" / "document.xml.rels"
             rels = rels_path.read_text(encoding='utf-8')
-            new_rel = (
-                '<Relationship Id="rId11"'
-                ' Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"'
-                f' Target="media/{media_name}"/>'
-            )
-            rels = rels.replace('</Relationships>', new_rel + '</Relationships>')
+            drawings = []
+
+            for i, foto_path in enumerate(fotos):
+                r_id = f"rId{11 + i}"
+                pic_id = 100 + i
+                ext = Path(foto_path).suffix.lower()
+                media_name = f"foto_upload_{i}{ext}"
+                shutil.copy2(foto_path, tmp / "word" / "media" / media_name)
+
+                new_rel = (
+                    f'<Relationship Id="{r_id}"'
+                    ' Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"'
+                    f' Target="media/{media_name}"/>'
+                )
+                rels = rels.replace('</Relationships>', new_rel + '</Relationships>')
+
+                cx, cy = _img_emu(foto_path)
+                drawings.append(_inline_drawing_xml(r_id, cx, cy, pic_id, f"foto_upload_{i}"))
+
             rels_path.write_text(rels, encoding='utf-8')
 
-            cx, cy = _img_emu(foto_path)
-            drawing = _inline_drawing_xml("rId11", cx, cy, 100, "foto_upload")
-
             xml = doc_xml_path.read_text(encoding='utf-8')
-            xml = xml.replace('</w:body>', drawing + '</w:body>')
+            xml = xml.replace('</w:body>', ''.join(drawings) + '</w:body>')
             doc_xml_path.write_text(xml, encoding='utf-8')
 
         saida = Path(caminho_saida)

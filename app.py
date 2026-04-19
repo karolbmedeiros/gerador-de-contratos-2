@@ -1043,14 +1043,26 @@ def _gerar_vistoria_impl():
         "desc_sintomas":     request.form.get("desc_sintomas", ""),
     }
 
-    foto_path = None
-    foto = request.files.get("foto")
-    if foto and foto.filename:
-        ext = Path(secure_filename(foto.filename)).suffix.lower()
-        if ext in ('.jpg', '.jpeg', '.png'):
-            p = TEMP_FOLDER / f"{uuid.uuid4().hex}{ext}"
-            foto.save(str(p))
-            foto_path = str(p)
+    fotos_paths = []
+
+    def _salvar_foto(file_storage):
+        if not file_storage or not file_storage.filename:
+            return None
+        ext = Path(secure_filename(file_storage.filename)).suffix.lower()
+        if ext not in ('.jpg', '.jpeg', '.png'):
+            return None
+        p = TEMP_FOLDER / f"{uuid.uuid4().hex}{ext}"
+        file_storage.save(str(p))
+        return str(p)
+
+    foto_painel = _salvar_foto(request.files.get("foto_painel"))
+    if foto_painel:
+        fotos_paths.append(foto_painel)
+
+    for f in request.files.getlist("fotos_veiculo"):
+        p = _salvar_foto(f)
+        if p:
+            fotos_paths.append(p)
 
     edit_id    = request.form.get("edit_id", "").strip()
     placa_slug = _slugify(dados["placa"] or "PLACA")
@@ -1059,13 +1071,13 @@ def _gerar_vistoria_impl():
     caminho_docx = str(CONTRATOS_FOLDER / nome_docx)
 
     try:
-        gerar_vistoria_nova(dados, foto_path, caminho_docx)
+        gerar_vistoria_nova(dados, fotos_paths, caminho_docx)
     except Exception as e:
         import traceback; traceback.print_exc()
         return jsonify({"error": f"Erro ao gerar vistoria: {e}"}), 500
     finally:
-        if foto_path:
-            Path(foto_path).unlink(missing_ok=True)
+        for p in fotos_paths:
+            Path(p).unlink(missing_ok=True)
 
     # ── Supabase: INSERT na thread principal (rápido), upload no background ────
     if _os.environ.get("SUPABASE_URL") and _os.environ.get("SUPABASE_KEY"):
