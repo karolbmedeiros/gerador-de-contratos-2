@@ -722,14 +722,8 @@ def _gerar_vistoria_impl():
         if foto_path:
             Path(foto_path).unlink(missing_ok=True)
 
-    # ── Supabase: upload + registro em background (evita timeout do Gunicorn) ──
-    try:
-        sb = _supabase()
-    except BaseException:
-        import traceback; traceback.print_exc()
-        sb = None
-
-    if sb:
+    # ── Supabase em background: create_client e upload fora do worker ────────
+    if _os.environ.get("SUPABASE_URL") and _os.environ.get("SUPABASE_KEY"):
         import threading
         _storage_path = f"vistorias/{nome_docx}"
         _docx_bytes   = Path(caminho_docx).read_bytes()
@@ -757,6 +751,9 @@ def _gerar_vistoria_impl():
 
         def _bg():
             try:
+                sb = _supabase()
+                if not sb:
+                    return
                 sb.storage.from_("documentos").upload(
                     _storage_path, _docx_bytes,
                     {"content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
