@@ -64,3 +64,17 @@ create table if not exists public.contratos_locacao (
 );
 
 alter table public.contratos_locacao disable row level security;
+
+
+-- ── Histórico de Documentos ───────────────────────────────────────────────────
+create table if not exists public.historico_docs (
+  id             uuid primary key default gen_random_uuid(),
+  locatario_nome text,
+  template       text,
+  arquivo        text,
+  data_hora      text,
+  deletado       boolean default false,
+  criado_em      timestamptz default now()
+);
+
+alter table public.historico_docs disable row level security;

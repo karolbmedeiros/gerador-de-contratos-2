@@ -45,7 +45,6 @@ def _supabase():
 UPLOAD_FOLDER = Path("uploads")
 CONTRATOS_FOLDER = Path("contratos")
 TEMP_FOLDER = Path("temp_preview")
-HISTORICO_FILE = Path("historico.json")
 DOCX_TEMPLATES = Path("docx_templates")
 
 UPLOAD_FOLDER.mkdir(exist_ok=True)
@@ -126,12 +125,19 @@ def get_templates():
     return result
 
 
-def get_historico():
-    return json.loads(HISTORICO_FILE.read_text(encoding="utf-8"))
-
-
-def save_historico(h):
-    HISTORICO_FILE.write_text(json.dumps(h, ensure_ascii=False, indent=2), encoding="utf-8")
+def _historico_append(locatario_nome: str, template: str, arquivo: str):
+    sb = _supabase()
+    if not sb:
+        return
+    try:
+        sb.table("historico_docs").insert({
+            "locatario_nome": locatario_nome,
+            "template": template,
+            "arquivo": arquivo,
+            "data_hora": datetime.now(_BRT).strftime("%d/%m/%Y %H:%M"),
+        }).execute()
+    except Exception:
+        import traceback; traceback.print_exc()
 
 
 def _gerar_para_caminho(form, tipo, template_path_str, caminho_saida):
@@ -225,11 +231,12 @@ def dashboard():
             total_vistorias = rv.count or 0
         except Exception:
             pass
-    try:
-        hist = get_historico()
-        total_docs = len(hist)
-    except Exception:
-        pass
+    if sb:
+        try:
+            rd = sb.table("historico_docs").select("id", count="exact").eq("deletado", False).execute()
+            total_docs = rd.count or 0
+        except Exception:
+            pass
     return render_template(
         "dashboard.html",
         active="dashboard",
@@ -346,15 +353,7 @@ def gerar_contrato_route():
         except Exception:
             pass
     try:
-        historico = get_historico()
-        historico.append({
-            "id": uuid.uuid4().hex,
-            "locatario_nome": nome_pessoa,
-            "data_hora": datetime.now(_BRT).strftime("%d/%m/%Y %H:%M"),
-            "template": nome_template,
-            "arquivo": nome_saida,
-        })
-        save_historico(historico)
+        _historico_append(nome_pessoa, nome_template, nome_saida)
     except Exception:
         pass
 
@@ -437,7 +436,16 @@ def cleanup_temp(temp_id):
 
 @app.route("/historico")
 def pagina_historico():
-    historico = list(reversed(get_historico()))
+    sb = _supabase()
+    historico = []
+    if sb:
+        try:
+            res = sb.table("historico_docs").select("*") \
+                .eq("deletado", False) \
+                .order("criado_em", desc=True).execute()
+            historico = res.data or []
+        except Exception:
+            pass
     return render_template("historico.html", historico=historico, active="historico")
 
 
@@ -488,14 +496,12 @@ def download_contrato_pdf(filename):
 
 @app.route("/historico/excluir/<entry_id>", methods=["POST"])
 def excluir_contrato(entry_id):
-    historico = get_historico()
-    entry = next((e for e in historico if e.get("id") == entry_id), None)
-    if entry:
-        arquivo = CONTRATOS_FOLDER / secure_filename(entry["arquivo"])
-        if arquivo.exists():
-            arquivo.unlink()
-        historico = [e for e in historico if e.get("id") != entry_id]
-        save_historico(historico)
+    sb = _supabase()
+    if sb:
+        try:
+            sb.table("historico_docs").update({"deletado": True}).eq("id", entry_id).execute()
+        except Exception:
+            import traceback; traceback.print_exc()
     return jsonify({"ok": True})
 
 
@@ -504,7 +510,16 @@ def exportar_historico_excel():
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
 
-    historico = list(reversed(get_historico()))
+    sb = _supabase()
+    historico = []
+    if sb:
+        try:
+            res = sb.table("historico_docs").select("*") \
+                .eq("deletado", False) \
+                .order("criado_em", desc=True).execute()
+            historico = res.data or []
+        except Exception:
+            pass
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Histórico"
@@ -839,15 +854,7 @@ def processar_vistoria():
 
     # ── Histórico + resposta ──────────────────────────────────────────────────
     if formato == "docx":
-        historico = get_historico()
-        historico.append({
-            "id": uuid.uuid4().hex,
-            "locatario_nome": dados.get("cliente", ""),
-            "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
-            "template": "VISTORIA",
-            "arquivo": nome_docx,
-        })
-        save_historico(historico)
+        _historico_append(dados.get("cliente", ""), "VISTORIA", nome_docx)
         return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_docx)})
 
     try:
@@ -856,16 +863,7 @@ def processar_vistoria():
         flash(f"Erro ao converter para PDF: {e}", "erro")
         return redirect(url_for("pagina_vistoria"))
 
-    historico = get_historico()
-    historico.append({
-        "id": uuid.uuid4().hex,
-        "locatario_nome": dados.get("cliente", ""),
-        "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        "template": "VISTORIA",
-        "arquivo": nome_pdf,
-    })
-    save_historico(historico)
-
+    _historico_append(dados.get("cliente", ""), "VISTORIA", nome_pdf)
     return jsonify({"download_url": url_for("baixar_vistoria", nome=nome_pdf)})
 
 
@@ -1025,15 +1023,7 @@ def _gerar_vistoria_impl():
         threading.Thread(target=_bg, daemon=True).start()
 
     try:
-        historico = get_historico()
-        historico.append({
-            "id": uuid.uuid4().hex,
-            "locatario_nome": dados["cliente_nome"],
-            "data_hora": agora.strftime("%d/%m/%Y %H:%M"),
-            "template": "VISTORIA",
-            "arquivo": nome_docx,
-        })
-        save_historico(historico)
+        _historico_append(dados["cliente_nome"], "VISTORIA", nome_docx)
     except Exception:
         import traceback; traceback.print_exc()
 
