@@ -83,6 +83,7 @@ alter table public.historico_docs disable row level security;
 -- ── Colunas deletado (soft delete) nas tabelas existentes ────────────────────
 alter table public.contratos_locacao add column if not exists deletado boolean default false;
 alter table public.vistorias         add column if not exists deletado boolean default false;
+alter table public.vistorias         add column if not exists acessorios jsonb;
 
 
 -- ── Usuários do sistema ───────────────────────────────────────────────────────
