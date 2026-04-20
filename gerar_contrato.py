@@ -854,10 +854,17 @@ def gerar_vistoria_nova(dados: dict, fotos: list, caminho_saida: str) -> None:
         xml = doc_xml_path.read_text(encoding='utf-8')
         xml = _join_fragmented_runs(xml)
 
-        # Campos normais: substituição simples
+        # Campos normais: substituição simples + fallback cross-run
         for key, value in dados.items():
             if not key.startswith('acc_'):
-                xml = xml.replace(f'[{key}]', _safe_xml(value or ''))
+                placeholder = f'[{key}]'
+                safe_val = _safe_xml(value or '')
+                if placeholder in xml:
+                    xml = xml.replace(placeholder, safe_val)
+                else:
+                    # placeholder pode estar fragmentado entre runs no XML
+                    pat = r'(?:<[^>]*>)*'.join(re.escape(c) for c in placeholder)
+                    xml = re.sub(pat, safe_val, xml)
 
         # Acessórios: substituir o run inteiro para aplicar a cor correta
         _ACC_CORES = {'S': '1A6B1A', 'N': 'CC0000', 'A': 'D4AC0D'}
@@ -878,6 +885,11 @@ def gerar_vistoria_nova(dados: dict, fotos: list, caminho_saida: str) -> None:
                 novo_run,
                 xml,
             )
+
+        # Fallback acc_: substituição simples para qualquer marcador que o regex não casou
+        for key, value in dados.items():
+            if key.startswith('acc_') and f'[{key}]' in xml:
+                xml = xml.replace(f'[{key}]', _safe_xml(value or ''))
 
         doc_xml_path.write_text(xml, encoding='utf-8')
 
