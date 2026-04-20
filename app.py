@@ -904,7 +904,7 @@ VISTORIA_TEMPLATE = DOCX_TEMPLATES / "VISTORIA_TESTE_1.docx"
 
 @app.route("/vistoria", methods=["GET"])
 def pagina_vistoria():
-    return render_template("vistoria.html", active="vistoria", vistoria=None, edit_id=None, acessorios={})
+    return render_template("vistoria.html", active="vistoria", vistoria=None, edit_id=None, acessorios={}, usuario=session.get("usuario", ""))
 
 
 @app.route("/vistoria", methods=["POST"])

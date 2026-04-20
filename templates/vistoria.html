@@ -83,7 +83,7 @@
         <label class="form-label" for="preenchido_por">Preenchido por</label>
         <input type="text" name="preenchido_por" id="preenchido_por" class="form-input"
                placeholder="Nome do responsável"
-               value="{{ vistoria.preenchido_por if vistoria else '' }}">
+               value="{{ vistoria.preenchido_por if vistoria else usuario }}">
       </div>
       <div class="form-group col-2">
         <label class="form-label" for="cliente_endereco">Endereço</label>
