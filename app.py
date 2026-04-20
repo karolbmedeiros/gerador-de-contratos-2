@@ -86,25 +86,46 @@ def api_clientes():
     wb.close()
     if len(rows) < 2:
         return jsonify([])
-    # Colunas por índice: 0=Cliente,1=CPF,2=Ano,3=Chassi,4=Cor,5=Marca,6=Modelo,7=Placa,8=Endereço,9=Motor,10=Telefone
+    # Mapeamento dinâmico por nome de coluna (case-insensitive, ignora acentos)
+    import unicodedata
+    def _norm(s):
+        s = unicodedata.normalize("NFD", str(s or "").lower())
+        return "".join(c for c in s if unicodedata.category(c) != "Mn")
+    headers = [_norm(h) for h in rows[0]]
+    def _col(name):
+        n = _norm(name)
+        return next((i for i, h in enumerate(headers) if n in h), None)
+    i_nome    = _col("cliente")
+    i_tel     = _col("telefone")
+    i_ano     = _col("ano")
+    i_chassi  = _col("chassi")
+    i_cor     = _col("cor")
+    i_marca   = _col("marca")
+    i_modelo  = _col("modelo")
+    i_placa   = _col("placa")
+    i_end     = _col("endereco")
+    i_motor   = _col("motor")
+    def _v(row, i): return str(row[i] or "") if i is not None and i < len(row) else ""
     q = request.args.get("q", "").lower().strip()
     clientes = []
     for row in rows[1:]:
-        if not row[0]:
+        if not (i_nome is not None and i_nome < len(row) and row[i_nome]):
             continue
-        nome = str(row[0] or "")
+        nome = str(row[i_nome])
         if q and q not in nome.lower():
             continue
+        marca  = _v(row, i_marca)
+        modelo = _v(row, i_modelo)
         clientes.append({
             "nome":         nome,
-            "telefone":     str(row[10] or ""),
-            "endereco":     str(row[8]  or ""),
-            "veiculo":      f"{row[5] or ''} {row[6] or ''}".strip(),
-            "placa":        str(row[7]  or ""),
-            "cor":          str(row[4]  or ""),
-            "ano":          str(int(row[2])) if row[2] else "",
-            "chassi":       str(row[3]  or ""),
-            "numero_motor": str(row[9]  or ""),
+            "telefone":     _v(row, i_tel),
+            "endereco":     _v(row, i_end),
+            "veiculo":      f"{marca} {modelo}".strip(),
+            "placa":        _v(row, i_placa),
+            "cor":          _v(row, i_cor),
+            "ano":          str(int(row[i_ano])) if i_ano is not None and i_ano < len(row) and row[i_ano] else "",
+            "chassi":       _v(row, i_chassi),
+            "numero_motor": _v(row, i_motor),
         })
     return jsonify(clientes[:30])
 
