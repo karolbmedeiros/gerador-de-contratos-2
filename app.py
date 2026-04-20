@@ -228,6 +228,8 @@ def _converter_pdf(caminho_docx: str, caminho_pdf: str):
         docx_abs  = str(Path(caminho_docx).resolve())
         pdf_abs   = str(Path(caminho_pdf).resolve())
         output_dir = str(Path(pdf_abs).parent)
+        if not Path(docx_abs).exists():
+            raise FileNotFoundError(f"DOCX não encontrado: {docx_abs!r}")
         with tempfile.TemporaryDirectory() as profile_dir:
             result = subprocess.run(
                 [
@@ -1305,6 +1307,14 @@ def download_vistoria_pdf(vistoria_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    if not isinstance(docx_bytes, (bytes, bytearray)):
+        docx_bytes = getattr(docx_bytes, 'content', None) or bytes(docx_bytes)
+    if len(docx_bytes) == 0:
+        return jsonify({"error": f"Download vazio para {docx_storage_path!r}"}), 500
+    if docx_bytes[:4] != b'PK\x03\x04':
+        return jsonify({"error": f"Arquivo baixado não é DOCX válido. Início: {docx_bytes[:20]!r}"}), 500
+
+    TEMP_FOLDER.mkdir(exist_ok=True)
     tmp_docx = TEMP_FOLDER / f"{uuid.uuid4().hex}.docx"
     tmp_pdf  = tmp_docx.with_suffix(".pdf")
     try:
