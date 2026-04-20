@@ -878,13 +878,20 @@ def download_contrato_locacao_pdf(contrato_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    if not isinstance(docx_bytes, (bytes, bytearray)):
+        docx_bytes = getattr(docx_bytes, 'content', None) or bytes(docx_bytes)
+
     tmp_docx = TEMP_FOLDER / f"{uuid.uuid4().hex}.docx"
     tmp_pdf  = tmp_docx.with_suffix(".pdf")
+    TEMP_FOLDER.mkdir(exist_ok=True)
     try:
         tmp_docx.write_bytes(docx_bytes)
         _converter_pdf(str(tmp_docx), str(tmp_pdf))
+        if not tmp_pdf.exists():
+            raise FileNotFoundError(f"LibreOffice não gerou o PDF")
         pdf_bytes = tmp_pdf.read_bytes()
     except Exception as e:
+        import traceback; traceback.print_exc()
         return jsonify({"error": f"Erro ao gerar PDF: {e}"}), 422
     finally:
         tmp_docx.unlink(missing_ok=True)
