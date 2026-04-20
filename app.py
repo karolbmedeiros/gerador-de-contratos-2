@@ -225,23 +225,31 @@ def _converter_pdf(caminho_docx: str, caminho_pdf: str):
             pythoncom.CoUninitialize()
     else:
         import tempfile
-        output_dir = str(Path(caminho_pdf).parent)
+        docx_abs  = str(Path(caminho_docx).resolve())
+        pdf_abs   = str(Path(caminho_pdf).resolve())
+        output_dir = str(Path(pdf_abs).parent)
         with tempfile.TemporaryDirectory() as profile_dir:
-            subprocess.run(
+            result = subprocess.run(
                 [
                     "libreoffice",
                     f"-env:UserInstallation=file://{profile_dir}",
                     "--headless", "--norestore", "--nofirststartwizard",
                     "--convert-to", "pdf",
                     "--outdir", output_dir,
-                    caminho_docx,
+                    docx_abs,
                 ],
-                check=True, capture_output=True,
+                capture_output=True,
             )
-        # LibreOffice nomeia o PDF pelo stem do docx
-        gerado = Path(output_dir) / (Path(caminho_docx).stem + ".pdf")
-        if gerado != Path(caminho_pdf):
-            gerado.rename(caminho_pdf)
+        gerado = Path(output_dir) / (Path(docx_abs).stem + ".pdf")
+        if not gerado.exists():
+            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+            stdout = result.stdout.decode(errors="replace") if result.stdout else ""
+            raise RuntimeError(
+                f"LibreOffice (exit {result.returncode}) não gerou PDF. "
+                f"stderr={stderr!r} stdout={stdout!r}"
+            )
+        if gerado.resolve() != Path(pdf_abs).resolve():
+            gerado.rename(pdf_abs)
 
 
 def _slugify(texto: str) -> str:
