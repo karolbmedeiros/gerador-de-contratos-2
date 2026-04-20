@@ -281,16 +281,9 @@ let _fotosVeiculoDT = new DataTransfer();
   const input = document.getElementById('fotos_veiculo');
   const lista = document.getElementById('fotos-lista');
 
-  input.addEventListener('change', function() {
-    for (const file of this.files) {
-      _fotosVeiculoDT.items.add(file);
-    }
-    renderLista();
-  });
-
-  window._renderFotosLista = function renderLista() {
+  function renderLista() {
     lista.innerHTML = '';
-    Array.from(_fotosVeiculoDT.files).forEach((file, idx) => {
+    Array.from(_fotosVeiculoDT.files).forEach(function(file, idx) {
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:relative; display:inline-block;';
 
@@ -305,7 +298,7 @@ let _fotosVeiculoDT = new DataTransfer();
       btn.style.cssText = 'position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; background:#dc2626; color:#fff; border:none; cursor:pointer; font-size:13px; line-height:1; display:flex; align-items:center; justify-content:center;';
       btn.onclick = function() {
         const newDt = new DataTransfer();
-        Array.from(_fotosVeiculoDT.files).forEach((f, i) => { if (i !== idx) newDt.items.add(f); });
+        Array.from(_fotosVeiculoDT.files).forEach(function(f, i) { if (i !== idx) newDt.items.add(f); });
         _fotosVeiculoDT = newDt;
         renderLista();
       };
@@ -314,7 +307,14 @@ let _fotosVeiculoDT = new DataTransfer();
       wrap.appendChild(btn);
       lista.appendChild(wrap);
     });
-  };
+  }
+
+  input.addEventListener('change', function() {
+    for (const file of this.files) {
+      _fotosVeiculoDT.items.add(file);
+    }
+    renderLista();
+  });
 })();
 
 async function salvarVistoria() {
