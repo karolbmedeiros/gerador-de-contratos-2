@@ -906,6 +906,8 @@ def gerar_vistoria_nova(dados: dict, fotos: list, caminho_saida: str) -> None:
                 rels = rels.replace('</Relationships>', new_rel + '</Relationships>')
 
                 cx, cy = _img_emu(foto_path)
+                if i > 0:
+                    drawings.append('<w:p/>')
                 drawings.append(_inline_drawing_xml(r_id, cx, cy, pic_id, f"foto_upload_{i}"))
 
             rels_path.write_text(rels, encoding='utf-8')
