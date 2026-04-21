@@ -905,20 +905,21 @@ def gerar_vistoria_nova(dados: dict, fotos: list, caminho_saida: str) -> None:
             )
             esc = re.escape(key)
             # Caso 1: "[" | "key" | "]" em 3 runs distintos
-            pat3 = (r'<w:t[^>]*>\[</w:t></w:r>' + _ANY_XML +
+            # <w:r[^>]*> inclui o run opener do primeiro run para não deixar tag órfã
+            pat3 = (r'<w:r[^>]*>' + _ANY_XML + r'<w:t[^>]*>\[</w:t></w:r>' + _ANY_XML +
                     r'<w:t[^>]*>' + esc + r'</w:t></w:r>' + _ANY_XML +
                     r'<w:t[^>]*>\]</w:t></w:r>')
             xml, n = re.subn(pat3, novo_run, xml, flags=re.DOTALL)
             if n:
                 continue
             # Caso 2: "[key" | "]" em 2 runs
-            pat2a = (r'<w:t[^>]*>\[' + esc + r'</w:t></w:r>' + _ANY_XML +
+            pat2a = (r'<w:r[^>]*>' + _ANY_XML + r'<w:t[^>]*>\[' + esc + r'</w:t></w:r>' + _ANY_XML +
                      r'<w:t[^>]*>\]</w:t></w:r>')
             xml, n = re.subn(pat2a, novo_run, xml, flags=re.DOTALL)
             if n:
                 continue
             # Caso 3: "[" | "key]" em 2 runs
-            pat2b = (r'<w:t[^>]*>\[</w:t></w:r>' + _ANY_XML +
+            pat2b = (r'<w:r[^>]*>' + _ANY_XML + r'<w:t[^>]*>\[</w:t></w:r>' + _ANY_XML +
                      r'<w:t[^>]*>' + esc + r'\]</w:t></w:r>')
             xml = re.sub(pat2b, novo_run, xml, flags=re.DOTALL)
 
