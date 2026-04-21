@@ -224,35 +224,36 @@ def _converter_pdf(caminho_docx: str, caminho_pdf: str):
         finally:
             pythoncom.CoUninitialize()
     else:
-        import tempfile, os
+        import tempfile, os, shutil
         docx_abs  = str(Path(caminho_docx).resolve())
         pdf_abs   = str(Path(caminho_pdf).resolve())
-        output_dir = str(Path(pdf_abs).parent)
         if not Path(docx_abs).exists():
             raise FileNotFoundError(f"DOCX não encontrado: {docx_abs!r}")
-        with tempfile.TemporaryDirectory() as home_dir:
-            env = {**os.environ, "HOME": home_dir}
+        with tempfile.TemporaryDirectory() as work_dir:
+            # copia para /tmp isolado — evita problemas de permissão/path no LO
+            tmp_docx = Path(work_dir) / Path(docx_abs).name
+            shutil.copy2(docx_abs, tmp_docx)
+            env = {**os.environ, "HOME": work_dir}
             result = subprocess.run(
                 [
                     "libreoffice",
                     "--headless", "--norestore", "--nofirststartwizard",
                     "--convert-to", "pdf",
-                    "--outdir", output_dir,
-                    docx_abs,
+                    "--outdir", work_dir,
+                    str(tmp_docx),
                 ],
                 capture_output=True,
                 env=env,
             )
-        gerado = Path(output_dir) / (Path(docx_abs).stem + ".pdf")
-        if not gerado.exists():
-            stderr = result.stderr.decode(errors="replace") if result.stderr else ""
-            stdout = result.stdout.decode(errors="replace") if result.stdout else ""
-            raise RuntimeError(
-                f"LibreOffice (exit {result.returncode}) não gerou PDF. "
-                f"docx={docx_abs!r} stderr={stderr!r} stdout={stdout!r}"
-            )
-        if gerado.resolve() != Path(pdf_abs).resolve():
-            gerado.rename(pdf_abs)
+            gerado = Path(work_dir) / (tmp_docx.stem + ".pdf")
+            if not gerado.exists():
+                stderr = result.stderr.decode(errors="replace") if result.stderr else ""
+                stdout = result.stdout.decode(errors="replace") if result.stdout else ""
+                raise RuntimeError(
+                    f"LibreOffice (exit {result.returncode}) não gerou PDF. "
+                    f"docx={str(tmp_docx)!r} stderr={stderr!r} stdout={stdout!r}"
+                )
+            shutil.copy2(gerado, pdf_abs)
 
 
 def _slugify(texto: str) -> str:
@@ -1341,6 +1342,31 @@ def baixar_vistoria(nome):
     mime = "application/pdf" if ext == ".pdf" else \
            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     return send_file(str(caminho), as_attachment=True, download_name=nome, mimetype=mime)
+
+
+@app.route("/debug/libreoffice")
+def debug_libreoffice():
+    """Diagnóstico: testa conversão de um DOCX mínimo a PDF."""
+    import tempfile, os, shutil, platform as _pf
+    lines = [f"platform={_pf.system()}"]
+    # versão do LO
+    try:
+        r = subprocess.run(["libreoffice", "--version"], capture_output=True, timeout=10)
+        lines.append(f"version={r.stdout.decode(errors='replace').strip()}")
+    except Exception as e:
+        lines.append(f"version_error={e}")
+    # criação de DOCX mínimo
+    try:
+        from docx import Document
+        with tempfile.TemporaryDirectory() as wd:
+            p_docx = Path(wd) / "test.docx"
+            p_pdf  = Path(wd) / "test.pdf"
+            doc = Document(); doc.add_paragraph("Teste LibreOffice"); doc.save(str(p_docx))
+            _converter_pdf(str(p_docx), str(p_pdf))
+            lines.append(f"pdf_ok={p_pdf.exists()} size={p_pdf.stat().st_size if p_pdf.exists() else 0}")
+    except Exception as e:
+        lines.append(f"convert_error={e}")
+    return "<br>".join(lines)
 
 
 if __name__ == "__main__":
