@@ -1717,7 +1717,23 @@ def pagina_inadimplencia():
 
 @app.route("/inadimplencia/push", methods=["POST"])
 def inadimplencia_push():
-    import subprocess
+    import subprocess, shutil as _shutil
+
+    # Locate git — Python's PATH may differ from the shell's on Windows
+    _git = _shutil.which("git")
+    if not _git:
+        for _candidate in [
+            r"C:\Program Files\Git\cmd\git.exe",
+            r"C:\Program Files\Git\bin\git.exe",
+            r"C:\Program Files (x86)\Git\cmd\git.exe",
+        ]:
+            if Path(_candidate).exists():
+                _git = _candidate
+                break
+    if not _git:
+        flash("Git não encontrado no sistema. Instale o Git for Windows.", "error")
+        return redirect(url_for("pagina_inadimplencia"))
+
     repo_dir = str(Path(__file__).parent)
     xlsx_rel = "docx_templates/CONTAS-A-RECEBER.xlsx"
     xlsx_abs = Path(__file__).parent / xlsx_rel
@@ -1725,38 +1741,36 @@ def inadimplencia_push():
     # If the user dropped a EDITADO file, promote it first
     editado = Path(__file__).parent / "docx_templates" / "CONTAS-A-RECEBER-EDITADO.xlsx"
     if editado.exists():
-        import shutil
-        shutil.copy2(str(editado), str(xlsx_abs))
+        _shutil.copy2(str(editado), str(xlsx_abs))
+
+    def _run(*args, **kw):
+        return subprocess.run([_git] + list(args), cwd=repo_dir,
+                              capture_output=True, text=True, **kw)
 
     try:
         # Check if the file has uncommitted changes
-        status = subprocess.run(
-            ["git", "status", "--porcelain", xlsx_rel],
-            cwd=repo_dir, capture_output=True, text=True, timeout=15
-        )
+        status = _run("status", "--porcelain", xlsx_rel, timeout=15)
         if not status.stdout.strip():
             flash("A planilha já está atualizada no servidor — nenhuma mudança detectada.", "info")
             return redirect(url_for("pagina_inadimplencia"))
 
-        subprocess.run(
-            ["git", "add", xlsx_rel],
-            cwd=repo_dir, check=True, timeout=15
-        )
-        subprocess.run(
-            ["git", "commit", "-m", "data: atualizar planilha CONTAS-A-RECEBER.xlsx"],
-            cwd=repo_dir, check=True, timeout=15
-        )
-        push = subprocess.run(
-            ["git", "push", "origin", "main"],
-            cwd=repo_dir, capture_output=True, text=True, timeout=120
-        )
+        add = _run("add", xlsx_rel, timeout=15)
+        if add.returncode != 0:
+            flash(f"Erro no git add: {add.stderr.strip()}", "error")
+            return redirect(url_for("pagina_inadimplencia"))
+
+        commit = _run("commit", "-m", "data: atualizar planilha CONTAS-A-RECEBER.xlsx",
+                      timeout=15)
+        if commit.returncode != 0:
+            flash(f"Erro no git commit: {commit.stderr.strip()}", "error")
+            return redirect(url_for("pagina_inadimplencia"))
+
+        push = _run("push", "origin", "main", timeout=120)
         if push.returncode == 0:
-            flash("Planilha atualizada e enviada ao Render com sucesso!", "success")
+            flash("Planilha atualizada e publicada no Render com sucesso!", "success")
         else:
             flash(f"Commit feito, mas erro no push: {push.stderr.strip()}", "error")
 
-    except subprocess.CalledProcessError as e:
-        flash(f"Erro no git: {e}", "error")
     except Exception as e:
         flash(f"Erro inesperado: {e}", "error")
 
