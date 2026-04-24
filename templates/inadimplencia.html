@@ -601,16 +601,8 @@
 
 <!-- Filter bar -->
 <div class="filter-bar">
+  <!-- 1. Etapa -->
   <div class="filter-row">
-    <!-- Situação -->
-    <div class="filter-group">
-      <span class="filter-lbl">Situação</span>
-      <button class="fpill on"  data-filter-sit="all">Todos</button>
-      <button class="fpill"     data-filter-sit="vencido">Vencidos</button>
-      <button class="fpill"     data-filter-sit="vence-hoje">Vence hoje</button>
-      <button class="fpill"     data-filter-sit="a-vencer">A Vencer</button>
-    </div>
-    <!-- Etapa -->
     <div class="filter-group" id="etapa-group">
       <span class="filter-lbl">Etapa</span>
       <button class="fpill on" data-filter-etapa="all">Todas</button>
@@ -624,8 +616,15 @@
       <button class="fpill" data-filter-etapa="D+15+">D+15+</button>
     </div>
   </div>
+  <!-- 2. Situação + 3. Perfil -->
   <div class="filter-row">
-    <!-- Perfil -->
+    <div class="filter-group">
+      <span class="filter-lbl">Situação</span>
+      <button class="fpill on"  data-filter-sit="all">Todos</button>
+      <button class="fpill"     data-filter-sit="vencido">Vencidos</button>
+      <button class="fpill"     data-filter-sit="vence-hoje">Vence hoje</button>
+      <button class="fpill"     data-filter-sit="a-vencer">A Vencer</button>
+    </div>
     <div class="filter-group">
       <span class="filter-lbl">Perfil</span>
       <button class="fpill on" data-filter-perfil="all">Todos</button>
@@ -633,14 +632,48 @@
       <button class="fpill" data-filter-perfil="true">Reincidente</button>
     </div>
   </div>
+  <!-- 4. Busca -->
   <div class="filter-bottom">
-    <div class="filter-search">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input type="text" id="search-nome" placeholder="Buscar por nome do cliente…">
+    <div class="filter-search" style="flex-direction:column; align-items:stretch;">
+      <div style="position:relative;">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+             style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="search-nome" placeholder="Buscar por nome do cliente…"
+               style="width:100%;padding:6px 10px 6px 30px;border:1.5px solid var(--border);border-radius:8px;font-size:0.83rem;font-family:inherit;color:var(--text);outline:none;transition:border-color .12s;background:#fff;box-sizing:border-box;">
+      </div>
+      <!-- Resumo do cliente (aparece durante a busca) -->
+      <div id="search-summary" style="display:none;
+           margin-top:10px; background:#f0f9ff; border:1px solid #bae6fd;
+           border-radius:10px; padding:12px 14px;">
+        <div style="font-size:0.72rem;font-weight:700;color:#0369a1;text-transform:uppercase;
+                    letter-spacing:.05em;margin-bottom:8px;" id="sum-nome"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="font-size:0.68rem;color:#64748b;">Registros</div>
+            <div style="font-size:1rem;font-weight:700;color:#0f172a;" id="sum-count"></div>
+          </div>
+          <div>
+            <div style="font-size:0.68rem;color:#64748b;">Valor original</div>
+            <div style="font-size:0.88rem;font-weight:600;color:#0f172a;" id="sum-valor"></div>
+          </div>
+          <div id="sum-multa-wrap">
+            <div style="font-size:0.68rem;color:#64748b;">Multa (5%)</div>
+            <div style="font-size:0.88rem;font-weight:600;color:#dc2626;" id="sum-multa"></div>
+          </div>
+          <div>
+            <div style="font-size:0.68rem;color:#64748b;">Juros acumulados</div>
+            <div style="font-size:0.88rem;font-weight:600;color:#dc2626;" id="sum-juros"></div>
+          </div>
+          <div style="background:#0369a1;border-radius:8px;padding:6px 12px;">
+            <div style="font-size:0.68rem;color:#bae6fd;">Total geral devido</div>
+            <div style="font-size:1.05rem;font-weight:800;color:#fff;" id="sum-total"></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button id="sort-toggle" class="btn-sort">
+    <button id="sort-toggle" class="btn-sort" style="align-self:flex-start;">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
         <line x1="8" y1="18" x2="21" y2="18"/>
@@ -730,10 +763,12 @@
           <span class="fin-val">{{ r.valor_s }}</span>
         </div>
         {% if r.dias_atraso >= 1 %}
+        {% if r.tem_multa %}
         <div class="fin-row">
           <span class="fin-lbl">Multa única (5%)</span>
           <span class="fin-val fin-red">+ {{ r.multa_s }}</span>
         </div>
+        {% endif %}
         <div class="fin-row">
           <span class="fin-lbl">Juros mora (0,5%/dia × {{ r.dias_atraso }}d)</span>
           <span class="fin-val fin-red">+ {{ r.juros_s }}</span>
@@ -886,6 +921,21 @@ const _msgs = {
   }{% if not loop.last %},{% endif %}
   {% endfor %}
 };
+
+/* Financial data for client summary (all vencidos) */
+const _fin = [
+  {% for r in registros %}
+  {
+    nome:     {{ r.nome | tojson }},
+    nomeN:    {{ r.nome | lower | tojson }},
+    valor:    {{ r._valor }},
+    multa:    {{ r._multa }},
+    juros:    {{ r._juros }},
+    total:    {{ r._total }},
+    temMulta: {{ 'true' if r.tem_multa else 'false' }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
 </script>
 
 <script>
@@ -1017,12 +1067,55 @@ const _msgs = {
     });
   });
 
+  /* ── Client summary ── */
+  function _brlFmt(v) {
+    var s = v.toFixed(2).replace('.', ',');
+    return 'R$ ' + s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function atualizarResumo(txt) {
+    var box   = document.getElementById('search-summary');
+    if (!box) return;
+    if (!txt) { box.style.display = 'none'; return; }
+
+    var matches = _fin.filter(function (r) { return r.nomeN.indexOf(txt) !== -1; });
+    if (matches.length === 0) { box.style.display = 'none'; return; }
+
+    var somaValor = matches.reduce(function (s, r) { return s + r.valor; }, 0);
+    var somaMulta = matches.reduce(function (s, r) { return s + r.multa; }, 0);
+    var somaJuros = matches.reduce(function (s, r) { return s + r.juros; }, 0);
+    var somaTotal = matches.reduce(function (s, r) { return s + r.total; }, 0);
+    var algumTemMulta = matches.some(function (r) { return r.temMulta; });
+
+    var nomes = [];
+    matches.forEach(function (r) { if (nomes.indexOf(r.nome) === -1) nomes.push(r.nome); });
+
+    var elNome   = document.getElementById('sum-nome');
+    var elCount  = document.getElementById('sum-count');
+    var elValor  = document.getElementById('sum-valor');
+    var elMulta  = document.getElementById('sum-multa');
+    var elJuros  = document.getElementById('sum-juros');
+    var elTotal  = document.getElementById('sum-total');
+    var wrapMulta = document.getElementById('sum-multa-wrap');
+
+    if (elNome)  elNome.textContent  = nomes.length === 1 ? nomes[0] : nomes.length + ' clientes';
+    if (elCount) elCount.textContent = matches.length + ' registro' + (matches.length !== 1 ? 's' : '');
+    if (elValor) elValor.textContent = _brlFmt(somaValor);
+    if (elMulta) elMulta.textContent = _brlFmt(somaMulta);
+    if (elJuros) elJuros.textContent = _brlFmt(somaJuros);
+    if (elTotal) elTotal.textContent = _brlFmt(somaTotal);
+    if (wrapMulta) wrapMulta.style.display = algumTemMulta ? '' : 'none';
+
+    box.style.display = '';
+  }
+
   /* Search */
   var searchInput = document.getElementById('search-nome');
   if (searchInput) {
     searchInput.addEventListener('input', function () {
       searchTxt = searchInput.value.trim().toLowerCase();
       applyAll();
+      atualizarResumo(searchTxt);
     });
   }
 

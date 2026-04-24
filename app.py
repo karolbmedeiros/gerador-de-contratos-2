@@ -1551,7 +1551,11 @@ def pagina_inadimplencia():
                     etapa, etapa_cls = "D+15+", "stage-d15"
                     proxima = "Recolhimento + protesto em cartório + execução contratual"
 
-                multa  = valor * 0.05 if dias >= 1 else 0.0
+                # Multa applies only to specific contract values (locação fixa)
+                _MULTA_VALS = {600, 630, 650, 680, 700, 800, 1200}
+                valor_qualifica_multa = int(round(valor)) in _MULTA_VALS
+                tem_multa = dias >= 1 and valor_qualifica_multa
+                multa  = valor * 0.05 if tem_multa else 0.0
                 juros  = valor * 0.005 * dias if dias >= 1 else 0.0
                 total  = valor + multa + juros
                 pausar = total * 0.5
@@ -1562,21 +1566,33 @@ def pagina_inadimplencia():
 
                 # WhatsApp messages per stage
                 if dias == 0:
+                    _enc = ("multa de 5% e juros de 0,5% ao dia"
+                            if valor_qualifica_multa else "juros de 0,5% ao dia")
                     msg = (
                         f"{nome}, sua parcela de *{_brl(valor)}* vence *hoje*\n"
                         f"com a *Ativuz Veículos*.\n"
-                        f"Regularize hoje para evitar multa de 5% e juros de 0,5% ao dia.\n\n"
+                        f"Regularize hoje para evitar {_enc}.\n\n"
                         f"*Ativuz Veículos*"
                     )
                 elif dias <= 2:   # D+1 and D+2 use the same detailed breakdown
+                    if tem_multa:
+                        _detalhes = (
+                            f"• Valor original: {_brl(valor)}\n"
+                            f"• Multa (5%): + {_brl(multa)}\n"
+                            f"• Juros ({dias_s} × 0,5%): + {_brl(juros)}\n"
+                            f"• *Total: {_brl(total)}*"
+                        )
+                    else:
+                        _detalhes = (
+                            f"• Valor original: {_brl(valor)}\n"
+                            f"• Juros ({dias_s} × 0,5%): + {_brl(juros)}\n"
+                            f"• *Total: {_brl(total)}*"
+                        )
                     msg = (
                         f"{nome}, sua parcela de *{_brl(valor)}* não foi paga\n"
                         f"(vencimento: {data_fmt}).\n\n"
                         f"💰 Valor atualizado:\n"
-                        f"• Valor original: {_brl(valor)}\n"
-                        f"• Multa (5%): + {_brl(multa)}\n"
-                        f"• Juros ({dias_s} × 0,5%): + {_brl(juros)}\n"
-                        f"• *Total: {_brl(total)}*\n\n"
+                        f"{_detalhes}\n\n"
                         f"Regularize hoje para evitar encargos adicionais e restrições contratuais.\n\n"
                         f"*Ativuz Veículos*"
                     )
@@ -1660,6 +1676,7 @@ def pagina_inadimplencia():
                     "dias_label":       dias_label,
                     "reincidente":      reincidente,
                     "is_fatura":        is_fatura,
+                    "tem_multa":        tem_multa,
                     "etapa":            etapa,
                     "etapa_cls":        etapa_cls,
                     "proxima_acao":     proxima,
@@ -1674,6 +1691,8 @@ def pagina_inadimplencia():
                     "total_s":          _brl(total),
                     "pausar_s":         _brl(pausar),
                     "_valor":           valor,
+                    "_multa":           multa,
+                    "_juros":           juros,
                     "_total":           total,
                 })
 
