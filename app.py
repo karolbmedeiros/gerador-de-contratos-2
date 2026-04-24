@@ -1719,19 +1719,22 @@ def pagina_inadimplencia():
 def inadimplencia_push():
     import subprocess, shutil as _shutil
 
-    # Locate git — Python's PATH may differ from the shell's on Windows
-    _git = _shutil.which("git")
+    # Locate git by checking known paths (Flask's PATH may differ from the shell)
+    _git = None
+    for _candidate in [
+        r"C:\Program Files\Git\cmd\git.exe",
+        r"C:\Program Files\Git\mingw64\bin\git.exe",
+        r"C:\Program Files\Git\bin\git.exe",
+        r"C:\Program Files (x86)\Git\cmd\git.exe",
+        r"C:\Program Files (x86)\Git\mingw64\bin\git.exe",
+    ]:
+        if Path(_candidate).exists():
+            _git = _candidate
+            break
     if not _git:
-        for _candidate in [
-            r"C:\Program Files\Git\cmd\git.exe",
-            r"C:\Program Files\Git\bin\git.exe",
-            r"C:\Program Files (x86)\Git\cmd\git.exe",
-        ]:
-            if Path(_candidate).exists():
-                _git = _candidate
-                break
+        _git = _shutil.which("git")  # last resort: try PATH
     if not _git:
-        flash("Git não encontrado no sistema. Instale o Git for Windows.", "error")
+        flash("Git não encontrado. Verifique a instalação do Git for Windows.", "error")
         return redirect(url_for("pagina_inadimplencia"))
 
     repo_dir = str(Path(__file__).parent)
