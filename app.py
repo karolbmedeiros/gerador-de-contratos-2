@@ -1579,24 +1579,26 @@ def pagina_inadimplencia():
                     wa_acordo   = ("https://wa.me/?text=" + _url_quote(msg_acordo)) if dias >= 3 else None
 
                     registros.append({
-                        "descricao":       descricao,
-                        "nome":            nome,
-                        "data_vencimento": data_fmt,
-                        "dias_atraso":     dias,
-                        "dias_label":      dias_label,
-                        "reincidente":     reincidente,
-                        "etapa":           etapa,
-                        "etapa_cls":       etapa_cls,
-                        "proxima_acao":    proxima,
-                        "wa_cobranca":     wa_cobranca,
-                        "wa_acordo":       wa_acordo,
-                        "valor_s":         _brl(valor),
-                        "multa_s":         _brl(multa),
-                        "juros_s":         _brl(juros),
-                        "total_s":         _brl(total),
-                        "acordo_s":        _brl(acordo),
-                        "_valor":          valor,
-                        "_total":          total,
+                        "descricao":        descricao,
+                        "nome":             nome,
+                        "data_vencimento":  data_fmt,
+                        "dias_atraso":      dias,
+                        "dias_label":       dias_label,
+                        "reincidente":      reincidente,
+                        "etapa":            etapa,
+                        "etapa_cls":        etapa_cls,
+                        "proxima_acao":     proxima,
+                        "wa_cobranca":      wa_cobranca,
+                        "wa_acordo":        wa_acordo,
+                        "msg_cobranca_txt": msg,
+                        "msg_acordo_txt":   msg_acordo if dias >= 3 else None,
+                        "valor_s":          _brl(valor),
+                        "multa_s":          _brl(multa),
+                        "juros_s":          _brl(juros),
+                        "total_s":          _brl(total),
+                        "acordo_s":         _brl(acordo),
+                        "_valor":           valor,
+                        "_total":           total,
                     })
 
         except Exception as e:
@@ -1609,8 +1611,8 @@ def pagina_inadimplencia():
 
     total_valor_orig  = _brl(sum(r["_valor"] for r in registros))
     total_valor_atual = _brl(sum(r["_total"] for r in registros))
-    criticos          = sum(1 for r in registros if r["dias_atraso"] >= 7)
-    reincidentes      = sum(1 for r in registros if r["reincidente"])
+    criticos              = sum(1 for r in registros if r["dias_atraso"] >= 7)
+    reincidentes_criticos = sum(1 for r in registros if r["dias_atraso"] >= 7 and r["reincidente"])
 
     return render_template(
         "inadimplencia.html",
@@ -1619,7 +1621,7 @@ def pagina_inadimplencia():
         total_valor_orig=total_valor_orig,
         total_valor_atual=total_valor_atual,
         criticos=criticos,
-        reincidentes=reincidentes,
+        reincidentes=reincidentes_criticos,
         erro_leitura=erro_leitura,
         hoje=hoje.strftime("%d/%m/%Y"),
         active="inadimplencia",

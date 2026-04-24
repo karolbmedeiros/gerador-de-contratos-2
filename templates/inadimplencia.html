@@ -8,7 +8,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 16px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .inad-card {
@@ -36,11 +36,139 @@
   .inad-card.c-orange { background: linear-gradient(135deg, #c2410c 0%, #f97316 100%); }
   .inad-card.c-dark   { background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%); }
   .inad-card.c-slate  { background: linear-gradient(135deg, #374151 0%, #4b5563 100%); }
-  .inad-card.c-amber  { background: linear-gradient(135deg, #92400e 0%, #d97706 100%); }
 
   .inad-card-top { font-size: 0.72rem; font-weight: 500; opacity: 0.88; }
   .inad-card-val { font-size: 1.7rem; font-weight: 700; line-height: 1.1; }
   .inad-card-sub { font-size: 0.67rem; opacity: 0.75; margin-top: 3px; }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .filter-lbl {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .fpill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color .12s, color .12s, background .12s;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+
+  .fpill:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+  .fpill.on    { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  .filter-bottom {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-search {
+    flex: 1;
+    min-width: 180px;
+    position: relative;
+  }
+
+  .filter-search svg {
+    position: absolute;
+    left: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .filter-search input {
+    width: 100%;
+    padding: 6px 10px 6px 30px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.83rem;
+    font-family: inherit;
+    color: var(--text);
+    outline: none;
+    transition: border-color .12s;
+    background: #fff;
+  }
+
+  .filter-search input:focus { border-color: var(--primary); }
+  .filter-search input::placeholder { color: #94a3b8; }
+
+  /* ── Sort + count bar ── */
+  .sort-meta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sort-meta-left {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .sort-meta-left strong { color: var(--text); }
+
+  .btn-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .12s, color .12s;
+  }
+
+  .btn-sort:hover { border-color: var(--primary); color: var(--primary); }
 
   /* ── Records list ── */
   .inad-list {
@@ -152,24 +280,49 @@
 
   .dias-badge.d0 { background: #e0f2fe; color: #0369a1; }
 
-  /* próxima ação */
-  .inad-acao {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #92400e;
-    background: #fffbeb;
+  /* ── Próxima ação accordion ── */
+  .inad-acao-wrap {
     border: 1px solid #fde68a;
-    border-radius: 8px;
-    padding: 8px 12px;
-    line-height: 1.4;
+    border-radius: 9px;
+    overflow: hidden;
   }
 
-  .inad-acao svg { flex-shrink: 0; margin-top: 1px; }
+  .inad-acao-wrap > summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: #fffbeb;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #92400e;
+    list-style: none;
+    user-select: none;
+  }
 
-  /* financial breakdown */
+  .inad-acao-wrap > summary::-webkit-details-marker { display: none; }
+
+  .inad-acao-wrap > summary .acao-chevron {
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: transform .2s;
+  }
+
+  .inad-acao-wrap[open] > summary .acao-chevron {
+    transform: rotate(90deg);
+  }
+
+  .inad-acao-body {
+    padding: 8px 12px 10px;
+    font-size: 0.82rem;
+    color: #78350f;
+    background: #fffbeb;
+    border-top: 1px solid #fde68a;
+    line-height: 1.5;
+  }
+
+  /* ── Financial breakdown ── */
   .inad-fin {
     background: #f8fafc;
     border-radius: 10px;
@@ -196,17 +349,46 @@
     margin: 3px 0;
   }
 
-  .fin-sep-dashed {
-    border: none;
-    border-top: 1px dashed var(--border);
-    margin: 3px 0;
-  }
-
   .fin-total-lbl { font-weight: 700; color: var(--text); font-size: 0.83rem; }
   .fin-total-val { font-weight: 700; color: var(--text); font-size: 0.9rem; }
-  .fin-acordo-val { font-weight: 700; color: #0369a1; }
 
-  /* WhatsApp buttons */
+  /* Acordo destaque */
+  .fin-acordo-card {
+    margin-top: 6px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #93c5fd;
+    border-radius: 9px;
+    padding: 9px 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .fin-acordo-left { display: flex; flex-direction: column; gap: 2px; }
+
+  .fin-acordo-lbl {
+    font-size: 0.67rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .fin-acordo-note {
+    font-size: 0.65rem;
+    color: #3b82f6;
+    font-style: italic;
+  }
+
+  .fin-acordo-val {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #1e40af;
+    white-space: nowrap;
+  }
+
+  /* ── WA button groups ── */
   .inad-actions {
     display: flex;
     gap: 8px;
@@ -214,25 +396,52 @@
     margin-top: 2px;
   }
 
+  .btn-wa-group {
+    display: inline-flex;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
   .btn-wa {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 7px 14px;
-    border-radius: 8px;
+    padding: 7px 12px;
     font-size: 0.8rem;
     font-weight: 600;
     font-family: inherit;
     text-decoration: none;
-    transition: opacity .15s, transform .1s;
+    transition: opacity .15s;
     white-space: nowrap;
+    border-radius: 0;
   }
 
-  .btn-wa:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-wa:hover { opacity: 0.88; }
   .btn-wa-main  { background: #25d366; color: #fff; }
   .btn-wa-acordo { background: #128c7e; color: #fff; }
 
-  /* empty state */
+  .btn-copy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 10px;
+    border: none;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity .15s, background .15s;
+    white-space: nowrap;
+    border-left: 1px solid rgba(255,255,255,0.25);
+  }
+
+  .btn-copy-main  { background: #1fba59; color: #fff; }
+  .btn-copy-acordo { background: #0e7a6d; color: #fff; }
+  .btn-copy:hover { opacity: 0.85; }
+  .btn-copy.copied { background: #166534 !important; color: #bbf7d0 !important; }
+
+  /* ── Empty state ── */
   .inad-empty {
     background: #fff;
     border-radius: 14px;
@@ -248,10 +457,14 @@
     gap: 0.75rem;
   }
 
-  /* responsive */
+  /* ── Responsive ── */
   @media (max-width: 1100px) {
     .inad-cards { grid-template-columns: repeat(2, 1fr); }
     .inad-list  { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 768px) {
+    .filter-row { flex-direction: column; align-items: flex-start; gap: 10px; }
   }
 
   @media (max-width: 600px) {
@@ -330,11 +543,67 @@
 
 </div>
 
-<!-- Records -->
 {% if registros %}
-<div class="inad-list">
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="filter-row">
+    <!-- Etapa pills -->
+    <div class="filter-group">
+      <span class="filter-lbl">Etapa</span>
+      <button class="fpill on" data-filter-etapa="all">Todos</button>
+      <button class="fpill" data-filter-etapa="D+0">D+0</button>
+      <button class="fpill" data-filter-etapa="D+1">D+1</button>
+      <button class="fpill" data-filter-etapa="D+3">D+3</button>
+      <button class="fpill" data-filter-etapa="D+5">D+5</button>
+      <button class="fpill" data-filter-etapa="D+7">D+7</button>
+      <button class="fpill" data-filter-etapa="D+10">D+10</button>
+      <button class="fpill" data-filter-etapa="D+15+">D+15+</button>
+    </div>
+    <!-- Perfil pills -->
+    <div class="filter-group">
+      <span class="filter-lbl">Perfil</span>
+      <button class="fpill on" data-filter-perfil="all">Todos</button>
+      <button class="fpill" data-filter-perfil="false">1ª vez</button>
+      <button class="fpill" data-filter-perfil="true">Reincidente</button>
+    </div>
+  </div>
+  <div class="filter-bottom">
+    <!-- Search -->
+    <div class="filter-search">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="search-nome" placeholder="Buscar por nome do cliente…">
+    </div>
+    <!-- Sort toggle -->
+    <button id="sort-toggle" class="btn-sort">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      <span id="sort-label">↓ Mais atrasado primeiro</span>
+    </button>
+  </div>
+</div>
+
+<!-- Sort + count bar -->
+<div class="sort-meta-bar">
+  <span class="sort-meta-left">
+    Exibindo <strong id="visible-count">{{ total_registros }}</strong> de {{ total_registros }} registro(s)
+  </span>
+</div>
+
+<!-- Records list -->
+<div class="inad-list" id="inad-list">
   {% for r in registros %}
-  <div class="inad-item">
+  <div class="inad-item"
+       data-etapa="{{ r.etapa }}"
+       data-reincidente="{{ 'true' if r.reincidente else 'false' }}"
+       data-nome="{{ r.nome | lower | e }}"
+       data-dias="{{ r.dias_atraso }}">
 
     <!-- Header: nome + etapa badge -->
     <div class="inad-item-header">
@@ -365,13 +634,19 @@
       </span>
     </div>
 
-    <!-- Próxima ação -->
-    <div class="inad-acao">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-      {{ r.proxima_acao }}
-    </div>
+    <!-- Próxima ação (accordion — open by default for D+7+) -->
+    <details class="inad-acao-wrap" {% if r.dias_atraso >= 7 %}open{% endif %}>
+      <summary>
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Próxima ação
+        <svg class="acao-chevron" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </summary>
+      <div class="inad-acao-body">{{ r.proxima_acao }}</div>
+    </details>
 
     <!-- Financial breakdown -->
     <div class="inad-fin">
@@ -394,10 +669,12 @@
         <span class="fin-total-val">{{ r.total_s }}</span>
       </div>
       {% if r.dias_atraso >= 3 %}
-      <hr class="fin-sep-dashed">
-      <div class="fin-row">
-        <span class="fin-lbl">Valor do acordo (50%)</span>
-        <span class="fin-val fin-acordo-val">{{ r.acordo_s }}</span>
+      <div class="fin-acordo-card">
+        <div class="fin-acordo-left">
+          <span class="fin-acordo-lbl">Proposta de Acordo (50%)</span>
+          <span class="fin-acordo-note">Saldo restante continua com juros</span>
+        </div>
+        <span class="fin-acordo-val">{{ r.acordo_s }}</span>
       </div>
       {% endif %}
       {% else %}
@@ -409,39 +686,194 @@
       {% endif %}
     </div>
 
-    <!-- WhatsApp buttons -->
+    <!-- WhatsApp buttons + copy -->
     <div class="inad-actions">
-      <a href="{{ r.wa_cobranca }}" target="_blank" rel="noopener" class="btn-wa btn-wa-main">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-        Enviar Cobrança
-      </a>
-      {% if r.wa_acordo %}
-      <a href="{{ r.wa_acordo }}" target="_blank" rel="noopener" class="btn-wa btn-wa-acordo">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-        Proposta de Acordo
-      </a>
-      {% endif %}
-    </div>
+      <!-- Cobrança group -->
+      <div class="btn-wa-group">
+        <a href="{{ r.wa_cobranca }}" target="_blank" rel="noopener" class="btn-wa btn-wa-main">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Enviar Cobrança
+        </a>
+        <button class="btn-copy btn-copy-main"
+                data-idx="{{ loop.index0 }}"
+                data-type="cobranca"
+                onclick="copiarMsg(this)"
+                title="Copiar texto da mensagem">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </button>
+      </div>
 
-  </div>
+      {% if r.wa_acordo %}
+      <!-- Acordo group -->
+      <div class="btn-wa-group">
+        <a href="{{ r.wa_acordo }}" target="_blank" rel="noopener" class="btn-wa btn-wa-acordo">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Proposta de Acordo
+        </a>
+        <button class="btn-copy btn-copy-acordo"
+                data-idx="{{ loop.index0 }}"
+                data-type="acordo"
+                onclick="copiarMsg(this)"
+                title="Copiar texto do acordo">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </button>
+      </div>
+      {% endif %}
+
+    </div><!-- .inad-actions -->
+
+  </div><!-- .inad-item -->
   {% endfor %}
-</div>
+</div><!-- .inad-list -->
+
+<!-- message data for copy buttons -->
+<script>
+const _msgs = {
+  {% for r in registros %}
+  {{ loop.index0 }}: {
+    cobranca: {{ r.msg_cobranca_txt | tojson }},
+    acordo:   {{ (r.msg_acordo_txt or '') | tojson }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+};
+</script>
 
 {% else %}
-
 <div class="inad-empty">
   <svg width="44" height="44" fill="none" stroke="#16a34a" stroke-width="1.5" viewBox="0 0 24 24">
-    <path d="M9 12l2 2 4-4"/>
-    <circle cx="12" cy="12" r="10"/>
+    <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
   </svg>
   <strong style="color:#15803d;">Tudo em dia!</strong>
   <span>Nenhum registro vencido ou vencendo hoje na planilha.</span>
 </div>
-
 {% endif %}
+
+<script>
+(function () {
+  /* ── Copy to clipboard ── */
+  function copiarMsg(btn) {
+    var idx  = parseInt(btn.dataset.idx, 10);
+    var type = btn.dataset.type;
+    var msg  = _msgs[idx] && _msgs[idx][type];
+    if (!msg) return;
+
+    var origHTML = btn.innerHTML;
+    var feedback = function () {
+      btn.innerHTML = 'Copiado!';
+      btn.classList.add('copied');
+      setTimeout(function () {
+        btn.innerHTML = origHTML;
+        btn.classList.remove('copied');
+      }, 2000);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).then(feedback).catch(function () {
+        fallback(msg); feedback();
+      });
+    } else {
+      fallback(msg); feedback();
+    }
+  }
+
+  function fallback(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  window.copiarMsg = copiarMsg;
+
+  /* ── Filter + sort ── */
+  var allItems = Array.prototype.slice.call(document.querySelectorAll('.inad-item'));
+  var listEl   = document.getElementById('inad-list');
+  var countEl  = document.getElementById('visible-count');
+  if (!listEl) return;
+
+  var activeEtapa  = 'all';
+  var activePerfil = 'all';
+  var searchTxt    = '';
+  var sortOrder    = 'desc';
+
+  function applyAll() {
+    var visible = allItems.filter(function (item) {
+      if (activeEtapa !== 'all' && item.dataset.etapa !== activeEtapa) return false;
+      if (activePerfil !== 'all' && item.dataset.reincidente !== activePerfil) return false;
+      if (searchTxt && item.dataset.nome.indexOf(searchTxt) === -1) return false;
+      return true;
+    });
+
+    visible.sort(function (a, b) {
+      var da = parseInt(a.dataset.dias, 10);
+      var db = parseInt(b.dataset.dias, 10);
+      return sortOrder === 'desc' ? db - da : da - db;
+    });
+
+    allItems.forEach(function (item) { item.style.display = 'none'; });
+    visible.forEach(function (item) {
+      item.style.display = '';
+      listEl.appendChild(item);
+    });
+
+    if (countEl) countEl.textContent = visible.length;
+  }
+
+  /* Etapa pills */
+  document.querySelectorAll('[data-filter-etapa]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('[data-filter-etapa]').forEach(function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      activeEtapa = btn.dataset.filterEtapa;
+      applyAll();
+    });
+  });
+
+  /* Perfil pills */
+  document.querySelectorAll('[data-filter-perfil]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('[data-filter-perfil]').forEach(function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      activePerfil = btn.dataset.filterPerfil;
+      applyAll();
+    });
+  });
+
+  /* Search */
+  var searchInput = document.getElementById('search-nome');
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      searchTxt = searchInput.value.trim().toLowerCase();
+      applyAll();
+    });
+  }
+
+  /* Sort toggle */
+  var sortBtn   = document.getElementById('sort-toggle');
+  var sortLabel = document.getElementById('sort-label');
+  if (sortBtn) {
+    sortBtn.addEventListener('click', function () {
+      sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+      sortLabel.textContent = sortOrder === 'desc'
+        ? '↓ Mais atrasado primeiro'
+        : '↑ Menos atrasado primeiro';
+      applyAll();
+    });
+  }
+})();
+</script>
 
 {% endblock %}
