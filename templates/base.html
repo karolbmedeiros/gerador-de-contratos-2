@@ -111,6 +111,18 @@
         Hist. Vistorias
       </a>
 
+      <div class="nav-divider"></div>
+
+      <a href="{{ url_for('pagina_inadimplencia') }}"
+         class="nav-item {% if active == 'inadimplencia' %}active{% endif %}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Inadimplência
+      </a>
+
     </nav>
 
     <div class="sidebar-footer" style="display:flex; align-items:center; justify-content:space-between;">
@@ -145,6 +157,7 @@
           {% elif active == 'vistoria' %}Vistoria
           {% elif active == 'hist_vistorias' %}Hist. Vistorias
           {% elif active == 'historico' %}Histórico de Contratos
+          {% elif active == 'inadimplencia' %}Controle de Inadimplência
           {% else %}ATIVUZ
           {% endif %}
         </span>

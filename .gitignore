@@ -1,0 +1,11 @@
+.env.local
+.env
+__pycache__/
+*.pyc
+*.pyo
+node_modules/
+.next/
+next-env.d.ts
+flask_ativuz/
+contratos/DEBUG_*
+temp_preview/
