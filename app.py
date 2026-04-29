@@ -5,6 +5,8 @@ from flask import (
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import os as _os
+from dotenv import load_dotenv
+load_dotenv()
 from pathlib import Path
 from datetime import datetime, date
 from zoneinfo import ZoneInfo
