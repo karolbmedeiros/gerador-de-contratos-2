@@ -1876,5 +1876,10 @@ def inadimplencia_upload():
     return redirect(url_for("pagina_inadimplencia"))
 
 
+@app.route("/dre")
+def pagina_dre():
+    return render_template("dre.html", active="dre")
+
+
 if __name__ == "__main__":
     app.run(debug=True)
