@@ -57,14 +57,14 @@ def login():
             erro = "Serviço indisponível. Tente novamente."
         else:
             try:
-                res = sb.table("usuarios").select("nome, senha_hash") \
-                    .eq("nome", nome).eq("ativo", True).single().execute()
-                usuario = res.data
-                if usuario and check_password_hash(usuario["senha_hash"], senha):
-                    session["usuario"] = nome
-                    return redirect(url_for("dashboard"))
-                else:
-                    erro = "Nome ou senha incorretos."
+                from supabase import create_client
+                url = _os.environ.get("SUPABASE_URL", "")
+                key = _os.environ.get("SUPABASE_KEY", "")
+                email = nome if "@" in nome else f"{nome}@ativuz.com"
+                auth_client = create_client(url, key)
+                res = auth_client.auth.sign_in_with_password({"email": email, "password": senha})
+                session["usuario"] = nome
+                return redirect(url_for("dashboard"))
             except Exception:
                 erro = "Nome ou senha incorretos."
     return render_template("login.html", erro=erro)
@@ -72,6 +72,12 @@ def login():
 
 @app.route("/logout")
 def logout():
+    sb = _supabase()
+    if sb:
+        try:
+            sb.auth.sign_out()
+        except Exception:
+            pass
     session.clear()
     return redirect(url_for("login"))
 
