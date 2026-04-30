@@ -60,13 +60,13 @@ def login():
                 from supabase import create_client
                 url = _os.environ.get("SUPABASE_URL", "")
                 key = _os.environ.get("SUPABASE_KEY", "")
-                email = nome if "@" in nome else f"{nome}@ativuz.com"
+                email = (nome if "@" in nome else f"{nome}@ativuz.com").lower()
                 auth_client = create_client(url, key)
                 res = auth_client.auth.sign_in_with_password({"email": email, "password": senha})
                 session["usuario"] = nome
                 return redirect(url_for("dashboard"))
-            except Exception as e:
-                erro = f"Erro: {e}"
+            except Exception:
+                erro = "Nome ou senha incorretos."
     return render_template("login.html", erro=erro)
 
 
