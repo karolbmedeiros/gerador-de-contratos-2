@@ -8,12 +8,18 @@ function Login({ onLogin }) {
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState(null);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setErr(null);
     if (!email || !pass) { setErr('Preencha login e senha para continuar.'); return; }
     setLoading(true);
-    setTimeout(() => { setLoading(false); onLogin(); }, 650);
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    setLoading(false);
+    if (error) {
+      setErr('Email ou senha incorretos.');
+    } else {
+      onLogin();
+    }
   };
 
   return (
