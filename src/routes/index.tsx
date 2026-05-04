@@ -1,26 +1,39 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { supabase } from '../lib/supabase'
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
+  beforeLoad: async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw redirect({ to: '/login' })
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'to' in e) throw e
+      throw redirect({ to: '/login' })
+    }
+  },
   component: Index,
-});
-
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
+})
 
 function Index() {
-  return <PlaceholderIndex />;
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate({ to: '/login' })
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard Ativuz</h1>
+        <p className="text-sm text-gray-500 mt-2">Bem-vindo ao painel de gestão.</p>
+        <button
+          onClick={handleLogout}
+          className="mt-6 px-4 py-2 rounded-md bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium transition"
+        >
+          Sair
+        </button>
+      </div>
+    </div>
+  )
 }
