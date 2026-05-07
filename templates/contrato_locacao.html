@@ -28,9 +28,33 @@
       {{ field('locatario_nome',     'Nome completo',      'João da Silva', col2=true) }}
       {{ field('locatario_rg',       'RG',                 '0.000.000') }}
       {{ field('locatario_cpf',      'CPF',                '000.000.000-00') }}
-      {{ field('locatario_endereco', 'Endereço',           'Rua Exemplo, 123, Natal/RN', col2=true) }}
-      {{ field('locatario_cep',      'CEP',                '59000-000') }}
       {{ field('locatario_telefone', 'Telefone / WhatsApp','(84) 99999-9999') }}
+      {{ field('locatario_cep',      'CEP',                '59000-000') }}
+      <input type="hidden" name="locatario_endereco"
+             value="{{ contrato.locatario_endereco if contrato and contrato.locatario_endereco else '' }}">
+      <div class="form-group col-2">
+        <label class="form-label">Logradouro</label>
+        <input type="text" class="form-input" id="locatario_logradouro" placeholder="Rua Exemplo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Número</label>
+        <input type="text" class="form-input" id="locatario_numero" placeholder="123">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bairro</label>
+        <input type="text" class="form-input" id="locatario_bairro" placeholder="Centro">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cidade</label>
+        <input type="text" class="form-input" id="locatario_cidade" placeholder="Natal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <input type="text" class="form-input" id="locatario_estado" placeholder="RN" maxlength="2" style="text-transform:uppercase">
+      </div>
+      <div id="locatario_cep_erro" style="display:none;color:#e53e3e;font-size:.85rem;grid-column:1/-1;margin-top:-.5rem">
+        CEP não encontrado. Verifique e tente novamente.
+      </div>
     </div>
   </div>
 
@@ -43,7 +67,36 @@
       {{ field('avalista_nome',     'Nome completo', 'Maria da Silva', col2=true) }}
       {{ field('avalista_cpf',      'CPF',           '000.000.000-00') }}
       {{ field('avalista_telefone', 'Telefone',      '(84) 99999-9999') }}
-      {{ field('avalista_endereco', 'Endereço',      'Rua Exemplo, 456, Natal/RN', col2=true) }}
+      <div class="form-group">
+        <label class="form-label">CEP</label>
+        <input type="text" name="avalista_cep" class="form-input" placeholder="59000-000"
+               value="{{ contrato.get('avalista_cep', '') if contrato else '' }}">
+      </div>
+      <input type="hidden" name="avalista_endereco"
+             value="{{ contrato.avalista_endereco if contrato and contrato.avalista_endereco else '' }}">
+      <div class="form-group col-2">
+        <label class="form-label">Logradouro</label>
+        <input type="text" class="form-input" id="avalista_logradouro" placeholder="Rua Exemplo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Número</label>
+        <input type="text" class="form-input" id="avalista_numero" placeholder="456">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Bairro</label>
+        <input type="text" class="form-input" id="avalista_bairro" placeholder="Centro">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cidade</label>
+        <input type="text" class="form-input" id="avalista_cidade" placeholder="Natal">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <input type="text" class="form-input" id="avalista_estado" placeholder="RN" maxlength="2" style="text-transform:uppercase">
+      </div>
+      <div id="avalista_cep_erro" style="display:none;color:#e53e3e;font-size:.85rem;grid-column:1/-1;margin-top:-.5rem">
+        CEP não encontrado. Verifique e tente novamente.
+      </div>
     </div>
   </div>
 
@@ -133,6 +186,8 @@ async function salvarContrato() {
     stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Salvando...`;
 
   try {
+    document.querySelector('[name="locatario_endereco"]').value = combineAddress('locatario');
+    document.querySelector('[name="avalista_endereco"]').value  = combineAddress('avalista');
     const fd = new FormData(document.getElementById('form-contrato-locacao'));
     const resp = await fetch('{{ url_for("gerar_contrato_locacao_route") }}', {
       method: 'POST', body: fd,
@@ -149,5 +204,127 @@ async function salvarContrato() {
     btn.innerHTML = orig;
   }
 }
+</script>
+
+<script>
+// ── Máscaras ──────────────────────────────────────────────────────────────────
+
+function maskCep(v) {
+  return v.replace(/\D/g, '').slice(0, 8).replace(/(\d{5})(\d)/, '$1-$2');
+}
+
+function maskCpf(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  return d.replace(/(\d{3})(\d)/, '$1.$2')
+          .replace(/(\d{3})(\d)/, '$1.$2')
+          .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+}
+
+function maskPhone(v) {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 10)
+    return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
+  return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
+}
+
+function maskDate(v) {
+  return v.replace(/\D/g, '').slice(0, 8)
+          .replace(/(\d{2})(\d)/, '$1/$2')
+          .replace(/(\d{2})(\d)/, '$1/$2');
+}
+
+function maskPlaca(v) {
+  const raw = v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 7);
+  if (raw.length <= 3) return raw;
+  const rest = raw.slice(3);
+  const isMercosul = rest.length >= 2 && /[A-Z]/.test(rest[1]);
+  return isMercosul ? raw : raw.slice(0, 3) + (rest ? '-' + rest : '');
+}
+
+function addMask(selector, fn) {
+  document.querySelectorAll(selector).forEach(el => {
+    el.addEventListener('input', function () { this.value = fn(this.value); });
+  });
+}
+
+// ── Busca CEP (ViaCEP) ────────────────────────────────────────────────────────
+
+function combineAddress(prefix) {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const logradouro = g(prefix + '_logradouro');
+  const numero     = g(prefix + '_numero');
+  const bairro     = g(prefix + '_bairro');
+  const cidade     = g(prefix + '_cidade');
+  const estado     = g(prefix + '_estado');
+  const parts = [];
+  if (logradouro) parts.push(logradouro);
+  if (numero)     parts.push(numero);
+  if (bairro)     parts.push(bairro);
+  if (cidade || estado) parts.push([cidade, estado].filter(Boolean).join('/'));
+  return parts.join(', ');
+}
+
+async function buscarCep(digits, prefix) {
+  const erro = document.getElementById(prefix + '_cep_erro');
+  try {
+    const resp = await fetch('https://viacep.com.br/ws/' + digits + '/json/');
+    const data = await resp.json();
+    if (data.erro) { erro.style.display = 'block'; return; }
+    erro.style.display = 'none';
+    document.getElementById(prefix + '_logradouro').value = data.logradouro || '';
+    document.getElementById(prefix + '_bairro').value     = data.bairro     || '';
+    document.getElementById(prefix + '_cidade').value     = data.localidade || '';
+    document.getElementById(prefix + '_estado').value     = data.uf         || '';
+    document.getElementById(prefix + '_numero').focus();
+  } catch (_) {
+    erro.style.display = 'block';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  // Aplica máscaras
+  addMask('[name="locatario_cep"], [name="avalista_cep"]',            maskCep);
+  addMask('[name="locatario_cpf"], [name="avalista_cpf"]',            maskCpf);
+  addMask('[name="locatario_telefone"], [name="avalista_telefone"]',  maskPhone);
+  addMask('[name="contrato_inicio"]',                                 maskDate);
+
+  document.querySelector('[name="veiculo_placa"]')
+    ?.addEventListener('input', function () { this.value = maskPlaca(this.value); });
+
+  document.querySelector('[name="locatario_rg"]')?.setAttribute('maxlength', '14');
+
+  // Dispara busca ao completar 8 dígitos do CEP
+  document.querySelectorAll('[name="locatario_cep"], [name="avalista_cep"]').forEach(el => {
+    el.addEventListener('input', function () {
+      const prefix = this.name.replace('_cep', '');
+      const digits = this.value.replace(/\D/g, '');
+      document.getElementById(prefix + '_cep_erro').style.display = 'none';
+      if (digits.length === 8) buscarCep(digits, prefix);
+    });
+  });
+
+  // Modo edição: preenche Logradouro com endereço salvo
+  ['locatario', 'avalista'].forEach(function (prefix) {
+    const hidden = document.querySelector('[name="' + prefix + '_endereco"]');
+    if (hidden && hidden.value) {
+      document.getElementById(prefix + '_logradouro').value = hidden.value;
+    }
+  });
+
+  // Aplica máscaras nos valores já preenchidos (modo edição)
+  document.querySelectorAll('[name="locatario_cep"], [name="avalista_cep"]').forEach(el => {
+    if (el.value) el.value = maskCep(el.value);
+  });
+  document.querySelectorAll('[name="locatario_cpf"], [name="avalista_cpf"]').forEach(el => {
+    if (el.value) el.value = maskCpf(el.value);
+  });
+  document.querySelectorAll('[name="locatario_telefone"], [name="avalista_telefone"]').forEach(el => {
+    if (el.value) el.value = maskPhone(el.value);
+  });
+  const inicioEl = document.querySelector('[name="contrato_inicio"]');
+  if (inicioEl && inicioEl.value) inicioEl.value = maskDate(inicioEl.value);
+  const placaEl = document.querySelector('[name="veiculo_placa"]');
+  if (placaEl && placaEl.value) placaEl.value = maskPlaca(placaEl.value);
+});
 </script>
 {% endblock %}
