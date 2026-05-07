@@ -30,27 +30,16 @@
       {{ field('locatario_cpf',      'CPF',                '000.000.000-00') }}
       {{ field('locatario_telefone', 'Telefone / WhatsApp','(84) 99999-9999') }}
       {{ field('locatario_cep',      'CEP',                '59000-000') }}
-      <input type="hidden" name="locatario_endereco"
-             value="{{ contrato.locatario_endereco if contrato and contrato.locatario_endereco else '' }}">
-      <div class="form-group col-2">
-        <label class="form-label">Logradouro</label>
-        <input type="text" class="form-input" id="locatario_logradouro" placeholder="Rua Exemplo">
-      </div>
       <div class="form-group">
         <label class="form-label">Número</label>
         <input type="text" class="form-input" id="locatario_numero" placeholder="123">
       </div>
-      <div class="form-group">
-        <label class="form-label">Bairro</label>
-        <input type="text" class="form-input" id="locatario_bairro" placeholder="Centro">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Cidade</label>
-        <input type="text" class="form-input" id="locatario_cidade" placeholder="Natal">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Estado</label>
-        <input type="text" class="form-input" id="locatario_estado" placeholder="RN" maxlength="2" style="text-transform:uppercase">
+      <div class="form-group col-2">
+        <label class="form-label">Endereço</label>
+        <input type="text" name="locatario_endereco" class="form-input"
+               placeholder="Preenchido automaticamente após digitar o CEP"
+               value="{{ contrato.locatario_endereco if contrato and contrato.locatario_endereco else '' }}"
+               style="text-transform:uppercase">
       </div>
       <div id="locatario_cep_erro" style="display:none;color:#e53e3e;font-size:.85rem;grid-column:1/-1;margin-top:-.5rem">
         CEP não encontrado. Verifique e tente novamente.
@@ -72,27 +61,16 @@
         <input type="text" name="avalista_cep" class="form-input" placeholder="59000-000"
                value="{{ contrato.get('avalista_cep', '') if contrato else '' }}">
       </div>
-      <input type="hidden" name="avalista_endereco"
-             value="{{ contrato.avalista_endereco if contrato and contrato.avalista_endereco else '' }}">
-      <div class="form-group col-2">
-        <label class="form-label">Logradouro</label>
-        <input type="text" class="form-input" id="avalista_logradouro" placeholder="Rua Exemplo">
-      </div>
       <div class="form-group">
         <label class="form-label">Número</label>
         <input type="text" class="form-input" id="avalista_numero" placeholder="456">
       </div>
-      <div class="form-group">
-        <label class="form-label">Bairro</label>
-        <input type="text" class="form-input" id="avalista_bairro" placeholder="Centro">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Cidade</label>
-        <input type="text" class="form-input" id="avalista_cidade" placeholder="Natal">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Estado</label>
-        <input type="text" class="form-input" id="avalista_estado" placeholder="RN" maxlength="2" style="text-transform:uppercase">
+      <div class="form-group col-2">
+        <label class="form-label">Endereço</label>
+        <input type="text" name="avalista_endereco" class="form-input"
+               placeholder="Preenchido automaticamente após digitar o CEP"
+               value="{{ contrato.avalista_endereco if contrato and contrato.avalista_endereco else '' }}"
+               style="text-transform:uppercase">
       </div>
       <div id="avalista_cep_erro" style="display:none;color:#e53e3e;font-size:.85rem;grid-column:1/-1;margin-top:-.5rem">
         CEP não encontrado. Verifique e tente novamente.
@@ -186,8 +164,6 @@ async function salvarContrato() {
     stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Salvando...`;
 
   try {
-    document.querySelector('[name="locatario_endereco"]').value = combineAddress('locatario');
-    document.querySelector('[name="avalista_endereco"]').value  = combineAddress('avalista');
     const fd = new FormData(document.getElementById('form-contrato-locacao'));
     const resp = await fetch('{{ url_for("gerar_contrato_locacao_route") }}', {
       method: 'POST', body: fd,
@@ -249,35 +225,47 @@ function addMask(selector, fn) {
 
 // ── Busca CEP (ViaCEP) ────────────────────────────────────────────────────────
 
-function combineAddress(prefix) {
-  const g = id => (document.getElementById(id)?.value || '').trim();
-  const logradouro = g(prefix + '_logradouro');
-  const numero     = g(prefix + '_numero');
-  const bairro     = g(prefix + '_bairro');
-  const cidade     = g(prefix + '_cidade');
-  const estado     = g(prefix + '_estado');
-  const parts = [];
-  if (logradouro) parts.push(logradouro);
-  if (numero)     parts.push(numero);
-  if (bairro)     parts.push(bairro);
-  if (cidade || estado) parts.push([cidade, estado].filter(Boolean).join('/'));
-  return parts.join(', ');
+const cepData = {};
+
+function buildEndereco(prefix) {
+  const d = cepData[prefix];
+  if (!d) return '';
+  const numero = (document.getElementById(prefix + '_numero')?.value || '').trim();
+  return [d.logradouro, numero, d.bairro, d.cidade, d.estado, d.cep]
+    .map(p => p.trim()).filter(Boolean).join(', ').toUpperCase();
+}
+
+function updateEndereco(prefix) {
+  const el = document.querySelector('[name="' + prefix + '_endereco"]');
+  if (el) el.value = buildEndereco(prefix);
 }
 
 async function buscarCep(digits, prefix) {
-  const erro = document.getElementById(prefix + '_cep_erro');
+  const erro  = document.getElementById(prefix + '_cep_erro');
+  const endEl = document.querySelector('[name="' + prefix + '_endereco"]');
   try {
     const resp = await fetch('https://viacep.com.br/ws/' + digits + '/json/');
     const data = await resp.json();
-    if (data.erro) { erro.style.display = 'block'; return; }
+    if (data.erro) {
+      delete cepData[prefix];
+      erro.style.display = 'block';
+      if (endEl) endEl.value = '';
+      return;
+    }
     erro.style.display = 'none';
-    document.getElementById(prefix + '_logradouro').value = data.logradouro || '';
-    document.getElementById(prefix + '_bairro').value     = data.bairro     || '';
-    document.getElementById(prefix + '_cidade').value     = data.localidade || '';
-    document.getElementById(prefix + '_estado').value     = data.uf         || '';
+    cepData[prefix] = {
+      logradouro: data.logradouro || '',
+      bairro:     data.bairro     || '',
+      cidade:     data.localidade || '',
+      estado:     data.uf         || '',
+      cep:        data.cep        || maskCep(digits),
+    };
+    updateEndereco(prefix);
     document.getElementById(prefix + '_numero').focus();
   } catch (_) {
+    delete cepData[prefix];
     erro.style.display = 'block';
+    if (endEl) endEl.value = '';
   }
 }
 
@@ -293,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelector('[name="locatario_rg"]')?.setAttribute('maxlength', '14');
 
-  // Dispara busca ao completar 8 dígitos do CEP
+  // CEP: dispara busca ao completar 8 dígitos
   document.querySelectorAll('[name="locatario_cep"], [name="avalista_cep"]').forEach(el => {
     el.addEventListener('input', function () {
       const prefix = this.name.replace('_cep', '');
@@ -303,12 +291,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Modo edição: preenche Logradouro com endereço salvo
+  // Número: atualiza campo ENDEREÇO em tempo real
   ['locatario', 'avalista'].forEach(function (prefix) {
-    const hidden = document.querySelector('[name="' + prefix + '_endereco"]');
-    if (hidden && hidden.value) {
-      document.getElementById(prefix + '_logradouro').value = hidden.value;
-    }
+    document.getElementById(prefix + '_numero')
+      ?.addEventListener('input', function () { updateEndereco(prefix); });
   });
 
   // Aplica máscaras nos valores já preenchidos (modo edição)
