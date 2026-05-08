@@ -1891,18 +1891,14 @@ def pagina_dre():
 
 def _veiculos_xlsx_path():
     base = Path(__file__).parent
-    candidates = [
-        base / "data" / "veiculos.xlsx",
-        base / "flask_ativuz" / "uploads" / "VEICULOS POR CONTRATO DE LOCACAO.xlsx",
-    ]
-    return next((p for p in candidates if p.exists()), None)
+    return base / "flask_ativuz" / "uploads" / "VEICULOS POR CONTRATO DE LOCACAO.xlsx"
 
 
 def _ler_veiculos():
     import openpyxl
     xlsx_path = _veiculos_xlsx_path()
-    if not xlsx_path:
-        return [], "Planilha de veículos não encontrada. Coloque o arquivo em data/veiculos.xlsx."
+    if not xlsx_path.exists():
+        return [], "Planilha não encontrada em flask_ativuz/uploads/VEICULOS POR CONTRATO DE LOCACAO.xlsx."
 
     try:
         wb = openpyxl.load_workbook(str(xlsx_path), read_only=True, data_only=True)
