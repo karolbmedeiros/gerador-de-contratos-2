@@ -1977,6 +1977,7 @@ def _ler_veiculos():
                 "imagem":   img,
                 "blend":    img in _BLEND_MULTIPLY if img else False,
             })
+        veiculos.sort(key=lambda v: v["cliente"].lower())
         return veiculos, None
 
     except Exception as e:
