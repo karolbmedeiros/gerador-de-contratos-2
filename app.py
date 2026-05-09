@@ -1894,6 +1894,26 @@ def _veiculos_xlsx_path():
     return base / "data" / "veiculos.xlsx"
 
 
+_IMAGEM_MAP = [
+    ("GOL",     "gol_sf.png"),
+    ("VOYAGE",  "voyage.png"),
+    ("POLO",    "polo.png"),
+    ("DOLPHIN", "byd.png"),
+    ("SANDERO", "sandero.png"),
+    ("CG",      "CG.png"),
+    ("NXR",     "nxr.png"),
+]
+_BLEND_MULTIPLY = {"gol_sf.png", "voyage.png", "polo.png", "byd.png", "CG.png"}
+
+
+def _imagem_veiculo(modelo):
+    m = (modelo or "").upper()
+    for keyword, fname in _IMAGEM_MAP:
+        if keyword in m:
+            return fname
+    return None
+
+
 def _ler_veiculos():
     import openpyxl
     xlsx_path = _veiculos_xlsx_path()
@@ -1944,14 +1964,18 @@ def _ler_veiculos():
             placa = _v(row, i_placa)
             if not placa:
                 continue
+            modelo = _v(row, i_modelo)
+            img    = _imagem_veiculo(modelo)
             veiculos.append({
                 "placa":    placa,
-                "modelo":   _v(row, i_modelo),
+                "modelo":   modelo,
                 "cliente":  _v(row, i_cliente),
                 "contrato": _v(row, i_contrato),
                 "unidade":  _v(row, i_unidade),
                 "inicio":   _v(row, i_inicio),
                 "termino":  _v(row, i_termino),
+                "imagem":   img,
+                "blend":    img in _BLEND_MULTIPLY if img else False,
             })
         return veiculos, None
 
