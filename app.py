@@ -1890,7 +1890,7 @@ def pagina_dre():
 # ── Checklist ─────────────────────────────────────────────────────────────────
 
 def _veiculos_xlsx_path():
-    base = Path(__file__).parent
+    base = Path(__file__).resolve().parent
     return base / "flask_ativuz" / "uploads" / "VEICULOS POR CONTRATO DE LOCACAO.xlsx"
 
 
