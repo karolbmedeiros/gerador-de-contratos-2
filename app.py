@@ -2442,14 +2442,16 @@ _CI_CACHE = {"day": None, "text": ""}
 
 
 def _ci_fetch_csv():
-    import urllib.request as _ur
+    import requests as _req
     today = datetime.now(_BRT).strftime("%Y-%m-%d")
     if _CI_CACHE["day"] == today and _CI_CACHE["text"]:
         return _CI_CACHE["text"], None
     try:
-        req = _ur.Request(_CI_CSV_URL, headers={"User-Agent": "Mozilla/5.0"})
-        with _ur.urlopen(req, timeout=15) as resp:
-            text = resp.read().decode("utf-8")
+        resp = _req.get(_CI_CSV_URL, timeout=15,
+                        headers={"User-Agent": "Mozilla/5.0"},
+                        allow_redirects=True)
+        resp.raise_for_status()
+        text = resp.content.decode("utf-8")
         _CI_CACHE["day"]  = today
         _CI_CACHE["text"] = text
         return text, None

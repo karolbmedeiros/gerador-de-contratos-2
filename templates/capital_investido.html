@@ -302,10 +302,10 @@ function detectCols(headerCols) {
 
   var idx = {
     data:          find(['data', 'date', 'competencia', 'lancamento']),
-    investidor:    find(['investidor', 'investor', 'socio', 'nome', 'parceiro', 'acionista', 'cotista']),
-    descricao:     find(['descri', 'historico', 'memo', 'observ', 'obs', 'descricao']),
-    banco_origem:  find(['origem', 'source', 'banco origem', 'de ']),
-    banco_destino: find(['destino', 'dest', 'banco destino', 'banco', 'para ']),
+    investidor:    find(['quem', 'investidor', 'investor', 'socio', 'nome', 'parceiro', 'acionista', 'cotista']),
+    descricao:     find(['descri', 'historico', 'memo', 'observ', 'obs']),
+    banco_origem:  find(['banco origem', 'origem', 'source']),
+    banco_destino: find(['banco destino', 'destino', 'dest']),
     valor:         find(['valor', 'value', 'amount', 'montante', 'quantia']),
   };
 
