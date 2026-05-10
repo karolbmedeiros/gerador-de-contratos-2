@@ -267,14 +267,26 @@ function normalizeDate(str) {
   return str;
 }
 
+function parseBRL(str) {
+  // Handles: "1.234,56" (BR), "1234,56" (BR), "1234.56" (US), "1234"
+  str = (str || '').trim().replace(/[^0-9,.-]/g, '');
+  if (!str) return NaN;
+  // BR format: ends with comma + 1-2 digits (e.g. "1.234,56" or "1234,56")
+  if (/,\d{1,2}$/.test(str)) {
+    return parseFloat(str.replace(/\./g, '').replace(',', '.'));
+  }
+  // US format or plain integer: remove thousands commas
+  return parseFloat(str.replace(/,/g, ''));
+}
+
 function parseCSV(text) {
   var lines = text.trim().split(/\r?\n/);
   var rows  = [];
   for (var i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
     var cols = splitLine(lines[i]);
     if (cols.length < 6) continue;
-    var raw = cols[5].replace(/[^0-9.,-]/g, '').replace(',', '.');
-    var valor = parseFloat(raw);
+    var valor = parseBRL(cols[5]);
     if (isNaN(valor)) continue;
     rows.push({
       data:          normalizeDate(cols[0]),
