@@ -2459,13 +2459,41 @@ def _ci_fetch_csv():
         return "", str(e)
 
 
+def _fin_total_pago():
+    from math import ceil
+    try:
+        sb   = _supabase()
+        rows = sb.table("financiamentos_contratos").select("*").execute().data or []
+        hoje = datetime.now(_BRT).date()
+        total = 0.0
+        for r in rows:
+            parcelas = int(r["parcelas_total"])
+            parcela  = float(r["valor_parcela"])
+            vcto_str = r.get("data_vencimento")
+            restante = 0
+            if vcto_str:
+                try:
+                    vcto = date.fromisoformat(str(vcto_str)[:10])
+                    dias = (vcto - hoje).days
+                    restante = ceil(dias / 30.44) if dias > 0 else 0
+                except Exception:
+                    pass
+            pagas = parcelas - restante
+            total += pagas * parcela
+        return total
+    except Exception:
+        return 0.0
+
+
 @app.route("/capital-investido")
 def pagina_capital_investido():
     csv_text, csv_error = _ci_fetch_csv()
+    total_pago = _fin_total_pago()
     return render_template("capital_investido.html",
         active="capital_investido",
         csv_text=csv_text,
         csv_error=csv_error,
+        total_pago=total_pago,
     )
 
 
