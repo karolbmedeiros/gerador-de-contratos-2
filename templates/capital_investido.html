@@ -28,6 +28,49 @@
   color: #dc2626; font-size: 13px;
 }
 
+/* ── KPI info accordion ── */
+.ci-kpi-info {
+  margin: -16px 0 24px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  overflow: hidden;
+}
+.ci-kpi-info summary {
+  cursor: pointer; list-style: none;
+  padding: 10px 16px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-3);
+  display: flex; align-items: center; gap: 6px;
+  user-select: none;
+}
+.ci-kpi-info summary::-webkit-details-marker { display: none; }
+.ci-kpi-info summary::before {
+  content: '›'; font-size: 14px; font-weight: 900;
+  transition: transform .2s; display: inline-block;
+}
+.ci-kpi-info[open] summary::before { transform: rotate(90deg); }
+.ci-kpi-info[open] summary {
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.ci-kpi-info-body { padding: 16px 20px; }
+.ci-kpi-info-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1100px) { .ci-kpi-info-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px)  { .ci-kpi-info-grid { grid-template-columns: 1fr; } }
+.ci-kpi-info-grid > div {
+  font-size: 12px; color: var(--ink-3); line-height: 1.5;
+}
+.ci-kpi-info-grid strong {
+  display: block; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em;
+  color: var(--ink-2); margin-bottom: 4px;
+}
+.ci-kpi-info-grid em { color: var(--brand-orange, #FF4713); font-style: normal; font-weight: 600; }
+
 /* ── Section label ── */
 .ci-section-title {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
@@ -155,6 +198,42 @@
 <div id="ci-content" style="display:none">
 
   <div class="ci-kpis" id="ci-kpis"></div>
+
+  <details class="ci-kpi-info">
+    <summary>O que significam esses indicadores?</summary>
+    <div class="ci-kpi-info-body">
+      <div class="ci-kpi-info-grid">
+        <div>
+          <strong>Total Aportado</strong>
+          Soma de todos os aportes realizados com data válida.
+        </div>
+        <div>
+          <strong>Nº Transações</strong>
+          Quantidade de lançamentos individuais na planilha.
+        </div>
+        <div>
+          <strong>Ticket Médio</strong>
+          Total Aportado ÷ Nº Transações.
+        </div>
+        <div>
+          <strong>Período</strong>
+          Data do primeiro ao último aporte registrado.
+        </div>
+        <div>
+          <strong>Capital SELIC</strong>
+          Quanto o dinheiro valeria hoje se tivesse ficado aplicado no Tesouro Selic desde a data de cada aporte — usando juros compostos diários com as taxas vigentes: <em>13,75% em 2023 · 10,5% em 2024 · 14,75% em 2025+</em>.
+        </div>
+        <div>
+          <strong>Ganho SELIC</strong>
+          Quanto o Tesouro Selic teria rendido além do principal (Capital SELIC − Total Aportado). Serve de referência para comparar com o retorno real do negócio.
+        </div>
+        <div>
+          <strong>ROIC %</strong>
+          Retorno sobre o capital investido pela Selic (Ganho SELIC ÷ Total Aportado). Se o negócio superar esse percentual, o investimento foi mais rentável que a alternativa mais segura do mercado.
+        </div>
+      </div>
+    </div>
+  </details>
 
   <p class="ci-section-title">Por Investidor</p>
   <div class="ci-investors" id="ci-investors"></div>
