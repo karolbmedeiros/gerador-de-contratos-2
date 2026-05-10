@@ -1912,9 +1912,20 @@ def _nome_mes_label(mes, ano, acumulado=False):
     return f"{_MESES_PT[mes - 1]} {ano}"
 
 
+# ── Configurações DRE ────────────────────────────────────────────────────────
+# IR/CSLL: manter 0.0 para Simples Nacional; alterar aqui para mudar regime.
+_DRE_IR_CSLL = 0.0
+
+# Códigos cujo Tipo no sistema (ENTRADA/SAÍDA) é oposto ao tratamento no DRE.
+# Ao adicionar novos, revisar o grupo de destino no _DRE_LAYOUT abaixo.
+_DRE_CODIGOS_SINAL_INVERTIDO = frozenset([
+    "02.02.06.006",  # SAÍDA → receita operacional (Combustível Reembolsável)
+    "01.01.02.008",  # ENTRADA → dedução (Desconto Concedido a Clientes)
+    "02.04.06.004",  # SAÍDA → receita financeira (Desconto Pgto Boletos)
+])
+
 # ── DRE Layout ────────────────────────────────────────────────────────────────
-# sign: +1 = receita (contribui positivamente), -1 = despesa (negativo no DRE)
-# item tuple: (codigo, label)
+# sign: +1 = receita, -1 = despesa.  item tuple: (codigo, label).
 # Códigos tratados como string — nunca converter para número.
 
 _DRE_LAYOUT = [
@@ -2029,9 +2040,9 @@ _DRE_LAYOUT = [
             ("02.03.03.001", "INSS"),
             ("02.03.03.002", "FGTS"),
         ]},
-        {"id": "s-pro", "label": "Pró-labore", "sign": -1, "itens": [
+        {"id": "s-pro", "label": "Pró-labore", "sign": -1,
+         "highlight": True, "note": "remuneração dos sócios", "itens": [
             ("02.03.04.001", "Pró-labore Folha"),
-            ("02.03.04.002", "Distribuição de Lucros Mensal"),
         ]},
         {"id": "s-com", "label": "Despesas Comerciais", "sign": -1, "itens": [
             ("02.04.01.001", "Marketing"),
@@ -2072,7 +2083,6 @@ _DRE_LAYOUT = [
         {"id": "rf-desp", "label": "Despesas Bancárias e Financeiras", "sign": -1, "itens": [
             ("02.04.06.001", "Tarifa Bancária"),
             ("02.04.06.003", "Juros e Multas Bancárias Pagos"),
-            ("02.04.06.004", "Desconto Pgto Boletos"),
             ("02.04.06.005", "Taxa Maquineta"),
             ("03.01.03.002", "Consórcio Contemplado Juros"),
             ("03.01.03.004", "Financiamento Juros"),
@@ -2080,6 +2090,7 @@ _DRE_LAYOUT = [
         ]},
         {"id": "rf-rec",  "label": "Receitas Financeiras", "sign": +1, "itens": [
             ("03.03.01.003", "Rendimento de Aplicações"),
+            ("02.04.06.004", "Desconto Pgto Boletos"),  # SAÍDA no sistema → receita financeira
         ]},
     ]},
     {"id": "rnop", "label": "(-) Resultados Não Operacionais", "grupos": [
@@ -2149,8 +2160,11 @@ _DRE_LAYOUT = [
     ]},
     # subtotal: fluxo_acionista
     {"id": "distrib", "label": "(-) Distribuição de Resultado", "grupos": [
-        {"id": "distrib-g", "label": "Distribuição de Resultado", "sign": -1, "itens": [
+        {"id": "distrib-g",     "label": "Distribuição de Resultado", "sign": -1, "itens": [
             ("04.04.01.002", "Distribuição de Resultado"),
+        ]},
+        {"id": "distrib-lucro", "label": "Distribuição de Lucros Mensal", "sign": -1, "itens": [
+            ("02.03.04.002", "Distribuição de Lucros Mensal"),
         ]},
     ]},
     # subtotal: fluxo_livre
@@ -2207,8 +2221,12 @@ def _dre_calcular(lancamentos):
                 itens.append({"codigo": codigo, "label": label, "val": sign * v})
             grp_total = sign * grp_abs
             sec_total += grp_total
-            grupos.append({"id": grp_def["id"], "label": grp_def["label"],
-                           "sign": sign, "total": grp_total, "itens": itens})
+            grupos.append({
+                "id": grp_def["id"], "label": grp_def["label"],
+                "sign": sign, "total": grp_total, "itens": itens,
+                "highlight": grp_def.get("highlight", False),
+                "note": grp_def.get("note", ""),
+            })
         sections.append({"id": sec_def["id"], "label": sec_def["label"],
                          "total": sec_total, "grupos": grupos})
 
@@ -2228,13 +2246,18 @@ def _dre_calcular(lancamentos):
     ebit   = ebitda        # depreciação = 0
     rfin   = _s("rfin")
     rnop   = _s("rnop")
-    ll     = ebit + rfin + rnop
+    ir_csll = _DRE_IR_CSLL
+    ll     = ebit + rfin + rnop - ir_csll
     inv    = _s("inv")
     financ = _s("financ")
     aporte = _s("aporte")
     fluxo_ac  = ll + inv + financ + aporte
     distrib   = _s("distrib")
     fluxo_liv = fluxo_ac + distrib
+
+    # Add %RL to each section (informational; template may display for L1 rows)
+    for sec in sections:
+        sec["pct"] = sec["total"] / rl if rl else 0.0
 
     return {
         "sections": sections,
@@ -2247,6 +2270,7 @@ def _dre_calcular(lancamentos):
         "depreciacao": 0.0,
         "ebit": ebit,           "pct_ebit": ebit / rl if rl else 0,
         "rfin": rfin,           "rnop": rnop,
+        "ir_csll": ir_csll,
         "lucro_liquido": ll,    "pct_ll": ll / rl if rl else 0,
         "inv": inv,  "financ": financ,  "aporte": aporte,
         "fluxo_acionista": fluxo_ac,

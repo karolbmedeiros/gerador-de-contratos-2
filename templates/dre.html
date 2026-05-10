@@ -41,25 +41,27 @@
 .dre-kpi-delta.up   { color: #22a06b; }
 .dre-kpi-delta.down { color: var(--danger,#e53e3e); }
 
-/* ── DRE table ── */
+/* ── DRE table ──
+   c1: descrição  c2: val atual  c3: %RL atual  c4: val ant  c5: %RL ant  c6: Δ  */
 .dre-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 
 .dre-row {
   display: grid;
-  grid-template-columns: 1fr 170px 170px 80px;
+  grid-template-columns: 1fr 130px 50px 130px 50px 72px;
   align-items: center;
   border-bottom: 1px solid var(--line);
   min-height: 36px;
 }
 .dre-row:last-child { border-bottom: none; }
 .dre-row .c1 { padding: 7px 16px; }
-.dre-row .c2, .dre-row .c3, .dre-row .c4 {
-  padding: 7px 16px; text-align: right; font-variant-numeric: tabular-nums;
+.dre-row .c2, .dre-row .c3, .dre-row .c4, .dre-row .c5, .dre-row .c6 {
+  padding: 7px 12px; text-align: right; font-variant-numeric: tabular-nums;
 }
 
 /* Header */
 .dre-head { background: var(--bg); border-bottom: 1px solid var(--line); }
-.dre-head .c1, .dre-head .c2, .dre-head .c3, .dre-head .c4 {
+.dre-head .c1, .dre-head .c2, .dre-head .c3,
+.dre-head .c4, .dre-head .c5, .dre-head .c6 {
   font-size: 11px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .05em; color: var(--ink-3);
 }
@@ -68,30 +70,44 @@
 .dre-l1 { cursor: pointer; background: var(--bg); }
 .dre-l1:hover { background: #eef0f5; }
 .dre-l1 .c1 { font-weight: 700; font-size: 13px; color: var(--ink); }
-.dre-l1 .c2, .dre-l1 .c3 { font-weight: 700; color: var(--ink); }
+.dre-l1 .c2, .dre-l1 .c4 { font-weight: 700; color: var(--ink); }
+.dre-l1 .c3, .dre-l1 .c5 { font-size: 11px; font-weight: 500; color: var(--ink-3); }
 
 /* L2 — grupo */
 .dre-l2 { cursor: pointer; }
 .dre-l2:hover { background: #f9f9fb; }
 .dre-l2 .c1 { padding-left: 34px; font-weight: 600; font-size: 13px; color: var(--ink-2); }
-.dre-l2 .c2, .dre-l2 .c3 { font-weight: 600; color: var(--ink-2); }
+.dre-l2 .c2, .dre-l2 .c4 { font-weight: 600; color: var(--ink-2); }
+.dre-l2 .c3, .dre-l2 .c5 { font-size: 11px; color: var(--ink-3); }
+
+/* L2 highlighted (Pró-labore / remuneração dos sócios) */
+.dre-l2-hi {
+  border-left: 3px solid var(--brand-orange, #FF4713);
+  background: #fff8f5 !important;
+}
+.dre-l2-hi .c1 { padding-left: 31px !important; }
+.grp-note {
+  display: inline-block; margin-left: 8px;
+  font-size: 10px; font-weight: 500; color: var(--brand-orange, #FF4713);
+  background: #fff0ea; border: 1px solid #ffd4c2;
+  border-radius: 4px; padding: 1px 5px; vertical-align: middle;
+}
 
 /* L3 — item */
 .dre-l3 { background: #fafafa; }
 .dre-l3 .c1 { padding-left: 54px; font-size: 12px; color: var(--ink-3); }
-.dre-l3 .c2, .dre-l3 .c3 { font-size: 12px; color: var(--ink-3); }
+.dre-l3 .c2, .dre-l3 .c4 { font-size: 12px; color: var(--ink-3); }
+.dre-l3 .c3, .dre-l3 .c5, .dre-l3 .c6 { font-size: 12px; color: var(--ink-3); }
 
 /* Subtotals */
 .dre-sub .c1 { font-weight: 700; font-size: 13px; }
-.dre-sub .c2, .dre-sub .c3 { font-weight: 700; }
+.dre-sub .c2, .dre-sub .c4 { font-weight: 700; }
+.dre-sub .c3, .dre-sub .c5 { font-size: 11px; font-weight: 600; color: var(--ink-3); }
 
-/* Highlight rows */
+/* Highlight rows (EBITDA, Lucro Líquido, Fluxo Livre) */
 .dre-hi { background: var(--brand-ink,#15192A) !important; }
-.dre-hi .c1, .dre-hi .c2, .dre-hi .c3, .dre-hi .c4 { color: #fff !important; font-weight: 700 !important; }
-
-/* Pct helper row */
-.dre-pct .c1 { padding-left: 32px; font-size: 12px; color: var(--ink-3); font-weight: 400; }
-.dre-pct .c2, .dre-pct .c3 { font-size: 12px; color: var(--ink-3); }
+.dre-hi .c1, .dre-hi .c2, .dre-hi .c3,
+.dre-hi .c4, .dre-hi .c5, .dre-hi .c6 { color: #fff !important; font-weight: 700 !important; }
 
 /* Separator */
 .dre-sep { min-height: 6px; background: var(--bg); }
@@ -176,34 +192,28 @@
   <div class="dre-row dre-head">
     <div class="c1">Descrição</div>
     <div class="c2">{{ label_atual }}</div>
-    <div class="c3">{{ label_prev }}</div>
-    <div class="c4">Δ</div>
+    <div class="c3">%RL</div>
+    <div class="c4">{{ label_prev }}</div>
+    <div class="c5">%RL</div>
+    <div class="c6">Δ</div>
   </div>
 
   {# ── Inline macros ─────────────────────────────────────────────────────── #}
 
-  {# Subtotal row #}
-  {% macro sub(label, val, pval, hi=false) %}
+  {# Subtotal row — vpct/ppct show %RL in c3/c5 when provided #}
+  {% macro sub(label, val, pval, hi=false, vpct=none, ppct=none) %}
   {% set d = (val - pval) / pval if pval else none %}
   <div class="dre-row dre-sub {% if hi %}dre-hi{% endif %}">
     <div class="c1">{{ label }}</div>
     <div class="c2 {% if val < 0 and not hi %}neg{% endif %}">{{ val | brl }}</div>
-    <div class="c3 {% if pval < 0 and not hi %}neg{% endif %}">{{ pval | brl }}</div>
-    <div class="c4">
+    <div class="c3">{% if vpct is not none %}{{ vpct | pct_fmt }}{% endif %}</div>
+    <div class="c4 {% if pval < 0 and not hi %}neg{% endif %}">{{ pval | brl }}</div>
+    <div class="c5">{% if ppct is not none %}{{ ppct | pct_fmt }}{% endif %}</div>
+    <div class="c6">
       {% if d is not none %}<span class="delta {% if hi %}neu{% elif d >= 0 %}up{% else %}down{% endif %}">
         {% if d >= 0 %}+{% endif %}{{ (d * 100) | round(1) }}%</span>
       {% else %}<span class="delta neu">—</span>{% endif %}
     </div>
-  </div>
-  {% endmacro %}
-
-  {# Percentage row #}
-  {% macro pct(label, val, pval) %}
-  <div class="dre-row dre-pct">
-    <div class="c1">{{ label }}</div>
-    <div class="c2">{{ val | pct_fmt }}</div>
-    <div class="c3">{{ pval | pct_fmt }}</div>
-    <div class="c4"></div>
   </div>
   {% endmacro %}
 
@@ -218,7 +228,11 @@
   {# Cash-flow section header divider #}
   {% if sec.id == 'inv' %}
   <div class="dre-row dre-sep"></div>
-  <div class="dre-row dre-section-title"><div class="c1">Fluxo de Caixa</div><div class="c2"></div><div class="c3"></div><div class="c4"></div></div>
+  <div class="dre-row dre-section-title">
+    <div class="c1">Fluxo de Caixa</div>
+    <div class="c2"></div><div class="c3"></div>
+    <div class="c4"></div><div class="c5"></div><div class="c6"></div>
+  </div>
   {% endif %}
 
   {# L1: section row #}
@@ -226,8 +240,10 @@
        onclick="dreTog('{{ sec.id }}')">
     <div class="c1"><i class="tog">▶</i>{{ sec.label }}</div>
     <div class="c2 {% if sec.total < 0 %}neg{% endif %}">{{ sec.total | brl }}</div>
-    <div class="c3 {% if sec_p.total < 0 %}neg{% endif %}">{{ sec_p.total | brl }}</div>
-    <div class="c4">
+    <div class="c3">{{ sec.pct | pct_fmt }}</div>
+    <div class="c4 {% if sec_p.total < 0 %}neg{% endif %}">{{ sec_p.total | brl }}</div>
+    <div class="c5">{{ sec_p.pct | pct_fmt }}</div>
+    <div class="c6">
       {% if sd is not none %}<span class="delta {% if sd >= 0 %}up{% else %}down{% endif %}">
         {% if sd >= 0 %}+{% endif %}{{ (sd * 100) | round(1) }}%</span>
       {% else %}<span class="delta neu">—</span>{% endif %}
@@ -237,12 +253,18 @@
   {# L2: grupos #}
   {% for grp in sec.grupos %}
   {% set grp_p = sec_p.grupos[loop.index0] %}
-  <div class="dre-row dre-l2" data-parent="{{ sec.id }}" data-id="{{ grp.id }}"
+  <div class="dre-row dre-l2 {% if grp.highlight %}dre-l2-hi{% endif %}"
+       data-parent="{{ sec.id }}" data-id="{{ grp.id }}"
        data-open="false" onclick="dreTog('{{ grp.id }}')">
-    <div class="c1"><i class="tog">▶</i>{{ grp.label }}</div>
+    <div class="c1">
+      <i class="tog">▶</i>{{ grp.label }}
+      {% if grp.note %}<span class="grp-note">{{ grp.note }}</span>{% endif %}
+    </div>
     <div class="c2 {% if grp.total < 0 %}neg{% endif %}">{{ grp.total | brl }}</div>
-    <div class="c3 {% if grp_p.total < 0 %}neg{% endif %}">{{ grp_p.total | brl }}</div>
-    <div class="c4"></div>
+    <div class="c3"></div>
+    <div class="c4 {% if grp_p.total < 0 %}neg{% endif %}">{{ grp_p.total | brl }}</div>
+    <div class="c5"></div>
+    <div class="c6"></div>
   </div>
 
   {# L3: itens #}
@@ -251,8 +273,10 @@
   <div class="dre-row dre-l3" data-parent="{{ grp.id }}">
     <div class="c1">{{ item.codigo }} – {{ item.label }}</div>
     <div class="c2 {% if item.val < 0 %}neg{% endif %}">{{ item.val | brl }}</div>
-    <div class="c3 {% if item_p.val < 0 %}neg{% endif %}">{{ item_p.val | brl }}</div>
-    <div class="c4"></div>
+    <div class="c3"></div>
+    <div class="c4 {% if item_p.val < 0 %}neg{% endif %}">{{ item_p.val | brl }}</div>
+    <div class="c5"></div>
+    <div class="c6"></div>
   </div>
   {% endfor %}
   {% endfor %}
@@ -262,20 +286,21 @@
     {{ sub("= Receita Operacional Líquida", dre.receita_liquida, dre_prev.receita_liquida) }}
     {{ sep() }}
   {% elif sec.id == 'custos' %}
-    {{ sub("= Margem de Contribuição", dre.margem, dre_prev.margem) }}
-    {{ pct("% Margem / RL", dre.pct_margem, dre_prev.pct_margem) }}
+    {{ sub("= Margem de Contribuição", dre.margem, dre_prev.margem,
+           vpct=dre.pct_margem, ppct=dre_prev.pct_margem) }}
     {{ sep() }}
   {% elif sec.id == 'sga' %}
-    {{ sub("= EBITDA", dre.ebitda, dre_prev.ebitda, hi=true) }}
-    {{ pct("% EBITDA / RL", dre.pct_ebitda, dre_prev.pct_ebitda) }}
+    {{ sub("= EBITDA", dre.ebitda, dre_prev.ebitda, hi=true,
+           vpct=dre.pct_ebitda, ppct=dre_prev.pct_ebitda) }}
     {{ sep() }}
     {{ sub("(-) Depreciação/Amortização", dre.depreciacao, dre_prev.depreciacao) }}
-    {{ sub("= EBIT (Resultado Operacional)", dre.ebit, dre_prev.ebit) }}
-    {{ pct("% EBIT / RL", dre.pct_ebit, dre_prev.pct_ebit) }}
+    {{ sub("= EBIT (Resultado Operacional)", dre.ebit, dre_prev.ebit,
+           vpct=dre.pct_ebit, ppct=dre_prev.pct_ebit) }}
     {{ sep() }}
   {% elif sec.id == 'rnop' %}
-    {{ sub("= Lucro Líquido", dre.lucro_liquido, dre_prev.lucro_liquido, hi=true) }}
-    {{ pct("% Margem Líquida / RL", dre.pct_ll, dre_prev.pct_ll) }}
+    {{ sub("(-) IR / CSLL — Simples Nacional", -dre.ir_csll, -dre_prev.ir_csll) }}
+    {{ sub("= Lucro Líquido", dre.lucro_liquido, dre_prev.lucro_liquido, hi=true,
+           vpct=dre.pct_ll, ppct=dre_prev.pct_ll) }}
   {% elif sec.id == 'aporte' %}
     {{ sub("= Fluxo de Caixa do Acionista", dre.fluxo_acionista, dre_prev.fluxo_acionista) }}
   {% elif sec.id == 'distrib' %}
