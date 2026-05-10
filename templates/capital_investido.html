@@ -673,37 +673,47 @@ function renderBarChart(rows, investors) {
   });
 }
 
-function renderHorizChart(investors) {
-  var canvas = document.getElementById('chart-horiz');
-  var numDs  = 1 + BENCHMARKS.length;
-  canvas.parentElement.style.height = Math.max(220, investors.length * numDs * 20 + 80) + 'px';
+function renderHorizChart(rows) {
+  var totalAportado = rows.reduce(function (s, r) { return s + r.valor; }, 0);
 
-  var datasets = [{
-    label: 'Capital Real',
-    data: investors.map(function (inv) { return inv.total; }),
-    backgroundColor: '#FF4713cc', borderWidth: 0,
-  }];
+  var labels = ['Capital Real'];
+  var values = [totalAportado];
+  var colors = ['#FF4713'];
 
-  BENCHMARKS.forEach(function (bmk, bi) {
-    datasets.push({
-      label: bmk.label,
-      data: investors.map(function (inv) { return inv.bmkValues[bi]; }),
-      backgroundColor: bmk.color + 'cc', borderWidth: 0,
-    });
+  BENCHMARKS.forEach(function (bmk) {
+    var v = rows.reduce(function (s, r) {
+      return s + r.valor * bfactor(r.data, TODAY, bmk.rates, bmk.mult, bmk.spread);
+    }, 0);
+    labels.push(bmk.label);
+    values.push(v);
+    colors.push(bmk.color);
   });
+
+  var canvas = document.getElementById('chart-horiz');
+  canvas.parentElement.style.height = Math.max(200, labels.length * 54) + 'px';
 
   new Chart(canvas.getContext('2d'), {
     type: 'bar',
-    data: { labels: investors.map(function (inv) { return inv.nome; }), datasets: datasets },
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Capital',
+        data: values,
+        backgroundColor: colors.map(function (c) { return c + 'cc'; }),
+        borderColor: colors,
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14 } },
-        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': R$ ' + brl(c.parsed.x); } } }
+        legend: { display: false },
+        tooltip: { callbacks: { label: function (c) { return 'Capital: R$ ' + brl(c.parsed.x); } } }
       },
       scales: {
         x: { ticks: { callback: function (v) { return 'R$ ' + brl(v); }, font: { size: 10 } } },
-        y: { ticks: { font: { size: 10 } } }
+        y: { ticks: { font: { size: 11 } } }
       }
     }
   });
@@ -769,7 +779,7 @@ async function main() {
     renderKPIs(kpis);
     renderInvestors(investors);
     renderBarChart(rows, investors);
-    renderHorizChart(investors);
+    renderHorizChart(rows);
     renderLucroChart(rows, kpis);
     renderTable(rows);
 
