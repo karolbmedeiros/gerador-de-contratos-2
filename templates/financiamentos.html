@@ -3,22 +3,23 @@
 
 {% block head %}
 <style>
+/* ── Centering wrapper ── */
+.fin-wrap { max-width: 1300px; margin: 0 auto; }
+
 /* ── Page header ── */
-.fin-header { margin-bottom: 24px; }
+.fin-header { margin-bottom: 24px; text-align: center; }
 .fin-header h1 { font-size: 20px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
 .fin-header p  { font-size: 13px; color: var(--ink-3); margin: 0; }
 
 /* ── Card rows ── */
 .fin-cards { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
 .fin-card-row { display: grid; gap: 12px; }
-.fin-card-row.r3 { grid-template-columns: repeat(3, 1fr); }
 .fin-card-row.r4 { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 960px) {
-  .fin-card-row.r3 { grid-template-columns: repeat(2, 1fr); }
   .fin-card-row.r4 { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 540px) {
-  .fin-card-row.r3, .fin-card-row.r4 { grid-template-columns: 1fr; }
+  .fin-card-row.r4 { grid-template-columns: 1fr; }
 }
 .fin-card {
   background: var(--surface); border: 1px solid var(--line);
@@ -112,6 +113,7 @@
 {% endblock %}
 
 {% block content %}
+<div class="fin-wrap">
 
 {# ── Page header ── #}
 <div class="fin-header">
@@ -123,7 +125,7 @@
 <div class="fin-cards">
 
   {# Row 1 #}
-  <div class="fin-card-row r3">
+  <div class="fin-card-row r4">
     <div class="fin-card">
       <div class="fin-card-label">Saldo Devedor</div>
       <div class="fin-card-value">R$ {{ cards.saldo_devedor | brl }}</div>
@@ -136,33 +138,21 @@
       <div class="fin-card-label">Curto Prazo</div>
       <div class="fin-card-value">R$ {{ cards.curto_prazo | brl }}</div>
     </div>
+    <div class="fin-card">
+      <div class="fin-card-label">Longo Prazo</div>
+      <div class="fin-card-value">R$ {{ cards.longo_prazo | brl }}</div>
+    </div>
   </div>
 
   {# Row 2 #}
   <div class="fin-card-row r4">
     <div class="fin-card">
-      <div class="fin-card-label">Longo Prazo</div>
-      <div class="fin-card-value">R$ {{ cards.longo_prazo | brl }}</div>
-    </div>
-    <div class="fin-card">
       <div class="fin-card-label">Valor Mensal</div>
       <div class="fin-card-value">R$ {{ cards.valor_mensal | brl }}</div>
     </div>
     <div class="fin-card">
-      <div class="fin-card-label">Tempo Médio (meses)</div>
-      <div class="fin-card-value">{{ cards.tempo_medio }}</div>
-    </div>
-    <div class="fin-card">
       <div class="fin-card-label">Mais Perto do Vencimento</div>
       <div class="fin-card-value sm accent">{{ cards.mais_perto }}</div>
-    </div>
-  </div>
-
-  {# Row 3 #}
-  <div class="fin-card-row r3">
-    <div class="fin-card">
-      <div class="fin-card-label">R$ Quitados</div>
-      <div class="fin-card-value">R$ {{ cards.r_quitados | brl }}</div>
     </div>
     <div class="fin-card">
       <div class="fin-card-label">Curto Prazo %</div>
@@ -266,4 +256,6 @@
   });
 })();
 </script>
+
+</div>{# .fin-wrap #}
 {% endblock %}
