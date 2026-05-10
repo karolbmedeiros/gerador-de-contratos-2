@@ -194,8 +194,8 @@
 (function () {
 'use strict';
 
-var CSV_URL   = '/api/capital-investido-csv';
-var CACHE_KEY = 'ci_cache_v3';
+var CSV_TEXT  = {{ csv_text | tojson }};
+var CSV_ERROR = {{ csv_error | tojson }};
 var PALETTE   = ['#FF4713','#4A6FA5','#22a06b','#e6a817','#9B59B6','#E74C3C','#1ABC9C','#F39C12'];
 var SELIC     = { 2023: 0.1375, 2024: 0.105, 2025: 0.1475 };
 var TODAY     = new Date();
@@ -356,23 +356,12 @@ function parseCSV(text) {
   return rows;
 }
 
-// ── Fetch + sessionStorage cache ─────────────────────────────────────────────
+// ── Parse CSV injetado pelo servidor ─────────────────────────────────────────
 
 async function fetchData() {
-  var today = new Date().toISOString().slice(0, 10);
-  try {
-    var cached = sessionStorage.getItem(CACHE_KEY);
-    if (cached) {
-      var obj = JSON.parse(cached);
-      if (obj.day === today) return obj.data;
-    }
-  } catch (e) {}
-  var res = await fetch(CSV_URL);
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  var text = await res.text();
-  var data = parseCSV(text);
-  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ day: today, data: data })); } catch (e) {}
-  return data;
+  if (CSV_ERROR) throw new Error(CSV_ERROR);
+  if (!CSV_TEXT) throw new Error('Nenhum dado retornado do servidor.');
+  return parseCSV(CSV_TEXT);
 }
 
 // ── Data calculations ────────────────────────────────────────────────────────

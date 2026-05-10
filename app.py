@@ -2438,22 +2438,33 @@ _CI_CSV_URL = (
     "2PACX-1vT7sXHzkT1kEEt50X_ADazozBcicKD8m-jn-9RAZ6wsopcaK4wJMKbBJhQLEUiB2cUl0ez7aJR0AnQ7"
     "/pub?gid=247969929&single=true&output=csv"
 )
-
-@app.route("/capital-investido")
-def pagina_capital_investido():
-    return render_template("capital_investido.html", active="capital_investido")
+_CI_CACHE = {"day": None, "text": ""}
 
 
-@app.route("/api/capital-investido-csv")
-def api_capital_investido_csv():
+def _ci_fetch_csv():
     import urllib.request as _ur
+    today = datetime.now(_BRT).strftime("%Y-%m-%d")
+    if _CI_CACHE["day"] == today and _CI_CACHE["text"]:
+        return _CI_CACHE["text"], None
     try:
         req = _ur.Request(_CI_CSV_URL, headers={"User-Agent": "Mozilla/5.0"})
         with _ur.urlopen(req, timeout=15) as resp:
             text = resp.read().decode("utf-8")
-        return text, 200, {"Content-Type": "text/csv; charset=utf-8"}
+        _CI_CACHE["day"]  = today
+        _CI_CACHE["text"] = text
+        return text, None
     except Exception as e:
-        return jsonify({"error": str(e)}), 502
+        return "", str(e)
+
+
+@app.route("/capital-investido")
+def pagina_capital_investido():
+    csv_text, csv_error = _ci_fetch_csv()
+    return render_template("capital_investido.html",
+        active="capital_investido",
+        csv_text=csv_text,
+        csv_error=csv_error,
+    )
 
 
 # ── Checklist ─────────────────────────────────────────────────────────────────
