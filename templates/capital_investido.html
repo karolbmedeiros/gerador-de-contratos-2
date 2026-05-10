@@ -1,0 +1,549 @@
+{% extends "base.html" %}
+{% block title %}Capital Investido — Ativuz{% endblock %}
+
+{% block head %}
+<style>
+/* ── Layout ── */
+.ci-wrap { width: 100%; }
+
+/* ── Header ── */
+.ci-header { margin-bottom: 24px; }
+.ci-header h1 { font-size: 20px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
+.ci-header p  { font-size: 13px; color: var(--ink-3); margin: 0; }
+
+/* ── Loading / error ── */
+.ci-loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px 0; gap: 12px; color: var(--ink-3); font-size: 14px;
+}
+.ci-spinner {
+  width: 20px; height: 20px; border: 2px solid var(--line);
+  border-top-color: var(--brand-orange, #FF4713);
+  border-radius: 50%; animation: _ci-spin 0.8s linear infinite;
+}
+@keyframes _ci-spin { to { transform: rotate(360deg); } }
+.ci-error {
+  background: #fff3f3; border: 1px solid #fca5a5;
+  border-radius: 10px; padding: 16px 20px;
+  color: #dc2626; font-size: 13px;
+}
+
+/* ── Section label ── */
+.ci-section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-3); margin: 0 0 12px;
+}
+
+/* ── KPI cards ── */
+.ci-kpis {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 12px; margin-bottom: 28px;
+}
+@media (max-width: 1200px) { .ci-kpis { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 700px)  { .ci-kpis { grid-template-columns: repeat(2, 1fr); } }
+
+.ci-kpi {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 16px 20px; text-align: center;
+}
+.ci-kpi-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-3); margin-bottom: 8px;
+}
+.ci-kpi-value {
+  font-size: 18px; font-weight: 700; color: var(--ink);
+  line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.ci-kpi-value.sm     { font-size: 13px; }
+.ci-kpi-value.accent { color: var(--brand-orange, #FF4713); }
+.ci-kpi-value.green  { color: #22a06b; }
+
+/* ── Investor cards ── */
+.ci-investors {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; margin-bottom: 28px;
+}
+@media (max-width: 900px) { .ci-investors { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .ci-investors { grid-template-columns: 1fr; } }
+
+.ci-inv-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 20px;
+}
+.ci-inv-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.ci-inv-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.ci-inv-name   { font-size: 14px; font-weight: 700; color: var(--ink); }
+.ci-inv-pct    { font-size: 12px; color: var(--ink-3); }
+.ci-inv-stats  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.ci-inv-stat-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-3); margin-bottom: 3px;
+}
+.ci-inv-stat-value {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.ci-inv-prog      { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.ci-inv-prog-fill { height: 100%; border-radius: 2px; }
+
+/* ── Charts ── */
+.ci-charts          { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+.ci-chart-card      {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 20px;
+}
+.ci-chart-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+.ci-chart-wrap  { position: relative; height: 260px; }
+.ci-chart-wrap.auto-h { height: auto; }
+
+/* ── Transaction table ── */
+.ci-table-wrap {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; overflow-x: auto;
+}
+.ci-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ci-table th {
+  background: var(--bg); padding: 9px 12px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--ink-3);
+  border-bottom: 1px solid var(--line); white-space: nowrap; text-align: left;
+}
+.ci-table th:last-child { text-align: right; }
+.ci-table td {
+  padding: 9px 12px; border-bottom: 1px solid var(--line);
+  color: var(--ink-2); white-space: nowrap;
+}
+.ci-table td:last-child {
+  text-align: right; font-variant-numeric: tabular-nums; font-weight: 600;
+}
+.ci-table tr:last-child td { border-bottom: none; }
+.ci-table tbody tr:nth-child(even) td { background: #f9f9fb; }
+.ci-table tr:hover td { background: #f5f5f8 !important; }
+.ci-table td.val-neg { color: #dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ci-wrap">
+
+<div class="ci-header">
+  <h1>CAPITAL INVESTIDO</h1>
+  <p>Página automatizada de acompanhamento de aportes</p>
+</div>
+
+<div class="ci-loading" id="ci-loading">
+  <div class="ci-spinner"></div>
+  <span>Carregando dados...</span>
+</div>
+
+<div id="ci-content" style="display:none">
+
+  <div class="ci-kpis" id="ci-kpis"></div>
+
+  <p class="ci-section-title">Por Investidor</p>
+  <div class="ci-investors" id="ci-investors"></div>
+
+  <p class="ci-section-title">Evolução Patrimonial</p>
+  <div class="ci-charts">
+    <div class="ci-chart-card">
+      <div class="ci-chart-title">Evolução Acumulada por Investidor</div>
+      <div class="ci-chart-wrap"><canvas id="chart-line"></canvas></div>
+    </div>
+    <div class="ci-chart-card">
+      <div class="ci-chart-title">Aportes Mensais por Investidor</div>
+      <div class="ci-chart-wrap"><canvas id="chart-bar"></canvas></div>
+    </div>
+    <div class="ci-chart-card">
+      <div class="ci-chart-title">Capital Real vs. SELIC por Investidor</div>
+      <div class="ci-chart-wrap auto-h"><canvas id="chart-horiz"></canvas></div>
+    </div>
+  </div>
+
+  <p class="ci-section-title">Transações</p>
+  <div class="ci-table-wrap">
+    <table class="ci-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Investidor</th>
+          <th>Descrição</th>
+          <th>Banco Destino</th>
+          <th>Valor (R$)</th>
+        </tr>
+      </thead>
+      <tbody id="ci-tbody"></tbody>
+    </table>
+  </div>
+
+</div>{# #ci-content #}
+
+</div>{# .ci-wrap #}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+'use strict';
+
+var CSV_URL   = 'https://docs.google.com/spreadsheets/u/1/d/e/2PACX-1vT7sXHzkT1kEEt50X_ADazozBcicKD8m-jn-9RAZ6wsopcaK4wJMKbBJhQLEUiB2cUl0ez7aJR0AnQ7/pub?gid=247969929&single=true&output=csv';
+var CACHE_KEY = 'ci_cache_v1';
+var CACHE_TTL = 5 * 60 * 1000;
+var PALETTE   = ['#FF4713','#4A6FA5','#22a06b','#e6a817','#9B59B6','#E74C3C','#1ABC9C','#F39C12'];
+var SELIC     = { 2023: 0.1375, 2024: 0.105, 2025: 0.1475 };
+var TODAY     = new Date();
+
+// ── Formatters ───────────────────────────────────────────────────────────────
+
+function brl(v) {
+  if (v == null) return '—';
+  var neg = v < 0;
+  var s = Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return neg ? '(' + s + ')' : s;
+}
+
+function pctStr(v) { return (v * 100).toFixed(1) + '%'; }
+
+function fmtDate(str) {
+  if (!str) return '—';
+  var d = new Date(str + 'T00:00:00');
+  if (isNaN(d.getTime())) return str;
+  return d.toLocaleDateString('pt-BR');
+}
+
+function monthKey(str) {
+  var d = new Date(str + 'T00:00:00');
+  if (isNaN(d.getTime())) return '?';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function monthLabel(key) {
+  var parts = key.split('-');
+  var names = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return names[parseInt(parts[1]) - 1] + '/' + parts[0].slice(2);
+}
+
+// ── SELIC compound factor from fromDateStr to toDate ─────────────────────────
+
+function selicFactor(fromDateStr, toDate) {
+  var from = new Date(fromDateStr + 'T00:00:00');
+  if (isNaN(from.getTime())) return 1;
+  var factor = 1;
+  var cur = new Date(from);
+  var end = toDate || TODAY;
+  while (cur < end) {
+    var yr   = cur.getFullYear();
+    var rate = SELIC[yr] !== undefined ? SELIC[yr] : 0.1475;
+    var yearEnd = new Date(yr + 1, 0, 1);
+    var segEnd  = yearEnd < end ? yearEnd : end;
+    var days    = (segEnd - cur) / 86400000;
+    factor *= Math.pow(1 + rate, days / 365);
+    cur = new Date(segEnd);
+  }
+  return factor;
+}
+
+// ── CSV helpers ──────────────────────────────────────────────────────────────
+
+function splitLine(line) {
+  var cols = [], cur = '', inq = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (c === '"') { inq = !inq; }
+    else if (c === ',' && !inq) { cols.push(cur.trim()); cur = ''; }
+    else { cur += c; }
+  }
+  cols.push(cur.trim());
+  return cols;
+}
+
+function normalizeDate(str) {
+  str = (str || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  var m = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  return str;
+}
+
+function parseCSV(text) {
+  var lines = text.trim().split(/\r?\n/);
+  var rows  = [];
+  for (var i = 1; i < lines.length; i++) {
+    var cols = splitLine(lines[i]);
+    if (cols.length < 6) continue;
+    var raw = cols[5].replace(/[^0-9.,-]/g, '').replace(',', '.');
+    var valor = parseFloat(raw);
+    if (isNaN(valor)) continue;
+    rows.push({
+      data:          normalizeDate(cols[0]),
+      investidor:    cols[1],
+      descricao:     cols[2],
+      banco_origem:  cols[3],
+      banco_destino: cols[4],
+      valor:         valor
+    });
+  }
+  return rows;
+}
+
+// ── Fetch + sessionStorage cache ─────────────────────────────────────────────
+
+async function fetchData() {
+  try {
+    var cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      var obj = JSON.parse(cached);
+      if (Date.now() - obj.ts < CACHE_TTL) return obj.data;
+    }
+  } catch (e) {}
+  var res = await fetch(CSV_URL);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  var text = await res.text();
+  var data = parseCSV(text);
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data })); } catch (e) {}
+  return data;
+}
+
+// ── Data calculations ────────────────────────────────────────────────────────
+
+function buildInvestors(rows) {
+  var map = {};
+  rows.forEach(function (r) {
+    if (!map[r.investidor]) map[r.investidor] = { nome: r.investidor, total: 0, count: 0, selic: 0 };
+    var inv = map[r.investidor];
+    inv.total += r.valor;
+    inv.count++;
+    inv.selic += r.valor * selicFactor(r.data, TODAY);
+  });
+  return Object.values(map).sort(function (a, b) { return b.total - a.total; });
+}
+
+function buildKPIs(rows, investors) {
+  var total  = rows.reduce(function (s, r) { return s + r.valor; }, 0);
+  var count  = rows.length;
+  var ticket = count > 0 ? total / count : 0;
+  var dates  = rows.map(function (r) { return r.data; }).filter(Boolean).sort();
+  var periodo = dates.length
+    ? fmtDate(dates[0]) + ' — ' + fmtDate(dates[dates.length - 1])
+    : '—';
+  var capSelic   = investors.reduce(function (s, inv) { return s + inv.selic; }, 0);
+  var ganhoSelic = capSelic - total;
+  var roic       = total > 0 ? ganhoSelic / total : 0;
+  return { total: total, count: count, ticket: ticket, periodo: periodo,
+           capSelic: capSelic, ganhoSelic: ganhoSelic, roic: roic };
+}
+
+// ── Render KPI cards ─────────────────────────────────────────────────────────
+
+function renderKPIs(kpis) {
+  var defs = [
+    { label: 'Total Aportado',  val: 'R$&nbsp;' + brl(kpis.total),      cls: '' },
+    { label: 'Nº Transações',   val: kpis.count,                          cls: '' },
+    { label: 'Ticket Médio',    val: 'R$&nbsp;' + brl(kpis.ticket),      cls: '' },
+    { label: 'Período',         val: kpis.periodo,                         cls: 'sm' },
+    { label: 'Capital SELIC',   val: 'R$&nbsp;' + brl(kpis.capSelic),    cls: 'accent' },
+    { label: 'Ganho SELIC',     val: 'R$&nbsp;' + brl(kpis.ganhoSelic),  cls: 'green' },
+    { label: 'ROIC %',          val: pctStr(kpis.roic),                    cls: 'accent' },
+  ];
+  document.getElementById('ci-kpis').innerHTML = defs.map(function (k) {
+    return '<div class="ci-kpi"><div class="ci-kpi-label">' + k.label + '</div>' +
+           '<div class="ci-kpi-value ' + k.cls + '">' + k.val + '</div></div>';
+  }).join('');
+}
+
+// ── Render investor cards ────────────────────────────────────────────────────
+
+function renderInvestors(investors) {
+  var grandTotal = investors.reduce(function (s, inv) { return s + inv.total; }, 0);
+  document.getElementById('ci-investors').innerHTML = investors.map(function (inv, i) {
+    var color    = PALETTE[i % PALETTE.length];
+    var share    = grandTotal > 0 ? inv.total / grandTotal : 0;
+    var initials = inv.nome.split(' ').slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+    var ticket   = inv.count > 0 ? inv.total / inv.count : 0;
+    return '<div class="ci-inv-card">' +
+      '<div class="ci-inv-head">' +
+        '<div class="ci-inv-avatar" style="background:' + color + '">' + initials + '</div>' +
+        '<div><div class="ci-inv-name">' + inv.nome + '</div>' +
+        '<div class="ci-inv-pct">' + pctStr(share) + ' do total</div></div>' +
+      '</div>' +
+      '<div class="ci-inv-stats">' +
+        '<div><div class="ci-inv-stat-label">Total Aportado</div>' +
+        '<div class="ci-inv-stat-value">R$ ' + brl(inv.total) + '</div></div>' +
+        '<div><div class="ci-inv-stat-label">Nº Aportes</div>' +
+        '<div class="ci-inv-stat-value">' + inv.count + '</div></div>' +
+        '<div><div class="ci-inv-stat-label">Ticket Médio</div>' +
+        '<div class="ci-inv-stat-value">R$ ' + brl(ticket) + '</div></div>' +
+        '<div><div class="ci-inv-stat-label">Capital SELIC</div>' +
+        '<div class="ci-inv-stat-value">R$ ' + brl(inv.selic) + '</div></div>' +
+      '</div>' +
+      '<div class="ci-inv-prog">' +
+        '<div class="ci-inv-prog-fill" style="width:' + pctStr(share) + ';background:' + color + '"></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Render transaction table ─────────────────────────────────────────────────
+
+function renderTable(rows) {
+  var rev = rows.slice().reverse();
+  document.getElementById('ci-tbody').innerHTML = rev.map(function (r) {
+    var neg  = r.valor < 0;
+    var first = r.investidor.split(' ')[0];
+    var desc  = r.descricao.length > 42 ? r.descricao.slice(0, 42) + '…' : r.descricao;
+    return '<tr>' +
+      '<td>' + fmtDate(r.data) + '</td>' +
+      '<td>' + first + '</td>' +
+      '<td>' + desc + '</td>' +
+      '<td>' + (r.banco_destino || '—') + '</td>' +
+      '<td class="' + (neg ? 'val-neg' : '') + '">' + brl(r.valor) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Render charts ────────────────────────────────────────────────────────────
+
+function renderLineChart(rows, investors) {
+  var dates = Array.from(new Set(rows.map(function (r) { return r.data; }))).sort();
+
+  // Aggregate by date+investor
+  var byDate = {};
+  rows.forEach(function (r) {
+    if (!byDate[r.data]) byDate[r.data] = {};
+    byDate[r.data][r.investidor] = (byDate[r.data][r.investidor] || 0) + r.valor;
+  });
+
+  var datasets = investors.map(function (inv, i) {
+    var cum = 0;
+    var data = dates.map(function (d) {
+      cum += (byDate[d] && byDate[d][inv.nome]) ? byDate[d][inv.nome] : 0;
+      return cum;
+    });
+    return {
+      label: inv.nome, data: data,
+      borderColor: PALETTE[i % PALETTE.length],
+      backgroundColor: PALETTE[i % PALETTE.length] + '22',
+      fill: false, tension: 0.3, borderWidth: 2, pointRadius: 3,
+    };
+  });
+
+  // SELIC equivalent line
+  var selicData = dates.map(function (d) {
+    var dDate = new Date(d + 'T00:00:00');
+    return rows
+      .filter(function (r) { return r.data <= d; })
+      .reduce(function (s, r) { return s + r.valor * selicFactor(r.data, dDate); }, 0);
+  });
+  datasets.push({
+    label: 'SELIC Equivalente', data: selicData,
+    borderColor: '#999', borderDash: [6, 4], borderWidth: 1.5,
+    fill: false, pointRadius: 0, tension: 0.3,
+  });
+
+  new Chart(document.getElementById('chart-line').getContext('2d'), {
+    type: 'line',
+    data: { labels: dates.map(fmtDate), datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+      scales: {
+        y: { ticks: { callback: function (v) { return 'R$ ' + brl(v); }, font: { size: 10 } } },
+        x: { ticks: { font: { size: 10 }, maxRotation: 45 } }
+      }
+    }
+  });
+}
+
+function renderBarChart(rows, investors) {
+  var months = Array.from(new Set(rows.map(function (r) { return monthKey(r.data); }))).sort();
+
+  var datasets = investors.map(function (inv, i) {
+    var data = months.map(function (m) {
+      return rows
+        .filter(function (r) { return monthKey(r.data) === m && r.investidor === inv.nome; })
+        .reduce(function (s, r) { return s + r.valor; }, 0);
+    });
+    return {
+      label: inv.nome, data: data,
+      backgroundColor: PALETTE[i % PALETTE.length] + 'cc', borderWidth: 0,
+    };
+  });
+
+  new Chart(document.getElementById('chart-bar').getContext('2d'), {
+    type: 'bar',
+    data: { labels: months.map(monthLabel), datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': R$ ' + brl(c.parsed.y); } } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } } },
+        y: { stacked: true, ticks: { callback: function (v) { return 'R$ ' + brl(v); }, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function renderHorizChart(investors) {
+  var canvas = document.getElementById('chart-horiz');
+  var minH   = Math.max(200, investors.length * 60);
+  canvas.parentElement.style.height = minH + 'px';
+
+  new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: investors.map(function (inv) { return inv.nome; }),
+      datasets: [
+        { label: 'Capital Real',  data: investors.map(function (inv) { return inv.total; }),
+          backgroundColor: PALETTE[0] + 'cc', borderWidth: 0 },
+        { label: 'Capital SELIC', data: investors.map(function (inv) { return inv.selic; }),
+          backgroundColor: PALETTE[1] + 'cc', borderWidth: 0 },
+      ]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': R$ ' + brl(c.parsed.x); } } }
+      },
+      scales: {
+        x: { ticks: { callback: function (v) { return 'R$ ' + brl(v); }, font: { size: 10 } } },
+        y: { ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
+
+async function main() {
+  var loading = document.getElementById('ci-loading');
+  var content = document.getElementById('ci-content');
+  try {
+    var rows      = await fetchData();
+    var investors = buildInvestors(rows);
+    var kpis      = buildKPIs(rows, investors);
+
+    renderKPIs(kpis);
+    renderInvestors(investors);
+    renderLineChart(rows, investors);
+    renderBarChart(rows, investors);
+    renderHorizChart(investors);
+    renderTable(rows);
+
+    loading.style.display = 'none';
+    content.style.display = '';
+  } catch (e) {
+    loading.innerHTML = '<div class="ci-error">Erro ao carregar dados: ' + e.message + '</div>';
+  }
+}
+
+main();
+
+})();
+</script>
+{% endblock %}

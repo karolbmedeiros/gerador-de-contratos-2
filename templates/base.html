@@ -82,7 +82,7 @@
       </div>
 
       <!-- ── Insights ── -->
-      {% set grp_insights = active in ['dre', 'financiamentos'] %}
+      {% set grp_insights = active in ['dre', 'financiamentos', 'capital_investido'] %}
       <div class="sb-group" id="grp-insights" data-open="{{ 'true' if grp_insights else 'false' }}">
         <button class="sb-group-head" onclick="toggleGroup('grp-insights')"
                 aria-expanded="{{ 'true' if grp_insights else 'false' }}" aria-controls="grp-insights-body">
@@ -117,6 +117,17 @@
                 </svg>
               </span>
               <span class="sb-item-label">Fin &amp; Con</span>
+            </a>
+            <a href="{{ url_for('pagina_capital_investido') }}" class="sb-item"
+               data-active="{{ 'true' if active == 'capital_investido' else 'false' }}"
+               aria-current="{{ 'page' if active == 'capital_investido' else 'false' }}">
+              <span class="sb-item-icon" aria-hidden="true">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <line x1="12" y1="1" x2="12" y2="23"/>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </span>
+              <span class="sb-item-label">Capital Investido</span>
             </a>
           </div>
         </div>
@@ -314,6 +325,7 @@
           {% elif active == 'checklist' %}Checklist
           {% elif active == 'dre' %}DRE
           {% elif active == 'financiamentos' %}Fin &amp; Con
+          {% elif active == 'capital_investido' %}Capital Investido
           {% else %}ATIVUZ
           {% endif %}
         </span>

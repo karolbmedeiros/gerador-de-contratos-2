@@ -2431,6 +2431,13 @@ def pagina_financiamentos():
     )
 
 
+# ── Capital Investido ─────────────────────────────────────────────────────────
+
+@app.route("/capital-investido")
+def pagina_capital_investido():
+    return render_template("capital_investido.html", active="capital_investido")
+
+
 # ── Checklist ─────────────────────────────────────────────────────────────────
 
 def _veiculos_xlsx_path():
