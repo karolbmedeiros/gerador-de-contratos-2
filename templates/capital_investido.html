@@ -324,7 +324,16 @@ function parseCSV(text) {
   var lines = text.trim().split(/\r?\n/);
   if (lines.length < 2) return [];
 
-  var header = splitLine(lines[0]);
+  // Pula linhas iniciais vazias (títulos mesclados exportados como campos em branco)
+  var headerIdx = 0;
+  while (headerIdx < lines.length) {
+    var probe = splitLine(lines[headerIdx]);
+    if (probe.some(function (c) { return c.trim() !== ''; })) break;
+    headerIdx++;
+  }
+  if (headerIdx >= lines.length - 1) return [];
+
+  var header = splitLine(lines[headerIdx]);
   var idx    = detectCols(header);
 
   // Fallback to positional defaults
@@ -338,7 +347,7 @@ function parseCSV(text) {
   var need = Math.max(idx.data, idx.investidor, idx.descricao,
                       idx.banco_origem, idx.banco_destino, idx.valor);
   var rows = [];
-  for (var i = 1; i < lines.length; i++) {
+  for (var i = headerIdx + 1; i < lines.length; i++) {
     if (!lines[i].trim()) continue;
     var cols = splitLine(lines[i]);
     if (cols.length <= need) continue;
