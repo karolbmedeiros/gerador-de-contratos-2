@@ -2171,13 +2171,17 @@ _DRE_LAYOUT = [
 
 def _dre_ler_lancamentos():
     import openpyxl
-    path = Path(__file__).resolve().parent / "data" / "Lançamentos por natureza.xlsx"
-    if not path.exists():
+
+    base = Path(__file__).resolve().parent
+    pasta = base / "planilhas" / "dre"
+    fallback = base / "data" / "Lançamentos por natureza.xlsx"
+
+    # Coleta arquivos: pasta dedicada tem prioridade; fallback se estiver vazia
+    arquivos = sorted(pasta.glob("*.xlsx")) if pasta.is_dir() else []
+    if not arquivos and fallback.exists():
+        arquivos = [fallback]
+    if not arquivos:
         return []
-    wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
-    ws = wb.active
-    rows = list(ws.iter_rows(values_only=True))
-    wb.close()
 
     def _split(s):
         if ' - ' in s:
@@ -2185,16 +2189,35 @@ def _dre_ler_lancamentos():
             return a.strip(), b.strip()
         return s.strip(), s.strip()
 
+    def _ler_arquivo(path):
+        registros = []
+        try:
+            wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+            ws = wb.active
+            rows = list(ws.iter_rows(values_only=True))
+            wb.close()
+            for row in rows[5:]:
+                if not row[0]:
+                    continue
+                dt    = row[3]
+                valor = row[9]
+                if not isinstance(dt, datetime) or not isinstance(valor, (int, float)):
+                    continue
+                cod, _ = _split(str(row[2]) if row[2] else "")
+                registros.append({"codigo": cod, "dt": dt, "valor": float(valor)})
+        except Exception:
+            pass
+        return registros
+
+    # Deduplicação: chave (data, codigo, valor arredondado)
+    vistos = set()
     result = []
-    for row in rows[5:]:
-        if not row[0]:
-            continue
-        dt    = row[3]
-        valor = row[9]
-        if not isinstance(dt, datetime) or not isinstance(valor, (int, float)):
-            continue
-        cod, _ = _split(str(row[2]) if row[2] else "")
-        result.append({"codigo": cod, "dt": dt, "valor": float(valor)})
+    for arq in arquivos:
+        for rec in _ler_arquivo(arq):
+            chave = (rec["dt"].date(), rec["codigo"], round(rec["valor"], 2))
+            if chave not in vistos:
+                vistos.add(chave)
+                result.append(rec)
     return result
 
 
