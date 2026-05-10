@@ -240,7 +240,7 @@
       <div class="ci-chart-wrap"><canvas id="chart-bar"></canvas></div>
     </div>
     <div class="ci-chart-card">
-      <div class="ci-chart-title">Capital Real vs. Benchmarks de Rentabilidade</div>
+      <div class="ci-chart-title">Ganho por Benchmark por Investidor</div>
       <div class="ci-chart-wrap auto-h"><canvas id="chart-horiz"></canvas></div>
     </div>
     <div class="ci-chart-card">
@@ -306,6 +306,17 @@ function fmtDate(str) {
   var d = new Date(str + 'T00:00:00');
   if (isNaN(d.getTime())) return str;
   return d.toLocaleDateString('pt-BR');
+}
+
+function tempoInvestido(firstDateStr) {
+  if (!firstDateStr) return '';
+  var days = Math.floor((TODAY - new Date(firstDateStr + 'T00:00:00')) / 86400000);
+  var y = Math.floor(days / 365);
+  var m = Math.floor((days % 365) / 30);
+  if (y > 0 && m > 0) return y + 'a ' + m + 'm';
+  if (y > 0) return y + (y > 1 ? ' anos' : ' ano');
+  if (m > 0) return m + (m > 1 ? ' meses' : ' mês');
+  return days + ' dias';
 }
 
 function monthKey(str) {
@@ -469,6 +480,7 @@ function buildInvestors(rows) {
   var sharedTotal = sharedRows.reduce(function (s, r) { return s + r.valor; }, 0);
   var sharedSelic = sharedRows.reduce(function (s, r) { return s + r.valor * selicFactor(r.data, TODAY); }, 0);
   var sharedCount = sharedRows.length;
+  var sharedFirstDate = sharedRows.map(function (r) { return r.data; }).sort()[0] || null;
   var sharedBmkValues = BENCHMARKS.map(function (bmk) {
     return sharedRows.reduce(function (s, r) {
       return s + r.valor * bfactor(r.data, TODAY, bmk.rates, bmk.mult, bmk.spread);
@@ -484,6 +496,7 @@ function buildInvestors(rows) {
       count: sharedCount,
       selic: sharedSelic / 2,
       bmkValues: sharedBmkValues.map(function (v) { return v / 2; }),
+      firstDate: sharedFirstDate,
     };
   });
 
@@ -491,8 +504,10 @@ function buildInvestors(rows) {
     if (!map[r.investidor]) map[r.investidor] = {
       nome: r.investidor, shared: false, total: 0, count: 0, selic: 0,
       bmkValues: BENCHMARKS.map(function () { return 0; }),
+      firstDate: r.data,
     };
     var inv = map[r.investidor];
+    if (r.data < inv.firstDate) inv.firstDate = r.data;
     inv.total += r.valor;
     inv.count++;
     inv.selic += r.valor * selicFactor(r.data, TODAY);
@@ -676,7 +691,12 @@ function renderHorizChart(investors) {
 
   new Chart(canvas.getContext('2d'), {
     type: 'bar',
-    data: { labels: investors.map(function (inv) { return inv.nome; }), datasets: datasets },
+    data: {
+      labels: investors.map(function (inv) {
+        return [inv.nome, 'R$ ' + brl(inv.total) + '  ·  ' + tempoInvestido(inv.firstDate)];
+      }),
+      datasets: datasets,
+    },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: {
