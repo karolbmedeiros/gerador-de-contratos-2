@@ -189,11 +189,6 @@
   <span>Carregando dados...</span>
 </div>
 
-<!-- Diagnóstico temporário — mostra cabeçalho do CSV e colunas detectadas -->
-<details style="margin-bottom:16px;font-size:11px;color:var(--ink-3)">
-  <summary style="cursor:pointer;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Diagnóstico CSV (abra se houver problema)</summary>
-  <pre id="ci-diag" style="margin-top:8px;padding:10px;background:#f5f5f5;border-radius:8px;overflow:auto;max-height:200px;font-size:11px;line-height:1.5">Aguardando dados...</pre>
-</details>
 
 <div id="ci-content" style="display:none">
 
@@ -403,14 +398,6 @@ function detectCols(headerCols) {
     banco_destino: find(['banco destino', 'destino', 'dest']),
     valor:         find(['valor', 'value', 'amount', 'montante', 'quantia']),
   };
-
-  // ── Diagnóstico visível ──────────────────────────────────────────────────
-  var dbg = document.getElementById('ci-diag');
-  if (dbg) {
-    var colsStr = headerCols.map(function (c, i) { return i + ': ' + c; }).join('\n');
-    var idxStr  = Object.keys(idx).map(function (k) { return k + ' → col ' + idx[k]; }).join(' | ');
-    dbg.textContent = 'COLUNAS DO CSV:\n' + colsStr + '\n\nDETECÇÃO: ' + idxStr;
-  }
 
   return idx;
 }
