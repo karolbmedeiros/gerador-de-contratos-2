@@ -221,7 +221,7 @@
           <th data-col="modelo">Modelo</th>
           <th data-col="placa">Placa</th>
           <th data-col="ano_modelo">Ano</th>
-          <th data-col="cod_fipe">Cód. FIPE</th>
+
           <th data-col="dt_aquisicao">Dt. Aquisição</th>
           <th data-col="vl_aquisicao">Vl. Aquisição</th>
           <th data-col="prev_val">{{ prev_mes_label }}</th>
@@ -508,7 +508,6 @@ function sortAndRender() {
       '<td>' + (v.modelo || '—') + '</td>' +
       '<td><span class="fr-placa-link" data-placa="' + v.placa + '">' + (v.placa || '—') + '</span></td>' +
       '<td>' + (v.ano_modelo || '—') + '</td>' +
-      '<td>' + (v.cod_fipe || '—') + '</td>' +
       '<td>' + fmtDate(v.dt_aquisicao) + '</td>' +
       '<td>' + (v.vl_aquisicao != null ? 'R$ ' + brl(v.vl_aquisicao) : '—') + '</td>' +
       '<td>' + prevVal + '</td>' +
