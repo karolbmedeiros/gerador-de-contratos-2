@@ -2498,6 +2498,91 @@ def pagina_capital_investido():
     )
 
 
+# ── Frota ─────────────────────────────────────────────────────────────────────
+
+_FROTA_XLSX = Path(__file__).resolve().parent / "docx_templates" / "Frota_FIPE.xlsx"
+
+
+def _ler_frota_dados():
+    if not _FROTA_XLSX.exists():
+        return [], [], "Planilha não encontrada em docx_templates/Frota_FIPE.xlsx."
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(str(_FROTA_XLSX), read_only=True, data_only=True)
+
+        def _s(v):
+            if v is None:
+                return None
+            s = str(v).strip()
+            return s if s else None
+
+        def _n(v):
+            if v is None:
+                return None
+            if isinstance(v, str) and v.strip() in ('', '← VIA API'):
+                return None
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                return None
+
+        ws = wb['Frota_FIPE']
+        rows = list(ws.iter_rows(values_only=True))
+        # row[3] = header, row[4..46] = 43 vehicles, row[47] = TOTAIS
+        veiculos = []
+        for row in rows[4:47]:
+            modelo = _s(row[1])
+            placa  = _s(row[2])
+            if not modelo or not placa:
+                continue
+            veiculos.append({
+                'modelo':       modelo,
+                'placa':        placa,
+                'ano_modelo':   _s(row[3]),
+                'cod_fipe':     _s(row[4]),
+                'dt_aquisicao': _s(row[5]),
+                'vl_aquisicao': _n(row[6]),
+                'jan25':  _n(row[7]),  'fev25': _n(row[8]),  'mar25': _n(row[9]),
+                'abr25':  _n(row[10]), 'mai25': _n(row[11]), 'jun25': _n(row[12]),
+                'jul25':  _n(row[13]), 'ago25': _n(row[14]), 'set25': _n(row[15]),
+                'out25':  _n(row[16]), 'nov25': _n(row[17]), 'dez25': _n(row[18]),
+                'var_pct_2025': _n(row[19]),
+                'var_rs_2025':  _n(row[20]),
+                'jan26':  _n(row[21]), 'fev26': _n(row[22]), 'mar26': _n(row[23]),
+            })
+
+        ws2 = wb['Codigos_FIPE_Unicos']
+        rows2 = list(ws2.iter_rows(values_only=True))
+        codigos = []
+        for row in rows2[1:]:
+            cod = _s(row[0])
+            if cod:
+                codigos.append({
+                    'cod_fipe':  cod,
+                    'modelo':    _s(row[1]),
+                    'ano_modelo': _s(row[2]),
+                    'qtd':       int(row[3]) if row[3] else 0,
+                    'endpoint':  _s(row[4]),
+                })
+
+        wb.close()
+        return veiculos, codigos, None
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return [], [], str(e)
+
+
+@app.route("/insights/frota")
+def pagina_frota():
+    veiculos, codigos, erro = _ler_frota_dados()
+    return render_template("frota.html",
+        active="frota",
+        veiculos=veiculos,
+        codigos=codigos,
+        erro=erro,
+    )
+
+
 # ── Checklist ─────────────────────────────────────────────────────────────────
 
 def _veiculos_xlsx_path():

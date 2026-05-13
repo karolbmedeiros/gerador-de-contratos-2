@@ -82,7 +82,7 @@
       </div>
 
       <!-- ── Insights ── -->
-      {% set grp_insights = active in ['dre', 'financiamentos', 'capital_investido'] %}
+      {% set grp_insights = active in ['dre', 'financiamentos', 'capital_investido', 'frota'] %}
       <div class="sb-group" id="grp-insights" data-open="{{ 'true' if grp_insights else 'false' }}">
         <button class="sb-group-head" onclick="toggleGroup('grp-insights')"
                 aria-expanded="{{ 'true' if grp_insights else 'false' }}" aria-controls="grp-insights-body">
@@ -128,6 +128,18 @@
                 </svg>
               </span>
               <span class="sb-item-label">Capital Investido</span>
+            </a>
+            <a href="{{ url_for('pagina_frota') }}" class="sb-item"
+               data-active="{{ 'true' if active == 'frota' else 'false' }}"
+               aria-current="{{ 'page' if active == 'frota' else 'false' }}">
+              <span class="sb-item-icon" aria-hidden="true">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M5 17H3a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h1l2-3h12l2 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                  <circle cx="7" cy="17" r="2"/>
+                  <circle cx="17" cy="17" r="2"/>
+                </svg>
+              </span>
+              <span class="sb-item-label">Frota</span>
             </a>
           </div>
         </div>
@@ -326,6 +338,7 @@
           {% elif active == 'dre' %}DRE
           {% elif active == 'financiamentos' %}Fin &amp; Con
           {% elif active == 'capital_investido' %}Capital Investido
+          {% elif active == 'frota' %}Frota
           {% else %}ATIVUZ
           {% endif %}
         </span>
