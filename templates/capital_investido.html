@@ -703,8 +703,7 @@ function renderInvestors(investors) {
 // ── Render transaction table ─────────────────────────────────────────────────
 
 function renderTable(rows) {
-  var rev = rows.slice().reverse();
-  document.getElementById('ci-tbody').innerHTML = rev.map(function (r) {
+  document.getElementById('ci-tbody').innerHTML = rows.map(function (r) {
     var neg  = r.valor < 0;
     var first = r.investidor.split(' ')[0];
     var desc  = r.descricao.length > 42 ? r.descricao.slice(0, 42) + '…' : r.descricao;
