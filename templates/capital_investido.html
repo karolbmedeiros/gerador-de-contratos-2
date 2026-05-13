@@ -149,48 +149,68 @@
 .ci-chart-wrap  { position: relative; height: 260px; }
 .ci-chart-wrap.auto-h { height: auto; }
 
-/* ── Novo aporte form ── */
-.ci-novo-aporte {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 12px; padding: 20px; margin-bottom: 28px;
+/* ── Novo aporte button ── */
+.ci-novo-aporte-btn {
+  height: 34px; padding: 0 16px; border-radius: 8px;
+  background: var(--brand-orange, #FF4713); color: #fff;
+  border: none; font-size: 12px; font-weight: 700;
+  letter-spacing: .04em; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px;
 }
-.ci-novo-aporte-title {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--ink-3); margin: 0 0 14px;
+.ci-novo-aporte-btn:hover { opacity: .88; }
+
+/* ── Modal ── */
+.ci-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.45); z-index: 1000;
+  align-items: center; justify-content: center;
 }
+.ci-modal-overlay.open { display: flex; }
+.ci-modal {
+  background: var(--surface); border-radius: 14px;
+  width: min(520px, 95vw); padding: 28px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  position: relative;
+}
+.ci-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 22px;
+}
+.ci-modal-header h3 {
+  font-size: 15px; font-weight: 700; color: var(--ink); margin: 0;
+}
+.ci-modal-close {
+  background: none; border: none; font-size: 20px; line-height: 1;
+  color: var(--ink-3); cursor: pointer; padding: 0 4px;
+}
+.ci-modal-close:hover { color: var(--ink); }
 .ci-novo-form {
-  display: grid;
-  grid-template-columns: 140px 1fr 1fr 1fr 130px auto;
-  gap: 8px; align-items: end;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
 }
-@media (max-width: 900px) {
-  .ci-novo-form { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 500px) {
-  .ci-novo-form { grid-template-columns: 1fr; }
-}
-.ci-novo-form label { display: flex; flex-direction: column; gap: 4px; }
+.ci-novo-form .full { grid-column: 1 / -1; }
+.ci-novo-form label { display: flex; flex-direction: column; gap: 5px; }
 .ci-novo-form label span {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .05em; color: var(--ink-3);
 }
 .ci-novo-form input {
-  height: 34px; padding: 0 10px; border-radius: 8px;
+  height: 36px; padding: 0 10px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--bg);
   font-size: 13px; color: var(--ink); outline: none; width: 100%;
   box-sizing: border-box;
 }
 .ci-novo-form input:focus { border-color: var(--brand-orange, #FF4713); }
+.ci-modal-footer {
+  margin-top: 22px; display: flex; align-items: center; gap: 12px;
+}
 .ci-novo-btn {
-  height: 34px; padding: 0 18px; border-radius: 8px;
+  height: 36px; padding: 0 22px; border-radius: 8px;
   background: var(--brand-orange, #FF4713); color: #fff;
   border: none; font-size: 13px; font-weight: 600;
   cursor: pointer; white-space: nowrap;
 }
 .ci-novo-btn:disabled { opacity: .5; cursor: default; }
-.ci-novo-feedback {
-  font-size: 12px; margin-top: 10px; min-height: 18px;
-}
+.ci-novo-feedback { font-size: 12px; }
 .ci-novo-feedback.ok  { color: #16a34a; }
 .ci-novo-feedback.err { color: #dc2626; }
 
@@ -224,21 +244,21 @@
 {% block content %}
 <div class="ci-wrap">
 
-<div class="ci-header">
-  <h1>CAPITAL INVESTIDO</h1>
-  <p>Acompanhamento de aportes · Benchmarks: CDI, SELIC, IPCA, Poupança, Nubank e Mercado Pago · IBOVESPA quando disponível</p>
+<div class="ci-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <div>
+    <h1>CAPITAL INVESTIDO</h1>
+    <p>Acompanhamento de aportes · Benchmarks: CDI, SELIC, IPCA, Poupança, Nubank e Mercado Pago · IBOVESPA quando disponível</p>
+  </div>
+  <button class="ci-novo-aporte-btn" onclick="openNovoAporte()">+ NOVO APORTE</button>
 </div>
 
-<div class="ci-loading" id="ci-loading">
-  <div class="ci-spinner"></div>
-  <span>Carregando dados...</span>
-</div>
-
-
-<div id="ci-content" style="display:none">
-
-  <div class="ci-novo-aporte">
-    <div class="ci-novo-aporte-title">Novo Aporte</div>
+<!-- Modal Novo Aporte -->
+<div class="ci-modal-overlay" id="ci-modal-overlay" onclick="if(event.target===this)closeNovoAporte()">
+  <div class="ci-modal">
+    <div class="ci-modal-header">
+      <h3>Novo Aporte</h3>
+      <button class="ci-modal-close" onclick="closeNovoAporte()">×</button>
+    </div>
     <div class="ci-novo-form">
       <label>
         <span>Data</span>
@@ -249,7 +269,7 @@
         <input type="text" id="na-investidor" list="na-investidor-list" autocomplete="off" placeholder="Nome">
         <datalist id="na-investidor-list"></datalist>
       </label>
-      <label>
+      <label class="full">
         <span>Descrição</span>
         <input type="text" id="na-descricao" placeholder="Opcional">
       </label>
@@ -262,10 +282,21 @@
         <span>Valor (R$)</span>
         <input type="number" id="na-valor" min="0" step="0.01" placeholder="0,00">
       </label>
-      <button class="ci-novo-btn" id="na-btn" onclick="submitAporte()">Salvar</button>
     </div>
-    <div class="ci-novo-feedback" id="na-feedback"></div>
+    <div class="ci-modal-footer">
+      <button class="ci-novo-btn" id="na-btn" onclick="submitAporte()">Salvar</button>
+      <div class="ci-novo-feedback" id="na-feedback"></div>
+    </div>
   </div>
+</div>
+
+<div class="ci-loading" id="ci-loading">
+  <div class="ci-spinner"></div>
+  <span>Carregando dados...</span>
+</div>
+
+
+<div id="ci-content" style="display:none">
 
   <div class="ci-kpis" id="ci-kpis"></div>
 
@@ -870,6 +901,19 @@ function renderAll(rows) {
     bankNames.map(function (n) { return '<option value="' + n + '">'; }).join('');
 }
 
+// ── Modal ────────────────────────────────────────────────────────────────────
+
+function openNovoAporte() {
+  document.getElementById('ci-modal-overlay').classList.add('open');
+  document.getElementById('na-investidor').focus();
+}
+
+function closeNovoAporte() {
+  document.getElementById('ci-modal-overlay').classList.remove('open');
+  document.getElementById('na-feedback').textContent = '';
+  document.getElementById('na-feedback').className = 'ci-novo-feedback';
+}
+
 // ── Form submission ──────────────────────────────────────────────────────────
 
 function submitAporte() {
@@ -912,15 +956,15 @@ function submitAporte() {
     _allRows = mergeRows();
     renderAll(_allRows);
 
-    // Clear form
-    document.getElementById('na-data').value       = '';
+    // Clear form and close modal
+    document.getElementById('na-data').value       = new Date().toISOString().slice(0,10);
     document.getElementById('na-investidor').value = '';
     document.getElementById('na-descricao').value  = '';
     document.getElementById('na-banco').value      = '';
     document.getElementById('na-valor').value      = '';
     feedback.className += ' ok';
     feedback.textContent = 'Aporte salvo com sucesso.';
-    setTimeout(function () { feedback.textContent = ''; }, 3000);
+    setTimeout(function () { closeNovoAporte(); }, 1200);
   })
   .catch(function (e) {
     btn.disabled = false;
