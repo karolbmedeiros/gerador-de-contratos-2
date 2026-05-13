@@ -416,16 +416,16 @@ function recalcKPIs() {
   var varAq  = totalFipe - totalAq;
   var varAqP = totalAq > 0 ? varAq / totalAq * 100 : 0;
 
-  document.getElementById('kpi-total-val').textContent = 'R$ ' + brl(totalFipe, 0);
+  document.getElementById('kpi-total-val').textContent = 'R$ ' + brl(totalFipe);
   document.getElementById('kpi-total-sub').textContent = 'FIPE atual';
 
   var vMesEl = document.getElementById('kpi-var-mes-val');
-  vMesEl.textContent = (varMes >= 0 ? '+' : '') + 'R$ ' + brl(varMes, 0);
+  vMesEl.textContent = (varMes >= 0 ? '+' : '') + 'R$ ' + brl(varMes);
   vMesEl.className = 'fr-kpi-value ' + (varMes >= 0 ? 'up' : 'down');
   document.getElementById('kpi-var-mes-icon').className = 'fr-kpi-icon ' + (varMes >= 0 ? 'green' : 'red');
 
   var vAqEl = document.getElementById('kpi-var-aq-val');
-  vAqEl.textContent = (varAq >= 0 ? '+' : '') + 'R$ ' + brl(varAq, 0);
+  vAqEl.textContent = (varAq >= 0 ? '+' : '') + 'R$ ' + brl(varAq);
   vAqEl.className = 'fr-kpi-value ' + (varAq >= 0 ? 'up' : 'down');
   document.getElementById('kpi-var-aq-sub').textContent = (varAqP >= 0 ? '+' : '') + varAqP.toFixed(1) + '% vs. custo total';
   document.getElementById('kpi-var-aq-icon').className = 'fr-kpi-icon ' + (varAq >= 0 ? 'green' : 'red');
@@ -446,7 +446,7 @@ function renderComp() {
     return '<div class="fr-comp-card" style="border-left-color:' + cor + '">' +
       '<div class="fr-comp-label" style="color:' + cor + '">' + m + '</div>' +
       '<div class="fr-comp-count">' + g.count + ' <span>veíc.</span></div>' +
-      '<div class="fr-comp-value">R$ ' + brl(g.total, 0) + '</div>' +
+      '<div class="fr-comp-value">R$ ' + brl(g.total) + '</div>' +
     '</div>';
   }).join('');
 }
@@ -653,7 +653,7 @@ function openHistorico() {
     var cells = allMonths.map(function(m) {
       var val  = mesValor(v, m.key, m.label);
       var isCurr = m.label === CURR_MES_LABEL;
-      var txt  = val != null ? 'R$ ' + brl(val, 0) : '—';
+      var txt  = val != null ? 'R$ ' + brl(val) : '—';
       return '<td' + (isCurr ? ' class="curr-col"' : '') + '>' + txt + '</td>';
     }).join('');
     return '<tr>' +
@@ -707,7 +707,7 @@ function buildTipChart(v) {
         tooltip: {
           callbacks: {
             title: function(items) { return items[0].label; },
-            label: function(c) { return 'R$ ' + brl(c.parsed.y, 0); }
+            label: function(c) { return 'R$ ' + brl(c.parsed.y); }
           }
         }
       },
