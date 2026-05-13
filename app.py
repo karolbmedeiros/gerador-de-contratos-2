@@ -2500,79 +2500,66 @@ def pagina_capital_investido():
 
 # ── Frota ─────────────────────────────────────────────────────────────────────
 
-_FROTA_XLSX = Path(__file__).resolve().parent / "docx_templates" / "Frota_FIPE2.xlsx"
-
-
 def _ler_frota_dados():
     """
-    Lê Frota_FIPE2.xlsx.
-    Estrutura: row[0]=título, row[1]=cabeçalho, row[2..44]=43 veículos, row[45]=totais.
-    Colunas: [0]MODELO [1]PLACA [2]ANO/MODELO [3]COD_FIPE [4]DT_AQUISICAO
-             [5]VL_AQUISICAO [6..17]JAN/25..DEZ/25 [18]VAR_PCT [19]VAR_RS
-             [20]JAN/26 [21]FEV/26 [22]MAR/26 [23]ABR/26 [24]MAI/26(vazio)
+    Lê veículos e histórico FIPE do Supabase (frota_veiculos + frota_fipe_historico).
+    Retorna (veiculos, codigos, erro) com a mesma estrutura anterior para compatibilidade
+    com o template frota.html.
     """
-    if not _FROTA_XLSX.exists():
-        return [], [], "Planilha não encontrada em docx_templates/Frota_FIPE2.xlsx."
     try:
-        import openpyxl
-        wb = openpyxl.load_workbook(str(_FROTA_XLSX), read_only=True, data_only=True)
+        sb = _supabase()
+        if sb is None:
+            return [], [], "Supabase não configurado."
 
-        def _s(v):
-            if v is None:
-                return None
-            s = str(v).strip()
-            return s if s else None
+        res_v = sb.table("frota_veiculos").select(
+            "modelo, placa, ano_modelo, cod_fipe, dt_aquisicao, vl_aquisicao"
+        ).eq("ativo", True).execute()
 
-        def _n(v):
-            if v is None:
-                return None
-            if isinstance(v, str) and v.strip() in ('', '← VIA API'):
-                return None
-            try:
-                return float(v)
-            except (ValueError, TypeError):
-                return None
+        res_h = sb.table("frota_fipe_historico").select(
+            "placa, mes_ref, valor"
+        ).eq("fonte", "planilha").execute()
 
-        ws = wb['Frota_FIPE']
-        rows = list(ws.iter_rows(values_only=True))
-        # row[1]=cabeçalho, row[2..44]=veículos, row[45]=totais
+        # Pivot histórico: {placa: {python_key: valor}}
+        # 'JAN/25' → 'jan25', 'MAI/26' → 'mai26'
+        hist: dict[str, dict[str, float]] = {}
+        for row in (res_h.data or []):
+            key = row["mes_ref"].replace("/", "").lower()
+            hist.setdefault(row["placa"], {})[key] = float(row["valor"])
+
         veiculos = []
-        for row in rows[2:45]:
-            modelo = _s(row[0])
-            placa  = _s(row[1])
-            if not modelo or not placa:
-                continue
+        for v in (res_v.data or []):
+            placa = v["placa"]
+            meses = hist.get(placa, {})
+            dt = v.get("dt_aquisicao") or ""
+            try:
+                dt = datetime.strptime(dt, "%Y-%m-%d").strftime("%d/%m/%Y")
+            except Exception:
+                pass
             veiculos.append({
-                'modelo':       modelo,
-                'placa':        placa,
-                'ano_modelo':   _s(row[2]),
-                'cod_fipe':     _s(row[3]),
-                'dt_aquisicao': _s(row[4]),
-                'vl_aquisicao': _n(row[5]),
-                'jan25':  _n(row[6]),  'fev25': _n(row[7]),  'mar25': _n(row[8]),
-                'abr25':  _n(row[9]),  'mai25': _n(row[10]), 'jun25': _n(row[11]),
-                'jul25':  _n(row[12]), 'ago25': _n(row[13]), 'set25': _n(row[14]),
-                'out25':  _n(row[15]), 'nov25': _n(row[16]), 'dez25': _n(row[17]),
-                'var_pct_2025': _n(row[18]),
-                'var_rs_2025':  _n(row[19]),
-                'jan26':  _n(row[20]), 'fev26': _n(row[21]), 'mar26': _n(row[22]),
-                'abr26':  _n(row[23]),
+                "modelo":       v["modelo"],
+                "placa":        placa,
+                "ano_modelo":   v["ano_modelo"],
+                "cod_fipe":     v["cod_fipe"],
+                "dt_aquisicao": dt,
+                "vl_aquisicao": float(v["vl_aquisicao"]) if v["vl_aquisicao"] is not None else None,
+                **{k: meses.get(k) for k in (
+                    "jan25","fev25","mar25","abr25","mai25","jun25",
+                    "jul25","ago25","set25","out25","nov25","dez25",
+                    "jan26","fev26","mar26","abr26","mai26","jun26",
+                    "jul26","ago26","set26","out26","nov26","dez26",
+                )},
             })
 
-        ws2 = wb['Codigos_FIPE_Unicos']
-        rows2 = list(ws2.iter_rows(values_only=True))
-        codigos = []
-        for row in rows2[1:]:
-            cod = _s(row[0])
-            if cod:
-                codigos.append({
-                    'cod_fipe':  cod,
-                    'modelo':    _s(row[1]),
-                    'ano_modelo': _s(row[2]),
-                    'qtd':       int(row[3]) if row[3] else 0,
-                })
+        # Derive codigos from vehicles (used by template for CODIGOS JS var)
+        seen: dict[tuple, dict] = {}
+        for v in veiculos:
+            key = (v["cod_fipe"], v["ano_modelo"])
+            if key not in seen:
+                seen[key] = {"cod_fipe": v["cod_fipe"], "modelo": v["modelo"],
+                             "ano_modelo": v["ano_modelo"], "qtd": 0}
+            seen[key]["qtd"] += 1
+        codigos = list(seen.values())
 
-        wb.close()
         return veiculos, codigos, None
     except Exception as e:
         import traceback; traceback.print_exc()
@@ -2596,16 +2583,18 @@ def _frota_mes_atual():
 
 
 def _frota_ler_manual():
-    """Retorna {placa: {ref_label: {valor, atualizado_em}}} lido do Supabase."""
+    """Retorna {placa: {mes_ref: {valor, atualizado_em}}} lido de frota_fipe_historico."""
     try:
         sb = _supabase()
         if sb is None:
             return {}
-        res = sb.table("fipe_manual").select("placa, ref, valor, atualizado_em").execute()
+        res = sb.table("frota_fipe_historico").select(
+            "placa, mes_ref, valor, atualizado_em"
+        ).eq("fonte", "manual").execute()
         out = {}
         for row in (res.data or []):
             placa  = row["placa"]
-            ref    = row["ref"]
+            ref    = row["mes_ref"]
             dt_str = row.get("atualizado_em") or ""
             try:
                 dt_str = datetime.strptime(dt_str, "%Y-%m-%d").strftime("%d/%m/%Y")
@@ -2622,16 +2611,17 @@ def _frota_ler_manual():
 
 
 def _frota_salvar_manual(placa, valor, ref):
-    """Upsert de (placa, ref) no Supabase — chave composta."""
+    """Upsert de (placa, mes_ref) em frota_fipe_historico com fonte='manual'."""
     sb = _supabase()
     if sb is None:
         return
-    sb.table("fipe_manual").upsert({
+    sb.table("frota_fipe_historico").upsert({
         "placa":         placa,
-        "ref":           ref,
+        "mes_ref":       ref,
         "valor":         valor,
+        "fonte":         "manual",
         "atualizado_em": datetime.now(_BRT).strftime("%Y-%m-%d"),
-    }).execute()
+    }, on_conflict="placa,mes_ref").execute()
 
 
 @app.route("/insights/frota")
@@ -2669,7 +2659,7 @@ def api_frota_manual():
 
 @app.route("/api/frota/manual/batch", methods=["POST"])
 def api_frota_manual_batch():
-    """Upsert em bulk por combinação (cod_fipe + ano_modelo) no Supabase."""
+    """Upsert em bulk por combinação (cod_fipe + ano_modelo) em frota_fipe_historico."""
     body     = request.get_json(silent=True) or {}
     entradas = body.get("entradas") or []
     if not entradas:
@@ -2679,7 +2669,10 @@ def api_frota_manual_batch():
     if sb is None:
         return jsonify({"ok": False, "erro": "Supabase não configurado"}), 500
 
-    veiculos, _, _ = _ler_frota_dados()
+    res_v = sb.table("frota_veiculos").select(
+        "placa, cod_fipe, ano_modelo"
+    ).eq("ativo", True).execute()
+    veiculos = res_v.data or []
     agora = datetime.now(_BRT).strftime("%Y-%m-%d")
 
     rows = []
@@ -2693,10 +2686,16 @@ def api_frota_manual_batch():
             continue
         for v in veiculos:
             if v["cod_fipe"] == cod and ((not ano_mod) or v["ano_modelo"] == ano_mod):
-                rows.append({"placa": v["placa"], "valor": valor, "ref": ref, "atualizado_em": agora})
+                rows.append({
+                    "placa":         v["placa"],
+                    "mes_ref":       ref,
+                    "valor":         valor,
+                    "fonte":         "manual",
+                    "atualizado_em": agora,
+                })
 
     if rows:
-        sb.table("fipe_manual").upsert(rows).execute()
+        sb.table("frota_fipe_historico").upsert(rows, on_conflict="placa,mes_ref").execute()
 
     return jsonify({"ok": True, "atualizados": len(rows)})
 
