@@ -2,8 +2,9 @@
 Baixa e substitui planilhas do sistema Ativuz automaticamente.
 
 Uso:
-  python atualizar_planilha.py --setup     # primeira vez: abre o browser para você fazer login
+  python atualizar_planilha.py --setup     # primeira vez: abre o browser para login
   python atualizar_planilha.py             # execução normal (headless), usada pelo agendador
+  python atualizar_planilha.py --visivel   # roda visível (para depurar sem salvar sessão)
 
 Requisitos:
   pip install playwright
@@ -12,106 +13,179 @@ Requisitos:
 
 import asyncio
 import argparse
+import calendar
 import shutil
 import sys
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Page
 
-# ─── CONFIGURAÇÃO ────────────────────────────────────────────────────────────
+# ─── CAMINHOS ────────────────────────────────────────────────────────────────
 
-# Pasta onde o Playwright salva cookies/sessão (não apagar entre execuções)
-PERFIL_DIR = Path.home() / ".playwright_ativuz"
+ROOT        = Path(__file__).parent.parent
+PERFIL_DIR  = Path.home() / ".playwright_ativuz"
 
-# Lista de planilhas para baixar.
-# Cada item: (url_da_pagina, seletor_do_botao_download, caminho_destino)
-PLANILHAS = [
-    {
-        "nome": "veiculos.xlsx",
-        "url": "PREENCHER_URL_AQUI",
-        "seletor": "PREENCHER_SELETOR_AQUI",  # ex: "button:has-text('Exportar')"
-        "destino": Path(__file__).parent.parent / "data" / "veiculos.xlsx",
-    },
-    # Descomente e preencha se precisar baixar CONTAS-A-RECEBER também:
-    # {
-    #     "nome": "CONTAS-A-RECEBER.xlsx",
-    #     "url": "PREENCHER_URL_AQUI",
-    #     "seletor": "PREENCHER_SELETOR_AQUI",
-    #     "destino": Path(__file__).parent.parent / "docx_templates" / "CONTAS-A-RECEBER.xlsx",
-    # },
-]
+DEST_CONTAS = ROOT / "docx_templates" / "CONTAS-A-RECEBER.xlsx"
 
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 def log(msg: str):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+    print(f"[{datetime.now().strftime('%d/%m %H:%M:%S')}] {msg}", flush=True)
 
 
-async def baixar(planilha: dict, page) -> bool:
-    nome    = planilha["nome"]
-    url     = planilha["url"]
-    seletor = planilha["seletor"]
-    destino = Path(planilha["destino"])
+def ultimo_dia_mes() -> str:
+    """Retorna o último dia do mês atual no formato dd/mm/aaaa."""
+    hoje  = date.today()
+    ultimo = calendar.monthrange(hoje.year, hoje.month)[1]
+    return f"{ultimo:02d}/{hoje.month:02d}/{hoje.year}"
 
-    log(f"Acessando página para {nome}...")
-    await page.goto(url, wait_until="networkidle", timeout=30_000)
 
-    log(f"Aguardando botão de download ({seletor})...")
-    await page.wait_for_selector(seletor, timeout=15_000)
+async def preencher_data(page: Page, rotulo: str, valor: str):
+    """Preenche um campo de data por label ou placeholder."""
+    try:
+        campo = page.get_by_label(rotulo, exact=False)
+        await campo.first.click()
+        await campo.first.triple_click()
+        await campo.first.fill(valor)
+    except Exception:
+        campo = page.locator(f"input[placeholder*='{rotulo}']")
+        await campo.first.click()
+        await campo.first.triple_click()
+        await campo.first.fill(valor)
 
-    backup = destino.with_suffix(".xlsx.bak")
-    if destino.exists():
-        shutil.copy2(destino, backup)
-        log(f"Backup criado: {backup.name}")
 
-    log(f"Iniciando download de {nome}...")
-    async with page.expect_download(timeout=60_000) as dl_info:
-        await page.click(seletor)
+async def baixar_contas_a_receber(page: Page) -> bool:
+    """
+    Relatório: https://app.bluefleet.com.br/analytics/report/72
+    Campos:
+      - Data Inicial: 01/08/2025
+      - Data Final:   último dia do mês atual
+      - Conta de Recebimento: 1.0 [OFICIAL] SICREDI | BANCO GESTOR
+      - Demais campos: em branco
+    """
+    nome = "CONTAS-A-RECEBER.xlsx"
+    url  = "https://app.bluefleet.com.br/analytics/report/72?showingAllReports=True"
 
-    download = await dl_info.value
-    if download.failure():
-        log(f"ERRO no download de {nome}: {download.failure()}")
+    log(f"[{nome}] Acessando {url} ...")
+    await page.goto(url, wait_until="networkidle", timeout=40_000)
+    await page.wait_for_timeout(1_500)
+
+    # ── Data Inicial ──────────────────────────────────────────────────────────
+    log(f"[{nome}] Preenchendo Data Inicial: 01/08/2025")
+    await preencher_data(page, "Data Inicial", "01/08/2025")
+    await page.wait_for_timeout(500)
+
+    # ── Data Final ────────────────────────────────────────────────────────────
+    data_final = ultimo_dia_mes()
+    log(f"[{nome}] Preenchendo Data Final: {data_final}")
+    await preencher_data(page, "Data Final", data_final)
+    await page.wait_for_timeout(500)
+
+    # ── Conta de Recebimento ──────────────────────────────────────────────────
+    log(f"[{nome}] Selecionando Conta de Recebimento...")
+    conta_texto = "1.0 [OFICIAL] SICREDI | BANCO GESTOR"
+    try:
+        # Tenta select nativo
+        sel = page.locator("select").filter(has_text="SICREDI").first
+        if await sel.count() == 0:
+            sel = page.get_by_label("Conta de Recebimento", exact=False).first
+        await sel.select_option(label=conta_texto)
+    except Exception:
+        # Tenta dropdown customizado (clica e escolhe o item)
+        try:
+            dropdown = page.get_by_label("Conta de Recebimento", exact=False).first
+            await dropdown.click()
+            await page.wait_for_timeout(600)
+            await page.get_by_text(conta_texto, exact=False).first.click()
+        except Exception as ex:
+            log(f"[{nome}] AVISO: não consegui selecionar a conta automaticamente ({ex}). Verifique o seletor.")
+
+    await page.wait_for_timeout(800)
+
+    # ── Gerar Relatório ───────────────────────────────────────────────────────
+    log(f"[{nome}] Clicando em Gerar Relatório...")
+    await page.get_by_role("button", name="Gerar Relatório", exact=False).first.click()
+    await page.wait_for_load_state("networkidle", timeout=30_000)
+    await page.wait_for_timeout(2_000)
+
+    # ── Exportar ──────────────────────────────────────────────────────────────
+    log(f"[{nome}] Clicando em Exportar...")
+    await page.get_by_role("button", name="Exportar", exact=False).first.click()
+    await page.wait_for_timeout(1_000)
+
+    # ── Exportar Excel ────────────────────────────────────────────────────────
+    log(f"[{nome}] Clicando em Exportar Excel...")
+    backup = DEST_CONTAS.with_suffix(".xlsx.bak")
+    if DEST_CONTAS.exists():
+        shutil.copy2(DEST_CONTAS, backup)
+
+    try:
+        async with page.expect_download(timeout=60_000) as dl_info:
+            await page.get_by_text("Exportar Excel", exact=False).first.click()
+
+        download = await dl_info.value
+        if download.failure():
+            log(f"[{nome}] ERRO no download: {download.failure()}")
+            if backup.exists():
+                shutil.copy2(backup, DEST_CONTAS)
+            return False
+
+        await download.save_as(str(DEST_CONTAS))
         if backup.exists():
-            shutil.copy2(backup, destino)
+            backup.unlink()
+        log(f"[{nome}] Salvo em: {DEST_CONTAS}")
+        return True
+
+    except Exception as ex:
+        log(f"[{nome}] ERRO ao capturar download: {ex}")
+        if backup.exists():
+            shutil.copy2(backup, DEST_CONTAS)
         return False
 
-    await download.save_as(str(destino))
-    if backup.exists():
-        backup.unlink()
 
-    log(f"OK — {nome} atualizado em {destino}")
-    return True
+# ─── LISTA DE ROTINAS ─────────────────────────────────────────────────────────
+# Adicione mais funções acima e liste-as aqui.
+ROTINAS = [
+    baixar_contas_a_receber,
+    # baixar_veiculos,  # adicionar depois
+]
 
 
-async def main(setup: bool):
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
+
+async def main(setup: bool, visivel: bool):
     PERFIL_DIR.mkdir(parents=True, exist_ok=True)
 
     async with async_playwright() as pw:
         ctx = await pw.chromium.launch_persistent_context(
             str(PERFIL_DIR),
-            headless=not setup,          # visível no --setup, invisível no agendador
+            headless=(not setup and not visivel),
             accept_downloads=True,
-            viewport={"width": 1280, "height": 900},
+            viewport={"width": 1440, "height": 900},
         )
 
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
 
         if setup:
             log("Modo setup — faça login no navegador que abriu.")
-            log("Quando terminar o login, pressione ENTER aqui para salvar a sessão.")
+            log("Quando terminar, pressione ENTER aqui para salvar a sessão e fechar.")
             await asyncio.get_event_loop().run_in_executor(None, input)
             await ctx.storage_state(path=str(PERFIL_DIR / "state.json"))
-            log("Sessão salva. Feche o browser e rode sem --setup para testar.")
+            log("Sessão salva. Rode sem --setup para testar.")
             await ctx.close()
             return
 
         erros = []
-        for planilha in PLANILHAS:
-            ok = await baixar(planilha, page)
-            if not ok:
-                erros.append(planilha["nome"])
+        for rotina in ROTINAS:
+            try:
+                ok = await rotina(page)
+                if not ok:
+                    erros.append(rotina.__name__)
+            except Exception as ex:
+                log(f"ERRO inesperado em {rotina.__name__}: {ex}")
+                erros.append(rotina.__name__)
 
         await ctx.close()
 
@@ -124,7 +198,7 @@ async def main(setup: bool):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--setup", action="store_true",
-                        help="Abre o browser para fazer login e salvar a sessão")
+    parser.add_argument("--setup",   action="store_true", help="Abre browser para login")
+    parser.add_argument("--visivel", action="store_true", help="Roda com browser visível (debug)")
     args = parser.parse_args()
-    asyncio.run(main(args.setup))
+    asyncio.run(main(args.setup, args.visivel))
