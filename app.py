@@ -2097,24 +2097,25 @@ def exportar_inadimplencia():
     if ws1["B3"].value:
         ws1["B3"].value = f"ATIVUZ VEÍCULOS  —  Gerado em: {hoje_str}"
 
-    # Fórmulas dos KPIs — células e colunas do modelo atualizado
-    # Dados: linha 9 em diante | B=Cliente C=Etapa D=Venc E=Dias F=Valor G=Juros H=Total I:N=Ação
+    # Fórmulas dos KPIs — modelo atual (60x9)
+    # Colunas: B=Cliente C=Etapa D=Venc E=Dias F=Valor G=Juros H=Total I=Ação
+    # KPIs: B5=contagem  C5=valor original  E5=juros  H5=total
     D_INI = 9
     D_FIM = max(D_INI + len(registros) - 1, D_INI)
-    _safe_set(ws1["C5"], value=f"=COUNTA(B{D_INI}:B{D_FIM})")
-    _safe_set(ws1["E5"], value=f"=SUM(F{D_INI}:F{D_FIM})")   # valor original
-    _safe_set(ws1["H5"], value=f"=SUM(G{D_INI}:G{D_FIM})")   # juros
-    _safe_set(ws1["K5"], value=f"=SUM(H{D_INI}:H{D_FIM})")   # total atualizado
+    _safe_set(ws1["B5"], value=f"=COUNTA(C{D_INI}:C{D_FIM})")
+    _safe_set(ws1["C5"], value=f"=SUM(F{D_INI}:F{D_FIM})")   # valor original (col F)
+    _safe_set(ws1["E5"], value=f"=SUM(G{D_INI}:G{D_FIM})")   # juros (col G)
+    _safe_set(ws1["H5"], value=f"=SUM(H{D_INI}:H{D_FIM})")   # total atualizado (col H)
 
-    # Linha de totais (row 58 no modelo)
+    # Linha de totais (row 58)
     _safe_set(ws1["F58"], value=f"=SUM(F{D_INI}:F{D_FIM})")
     _safe_set(ws1["G58"], value=f"=SUM(G{D_INI}:G{D_FIM})")
     _safe_set(ws1["H58"], value=f"=SUM(H{D_INI}:H{D_FIM})")
 
-    # Desmescla e limpa área de dados (inclui merges I:N por linha)
-    _unmerge_area(ws1, D_INI, 57, 2, 14)
+    # Desmescla e limpa área de dados
+    _unmerge_area(ws1, D_INI, 57, 2, 9)
     for r in range(D_INI, 58):
-        for c in range(2, 15):
+        for c in range(2, 10):
             _safe_set(ws1.cell(row=r, column=c), value=None)
 
     # Escreve dados
