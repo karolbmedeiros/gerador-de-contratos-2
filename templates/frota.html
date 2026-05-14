@@ -429,17 +429,11 @@
       <thead>
         <tr>
           <th data-col="placa">Placa</th>
-          <th data-col="montadora">Montadora</th>
           <th data-col="modelo">Modelo</th>
-          <th data-col="ano_fab">Ano Fab.</th>
-          <th data-col="ano_mod">Ano Mod.</th>
-          <th data-col="fipe">Cód. FIPE</th>
           <th data-col="proprietario">Proprietário</th>
           <th data-col="locatario">Locatário</th>
-          <th data-col="tipo_contrato">Tipo Contrato</th>
           <th data-col="valor_semanal">Valor Semanal</th>
           <th data-col="taxa_semanal">Taxa Adm. Sem.</th>
-          <th data-col="km">KM Confirmado</th>
           <th data-col="inicio">Início Contrato</th>
           <th data-col="termino">Término Contrato</th>
           <th data-col="situacao">Situação</th>
@@ -448,7 +442,7 @@
       <tbody id="adm-tbody">
         {% for prop, veics in grupos.items() %}
         <tr>
-          <td colspan="15" style="padding:0;">
+          <td colspan="9" style="padding:0;">
             <div class="adm-group-hd" style="padding:10px 12px 6px;">
               <span class="adm-group-hd-label">{{ prop }}</span>
               <div class="adm-group-hd-line"></div>
@@ -459,21 +453,15 @@
         {% for v in veics %}
         <tr data-prop="{{ v.proprietario }}" data-inicio="{{ v.inicio }}">
           <td style="font-weight:700;font-family:monospace;letter-spacing:.03em;">{{ v.placa }}</td>
-          <td class="td-left">{{ v.montadora }}</td>
           <td class="td-left" style="font-weight:600;color:var(--ink);">{{ v.modelo }}</td>
-          <td>{{ v.ano_fab }}</td>
-          <td>{{ v.ano_mod }}</td>
-          <td style="font-family:monospace;">{{ v.fipe }}</td>
           <td class="td-left" style="font-size:11px;">{{ v.proprietario }}</td>
           <td class="td-left" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;" title="{{ v.locatario }}">{{ v.locatario }}</td>
-          <td style="font-size:11px;">{{ v.tipo_contrato or '—' }}</td>
           <td style="font-weight:600;color:var(--ink);">{% if v.valor_semanal %}R$ {{ v.valor_semanal | brl }}{% else %}—{% endif %}</td>
           <td style="font-weight:600;color:#22a06b;">{% if v.taxa_semanal %}R$ {{ v.taxa_semanal | brl }}{% else %}—{% endif %}</td>
-          <td>{{ v.km or '—' }}</td>
           <td>{{ v.inicio or '—' }}</td>
           <td>{{ v.termino or '—' }}</td>
           <td>
-            {% if 'locado' in v.situacao | lower %}
+            {% if v.situacao and 'locado' in v.situacao | lower %}
               <span class="adm-badge-locado">Locado</span>
             {% else %}
               <span style="font-size:11px;color:var(--ink-3);">{{ v.situacao or '—' }}</span>
