@@ -2735,12 +2735,15 @@ _SOB_ADM_FIPE_VALORES = {
     "005540-9": 800.0,
     "095010-6": 1200.0,
 }
+_SOB_ADM_PLACA_VALORES = {
+    "QGO-2H58": 650.0,
+}
 _SOB_ADM_TAXA = 0.15
-_SOB_ADM_EXCLUIR = {"ATIVUZ VEÍCULOS", "AZ EMPREENDIMENTOS"}
+_SOB_ADM_PLACA_EXTRA = "QGO-2H58"
 
 
 def _ler_sob_administracao():
-    """Lê veiculos.xlsx aba Relatório, filtra unidades não-Ativuz/AZ."""
+    """Lê veiculos.xlsx aba Relatório: Proprietário=TERCEIRO ou Placa=QGO-2H58."""
     import openpyxl
     xlsx_path = _veiculos_xlsx_path()
     if not xlsx_path.exists():
@@ -2763,19 +2766,20 @@ def _ler_sob_administracao():
             nk = _norm(kw)
             return next((i for i, h in enumerate(header) if nk in _norm(str(h or ""))), None)
 
-        i_placa  = _ci("placa")
-        i_mont   = _ci("montadora")
-        i_mod    = _ci("modelo")
-        i_fipe   = _ci("codigo fipe") or _ci("fipe")
-        i_km     = _ci("km confirmado")
-        i_prop   = _ci("unidade do ve")
-        i_loc    = _ci("razao social cliente") or _ci("razao social")
-        i_tipo   = _ci("tipo de contrato")
-        i_ini    = _ci("inicio de contrato")
-        i_fim    = _ci("termino do contrato")
-        i_sit    = _ci("situacao contrato") or _ci("situacao")
-        i_anofab = _ci("ano de fabricacao") or _ci("ano de fab")
-        i_anomod = _ci("ano modelo")
+        i_placa    = _ci("placa")
+        i_mont     = _ci("montadora")
+        i_mod      = _ci("modelo")
+        i_fipe     = _ci("codigo fipe") or _ci("fipe")
+        i_km       = _ci("km confirmado")
+        i_prop_own = _ci("proprietario")
+        i_prop     = _ci("unidade do ve")
+        i_loc      = _ci("razao social cliente") or _ci("razao social")
+        i_tipo     = _ci("tipo de contrato")
+        i_ini      = _ci("inicio de contrato")
+        i_fim      = _ci("termino do contrato")
+        i_sit      = _ci("situacao contrato") or _ci("situacao")
+        i_anofab   = _ci("ano de fabricacao") or _ci("ano de fab")
+        i_anomod   = _ci("ano modelo")
 
         def _v(row, i):
             if i is None or i >= len(row): return ""
@@ -2787,18 +2791,18 @@ def _ler_sob_administracao():
         hoje = date.today()
         veiculos = []
         for row in rows[5:]:
-            unid = _v(row, i_prop)
-            if not unid:
-                continue
-            unid_norm = _norm(unid)
-            if any(_norm(exc) in unid_norm for exc in _SOB_ADM_EXCLUIR):
-                continue
-
-            placa   = _v(row, i_placa)
+            placa = _v(row, i_placa)
             if not placa:
                 continue
+            proprio = _v(row, i_prop_own)
+            placa_norm = placa.upper().replace("-", "").replace(" ", "")
+            extra_norm = _SOB_ADM_PLACA_EXTRA.upper().replace("-", "").replace(" ", "")
+            if _norm("terceiro") not in _norm(proprio) and placa_norm != extra_norm:
+                continue
+
+            unid    = _v(row, i_prop)
             fipe    = _v(row, i_fipe)
-            valor_s = _SOB_ADM_FIPE_VALORES.get(fipe)
+            valor_s = _SOB_ADM_FIPE_VALORES.get(fipe) or _SOB_ADM_PLACA_VALORES.get(placa.upper())
             taxa_s  = round(valor_s * _SOB_ADM_TAXA, 2) if valor_s else None
 
             ini_raw = row[i_ini] if i_ini is not None and i_ini < len(row) else None
@@ -2824,6 +2828,7 @@ def _ler_sob_administracao():
                 "ano_fab":      _v(row, i_anofab),
                 "ano_mod":      _v(row, i_anomod),
                 "proprietario": unid,
+                "proprio_legal":proprio,
                 "locatario":    _v(row, i_loc),
                 "tipo_contrato":_v(row, i_tipo),
                 "km":           _v(row, i_km),
