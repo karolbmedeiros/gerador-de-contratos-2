@@ -445,11 +445,26 @@ def dashboard():
     frota_valor_fipe = None
     try:
         veiculos_frota, _, _ = _ler_frota_dados()
-        curr_key, _, _, _ = _frota_mes_atual()
+        curr_key, curr_label, prev_key, _ = _frota_mes_atual()
+        manual_frota = _frota_ler_manual()  # {placa: {mes_ref_label: {valor, ...}}}
         frota_total = len(veiculos_frota)
-        vals = [v.get(curr_key) for v in veiculos_frota if v.get(curr_key)]
-        if vals:
-            frota_valor_fipe = sum(vals)
+        total = 0.0
+        any_val = False
+        for v in veiculos_frota:
+            placa = v.get("placa", "")
+            meses_manual = manual_frota.get(placa) or {}
+            mc = meses_manual.get(curr_label)
+            if mc and mc.get("valor") is not None:
+                total += float(mc["valor"])
+                any_val = True
+            elif v.get(curr_key) is not None:
+                total += float(v[curr_key])
+                any_val = True
+            elif v.get(prev_key) is not None:
+                total += float(v[prev_key])
+                any_val = True
+        if any_val:
+            frota_valor_fipe = total
     except Exception:
         pass
 
