@@ -169,8 +169,10 @@ async def main(setup: bool, visivel: bool):
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
 
         if setup:
-            log("Modo setup — faça login no navegador que abriu.")
-            log("Quando terminar, pressione ENTER aqui para salvar a sessão e fechar.")
+            log("Modo setup — abrindo Bluefleet para login...")
+            await page.goto("https://app.bluefleet.com.br", wait_until="domcontentloaded", timeout=30_000)
+            log("Faça login no navegador que abriu.")
+            log("Quando estiver logado, pressione ENTER aqui para salvar a sessão e fechar.")
             await asyncio.get_event_loop().run_in_executor(None, input)
             await ctx.storage_state(path=str(PERFIL_DIR / "state.json"))
             log("Sessão salva. Rode sem --setup para testar.")
