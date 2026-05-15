@@ -831,25 +831,27 @@ CONTRATO_LOCACAO_TEMPLATE = DOCX_TEMPLATES / "CONTRATO DE LOCAÇÃO EDITADO.docx
 
 
 def _salvar_contrato_locacao(insert: dict, caminho_docx: str, storage_path: str, edit_id: str = None):
-    """INSERT no Supabase (main thread) + upload do arquivo (background)."""
+    """INSERT no Supabase (main thread) + upload do arquivo (background).
+    Retorna None em sucesso ou str com mensagem de erro."""
     import threading, traceback as _tb
     sb = _supabase()
     if not sb:
-        return
+        return "Supabase não configurado."
     try:
         sb.table("contratos_locacao").insert(insert).execute()
-    except Exception:
+    except Exception as e:
         _tb.print_exc()
+        return str(e)
+
+    # Só remove o registro antigo APÓS o INSERT ter sido bem-sucedido
+    _old_path = None
     if edit_id:
         try:
             old = sb.table("contratos_locacao").select("arquivo_path").eq("id", edit_id).single().execute()
             _old_path = (old.data or {}).get("arquivo_path")
             sb.table("contratos_locacao").delete().eq("id", edit_id).execute()
         except Exception:
-            _old_path = None
             _tb.print_exc()
-    else:
-        _old_path = None
 
     _docx_bytes = Path(caminho_docx).read_bytes()
     _sp = storage_path
@@ -877,6 +879,7 @@ def _salvar_contrato_locacao(insert: dict, caminho_docx: str, storage_path: str,
             _tb.print_exc()
 
     threading.Thread(target=_bg, daemon=True).start()
+    return None
 
 _MESES_PT = ["janeiro","fevereiro","março","abril","maio","junho",
              "julho","agosto","setembro","outubro","novembro","dezembro"]
@@ -928,7 +931,9 @@ def gerar_contrato_locacao_route():
 
     _storage_path = f"contratos/{nome_docx}"
     _insert = {**dados, "arquivo_path": _storage_path}
-    _salvar_contrato_locacao(_insert, caminho_saida, _storage_path, edit_id=edit_id or None)
+    _err = _salvar_contrato_locacao(_insert, caminho_saida, _storage_path, edit_id=edit_id or None)
+    if _err:
+        return jsonify({"error": f"Erro ao salvar no banco de dados: {_err}"}), 500
 
     return jsonify({"redirect_url": url_for("historico_contratos")})
 
