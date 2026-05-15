@@ -931,7 +931,9 @@ def gerar_contrato_locacao_route():
 
     _storage_path = f"contratos/{nome_docx}"
     _insert = {**dados, "arquivo_path": _storage_path}
-    _insert.pop("caucao_extenso", None)  # campo calculado, não existe na tabela
+    # Campos que não existem na tabela contratos_locacao do Supabase
+    for _campo_extra in ("caucao_extenso", "caucao_valor"):
+        _insert.pop(_campo_extra, None)
     _err = _salvar_contrato_locacao(_insert, caminho_saida, _storage_path, edit_id=edit_id or None)
     if _err:
         return jsonify({"error": f"Erro ao salvar no banco de dados: {_err}"}), 500
