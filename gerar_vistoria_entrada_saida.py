@@ -34,7 +34,22 @@ Como usar (a partir do app.py):
         "sintomas_entrada":     "",
         "responsavel_entrada":  "Ana Karolina",
         "acessorios_entrada":   {"acc_calotas": "S", "acc_buzina": "S", ...},
-        "fotos_entrada":        ["/caminho/foto1.jpg", ...],
+
+        # ── Fotos: dicionário ângulo → caminho  ─────────────────────────
+        # As chaves seguem ANGULOS_FOTO (ver abaixo). Envie apenas os
+        # ângulos que o operador fotografou — os ausentes ficam em branco.
+        # Formato alternativo legado: lista simples de caminhos, ainda
+        # aceita e é convertida automaticamente para dict sem legenda.
+        "fotos_entrada": {
+            "frontal":          "/path/frente.jpg",
+            "traseira":         "/path/traseira.jpg",
+            "lateral_dir":      "/path/lat_dir.jpg",
+            "lateral_esq":      "/path/lat_esq.jpg",
+            "painel":           "/path/painel.jpg",
+            "hodometro":        "/path/hodometro.jpg",
+            "estepe":           "/path/estepe.jpg",
+            "teto":             "/path/teto.jpg",
+        },
 
         # ── Bloco de DEVOLUÇÃO (pode vir vazio na 1ª geração) ───────────
         "data_saida":           "20/05/2026 11:00",
@@ -44,7 +59,7 @@ Como usar (a partir do app.py):
         "sintomas_saida":       "AC fazendo barulho ao ligar.",
         "responsavel_saida":    "Ana Karolina",
         "acessorios_saida":     {...},
-        "fotos_saida":          [...],
+        "fotos_saida":          {...},
     }
 
     resumo = gerar_vistoria_entrada_saida(
@@ -68,16 +83,57 @@ Status de cada acessório (coluna "Status / Observação"):
 - N→A (surgiu avaria)→ vermelho "Surgiu avaria"
 - N→S, A→S           → verde   "Reposto/recuperado"
 - só entrada preench → cinza-claro "Aguardando devolução"
+
+Fotos — padronização por ângulo:
+- Cada foto é inserida em um slot fixo de FOTO_LARGURA_CM × FOTO_ALTURA_CM.
+- A imagem é recortada/redimensionada pelo script para caber exatamente
+  nesse slot, preservando proporção (letter-box com fundo branco).
+- As fotos são exibidas em grade 2 colunas, com legenda embaixo.
+- Slots sem foto recebem um retângulo cinza "— sem foto —".
+- A ordem dos ângulos segue ANGULOS_FOTO (pode ser personalizada).
 """
 from __future__ import annotations
 
+import io
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+
+# ── Padronização de fotos ────────────────────────────────────────────────────
+# Dimensões do slot de cada foto no documento (em cm).
+# Todas as fotos são redimensionadas para caber exatamente nesse espaço,
+# com letter-box branco caso a proporção não bata.
+FOTO_LARGURA_CM: float = 8.0   # largura do slot no DOCX
+FOTO_ALTURA_CM:  float = 6.0   # altura do slot no DOCX  (proporção 4:3)
+
+# Número de colunas na grade de fotos.
+FOTO_COLUNAS: int = 2
+
+# Ângulos reconhecidos e suas legendas, na ordem de exibição.
+# Adicione/remova entradas conforme o fluxo do seu app.
+ANGULOS_FOTO: list[tuple[str, str]] = [
+    ("frontal",       "Frontal"),
+    ("traseira",      "Traseira"),
+    ("lateral_dir",   "Lateral Direita"),
+    ("lateral_esq",   "Lateral Esquerda"),
+    ("painel",        "Painel / Interior"),
+    ("hodometro",     "Hodômetro"),
+    ("estepe",        "Estepe"),
+    ("teto",          "Teto / Vidro"),
+    ("motor",         "Motor"),
+    ("mala",          "Porta-malas"),
+    ("dano_1",        "Dano 1"),
+    ("dano_2",        "Dano 2"),
+]
+
+# Cor de fundo do slot vazio (cinza claro) — RGB
+_CINZA_SLOT = (220, 220, 220)
 
 
 # ── Lista padrão dos 30 acessórios (na mesma ordem do template antigo) ──────
@@ -142,11 +198,6 @@ def _calcular_status_acessorio(entrada: str, saida: str) -> tuple[str, RGBColor]
 def _set_celula(cell, texto: str, *, cor: Optional[RGBColor] = None,
                 bold: Optional[bool] = None, size: Optional[int] = None,
                 align: Optional[str] = None):
-    """
-    Reescreve o conteúdo da célula preservando o parágrafo (para manter
-    fundo, bordas, alinhamento). Mantém só o primeiro parágrafo.
-    """
-    # Limpa todos os parágrafos, mantém o primeiro vazio
     paragraphs = cell.paragraphs
     for p in paragraphs[1:]:
         p._element.getparent().remove(p._element)
@@ -158,7 +209,6 @@ def _set_celula(cell, texto: str, *, cor: Optional[RGBColor] = None,
             'right':  WD_ALIGN_PARAGRAPH.RIGHT,
         }.get(align, p.alignment)
 
-    # Remove runs antigos
     for r in list(p.runs):
         r._element.getparent().remove(r._element)
 
@@ -173,18 +223,12 @@ def _set_celula(cell, texto: str, *, cor: Optional[RGBColor] = None,
 
 def _substituir_placeholder_no_celula(cell, mapa: dict, *, cor_padrao=COR_CINZA,
                                        size_padrao=10):
-    """
-    Se a célula contém exatamente um placeholder do `mapa`,
-    substitui pelo valor com cor/estilo apropriado.
-    Suporta vários placeholders na mesma célula (linha de assinatura, ex.).
-    """
     texto_completo = cell.text
     placeholders_encontrados = [(ph, val, cor, sz) for ph, (val, cor, sz) in mapa.items()
                                  if f"[{ph}]" in texto_completo]
     if not placeholders_encontrados:
         return
 
-    # Caso especial: célula só contém um placeholder isolado
     if len(placeholders_encontrados) == 1:
         ph, val, cor, sz = placeholders_encontrados[0]
         bare = texto_completo.strip() == f"[{ph}]"
@@ -193,20 +237,15 @@ def _substituir_placeholder_no_celula(cell, mapa: dict, *, cor_padrao=COR_CINZA,
                         cor=cor, bold=True, size=sz)
             return
 
-    # Caso geral: várias substituições no texto (mantém estrutura original)
     novo_texto = texto_completo
     for ph, val, _cor, _sz in placeholders_encontrados:
         novo_texto = novo_texto.replace(f"[{ph}]", val if val else PLACEHOLDER_VAZIO)
-    # Preserva quebras de linha do template
     paragraphs = cell.paragraphs
     if len(paragraphs) == 1:
-        # Só um parágrafo — refaz com o novo texto
         p = paragraphs[0]
-        # Tenta manter alinhamento atual
         antigo_align = p.alignment
         for r in list(p.runs):
             r._element.getparent().remove(r._element)
-        # Quebra em linhas, mantendo as quebras como linhas separadas
         linhas = novo_texto.split('\n')
         for i, linha in enumerate(linhas):
             run = p.add_run(linha)
@@ -217,7 +256,6 @@ def _substituir_placeholder_no_celula(cell, mapa: dict, *, cor_padrao=COR_CINZA,
         if antigo_align is not None:
             p.alignment = antigo_align
     else:
-        # Múltiplos parágrafos — substitui texto de cada um sem refazer estrutura
         partes = novo_texto.split('\n')
         for i, p in enumerate(paragraphs):
             txt = partes[i] if i < len(partes) else ""
@@ -247,12 +285,103 @@ def _substituir_em_paragrafo(par, mapa: dict, *, cor=COR_CINZA, size=10):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Inserção de fotos
+# Normalização de imagens — Pillow (opcional mas recomendado)
 # ─────────────────────────────────────────────────────────────────────────────
-def _inserir_fotos_no_marcador(doc: Document, marcador: str, fotos: list[str],
-                                largura_cm: float = 7.5):
-    """Procura um parágrafo cujo texto seja `marcador` e o substitui por imagens."""
-    fotos = [f for f in (fotos or []) if f and Path(f).exists()]
+def _normalizar_foto(caminho: str) -> io.BytesIO:
+    """
+    Abre a imagem, corrige orientação EXIF, redimensiona para caber no slot
+    FOTO_LARGURA_CM × FOTO_ALTURA_CM (em 96 dpi) com letter-box branco, e
+    devolve um BytesIO com o JPEG resultante.
+
+    Se Pillow não estiver instalado, devolve a imagem original sem alterar.
+    """
+    try:
+        from PIL import Image, ImageOps
+    except ImportError:
+        buf = io.BytesIO(Path(caminho).read_bytes())
+        buf.seek(0)
+        return buf
+
+    DPI = 96
+    alvo_w = int(round(FOTO_LARGURA_CM / 2.54 * DPI))
+    alvo_h = int(round(FOTO_ALTURA_CM  / 2.54 * DPI))
+
+    img = Image.open(caminho)
+    img = ImageOps.exif_transpose(img)
+    img = img.convert("RGB")
+
+    img.thumbnail((alvo_w, alvo_h), Image.LANCZOS)
+
+    canvas = Image.new("RGB", (alvo_w, alvo_h), (255, 255, 255))
+    off_x = (alvo_w - img.width)  // 2
+    off_y = (alvo_h - img.height) // 2
+    canvas.paste(img, (off_x, off_y))
+
+    buf = io.BytesIO()
+    canvas.save(buf, format="JPEG", quality=85, optimize=True)
+    buf.seek(0)
+    return buf
+
+
+def _slot_vazio() -> Optional[io.BytesIO]:
+    """
+    Gera um retângulo cinza claro para representar um ângulo sem foto.
+    Requer Pillow; devolve None se não disponível.
+    """
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
+        return None
+
+    DPI = 96
+    w = int(round(FOTO_LARGURA_CM / 2.54 * DPI))
+    h = int(round(FOTO_ALTURA_CM  / 2.54 * DPI))
+
+    img = Image.new("RGB", (w, h), _CINZA_SLOT)
+    draw = ImageDraw.Draw(img)
+    texto = "— sem foto —"
+    bbox = draw.textbbox((0, 0), texto)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    draw.text(((w - tw) // 2, (h - th) // 2), texto, fill=(150, 150, 150))
+
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    buf.seek(0)
+    return buf
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Inserção de fotos padronizadas em grade
+# ─────────────────────────────────────────────────────────────────────────────
+def _normalizar_entrada_fotos(fotos) -> dict[str, str]:
+    """
+    Aceita dois formatos de entrada:
+    • dict  {"frontal": "/path/a.jpg", ...}  → filtra caminhos válidos
+    • list  ["/path/a.jpg", ...]             → mapeia na ordem de ANGULOS_FOTO
+    Retorna sempre {angulo: caminho}.
+    """
+    if not fotos:
+        return {}
+    if isinstance(fotos, dict):
+        return {k: v for k, v in fotos.items() if v and Path(v).exists()}
+    chaves = [k for k, _ in ANGULOS_FOTO]
+    return {
+        (chaves[i] if i < len(chaves) else f"extra_{i}"): caminho
+        for i, caminho in enumerate(fotos)
+        if caminho and Path(caminho).exists()
+    }
+
+
+def _inserir_fotos_no_marcador(doc: Document, marcador: str, fotos) -> None:
+    """
+    Localiza o parágrafo `marcador` e o substitui por uma grade de fotos
+    padronizadas (FOTO_COLUNAS colunas, FOTO_LARGURA_CM × FOTO_ALTURA_CM por slot).
+
+    Cada slot exibe a foto normalizada (letter-box branco) e a legenda do ângulo.
+    Slots sem foto recebem um retângulo cinza "— sem foto —".
+    """
+    fotos_dict = _normalizar_entrada_fotos(fotos)
+
     alvo = None
     for p in doc.paragraphs:
         if p.text.strip() == marcador:
@@ -261,58 +390,79 @@ def _inserir_fotos_no_marcador(doc: Document, marcador: str, fotos: list[str],
     if alvo is None:
         return
 
-    # Limpa o texto do parágrafo
     for r in list(alvo.runs):
         r._element.getparent().remove(r._element)
 
-    if not fotos:
+    if not fotos_dict:
         run = alvo.add_run("(sem fotos registradas)")
         run.italic = True
         run.font.size = Pt(9)
         run.font.color.rgb = COR_CINZA_CLARO
         return
 
-    # Insere a primeira foto no parágrafo existente
-    alvo.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = alvo.add_run()
-    try:
-        run.add_picture(fotos[0], width=Cm(largura_cm))
-    except Exception as e:
-        run.add_text(f"(erro ao inserir {Path(fotos[0]).name}: {e})")
+    # ── Monta lista ordenada de slots ────────────────────────────────────────
+    slots: list[tuple[str, str, str]] = []
+    for chave, legenda in ANGULOS_FOTO:
+        if chave in fotos_dict:
+            slots.append((chave, legenda, fotos_dict[chave]))
 
-    # Insere as restantes em parágrafos novos, logo depois
-    parent = alvo._element.getparent()
-    idx = list(parent).index(alvo._element)
-    for foto in fotos[1:]:
-        from docx.oxml.ns import qn
-        from docx.oxml import OxmlElement
-        novo_p = OxmlElement('w:p')
-        parent.insert(idx + 1, novo_p)
-        idx += 1
-        # Cria parágrafo via API e move para a posição
-        # (caminho mais simples: usa add_paragraph e depois reordena)
-    # Estratégia mais simples — usa doc.add_paragraph + reposicionar
-    # Refazendo: usar uma abordagem mais simples
-    if len(fotos) > 1:
-        # Remove os elementos vazios que adicionamos acima
-        for child in list(parent)[idx - (len(fotos) - 1) + 1 : idx + 1]:
-            parent.remove(child)
-        # Agora adiciona via doc.add_paragraph e move
-        depois = []
-        for foto in fotos[1:]:
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            try:
-                p.add_run().add_picture(foto, width=Cm(largura_cm))
-            except Exception:
-                p.add_run(f"(erro ao inserir {Path(foto).name})")
-            depois.append(p._element)
-            parent.remove(p._element)
-        # Insere depois do parágrafo alvo
-        ref = alvo._element
-        for novo in depois:
-            ref.addnext(novo)
-            ref = novo
+    chaves_padrao = {k for k, _ in ANGULOS_FOTO}
+    for chave, caminho in fotos_dict.items():
+        if chave not in chaves_padrao:
+            slots.append((chave, chave.replace("_", " ").title(), caminho))
+
+    # ── Cria tabela de fotos ──────────────────────────────────────────────────
+    n_cols      = FOTO_COLUNAS
+    n_rows      = -(-len(slots) // n_cols)
+    col_w_twips = int(FOTO_LARGURA_CM * 567)
+
+    tabela = doc.add_table(rows=n_rows * 2, cols=n_cols)
+
+    tblPr = tabela._tbl.tblPr
+    tblBorders = OxmlElement('w:tblBorders')
+    for lado in ('top', 'left', 'bottom', 'right', 'insideH', 'insideV'):
+        b = OxmlElement(f'w:{lado}')
+        b.set(qn('w:val'), 'none')
+        tblBorders.append(b)
+    tblPr.append(tblBorders)
+
+    for i, (chave, legenda, caminho) in enumerate(slots):
+        linha_foto    = (i // n_cols) * 2
+        linha_legenda = linha_foto + 1
+        col           = i % n_cols
+
+        cell_foto    = tabela.cell(linha_foto, col)
+        cell_legenda = tabela.cell(linha_legenda, col)
+
+        for tc in (cell_foto._tc, cell_legenda._tc):
+            tcPr = tc.get_or_add_tcPr()
+            tcW  = OxmlElement('w:tcW')
+            tcW.set(qn('w:w'), str(col_w_twips))
+            tcW.set(qn('w:type'), 'dxa')
+            tcPr.append(tcW)
+
+        p_foto = cell_foto.paragraphs[0]
+        p_foto.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run_foto = p_foto.add_run()
+        try:
+            buf = _normalizar_foto(caminho)
+            run_foto.add_picture(buf, width=Cm(FOTO_LARGURA_CM))
+        except Exception as exc:
+            run_foto.add_text(f"(erro: {Path(caminho).name} — {exc})")
+            run_foto.font.size = Pt(8)
+            run_foto.font.color.rgb = COR_VERMELHO
+
+        p_leg = cell_legenda.paragraphs[0]
+        p_leg.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run_leg = p_leg.add_run(legenda)
+        run_leg.bold = True
+        run_leg.font.size = Pt(8)
+        run_leg.font.color.rgb = COR_CINZA
+
+    parent      = alvo._element.getparent()
+    tbl_element = tabela._tbl
+    parent.remove(tbl_element)
+    alvo._element.addnext(tbl_element)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -343,8 +493,6 @@ def gerar_vistoria_entrada_saida(
     ])
     status_doc = "completa" if tem_saida else "pendente_saida"
 
-    # ── Monta o mapa de substituições ─────────────────────────────────────
-    # mapa[placeholder] = (valor, cor, tamanho)
     mapa: dict[str, tuple[str, RGBColor, int]] = {}
 
     campos_simples = [
@@ -361,7 +509,6 @@ def gerar_vistoria_entrada_saida(
     for campo in campos_simples:
         mapa[campo] = (str(dados.get(campo) or ""), COR_CINZA, 10)
 
-    # Acessórios: cada um vira 3 placeholders
     divergencias = []
     for key in ACESSORIOS:
         e = acc_in.get(key, "")
@@ -375,26 +522,21 @@ def gerar_vistoria_entrada_saida(
             label = key.replace("acc_", "").replace("_", " ").title()
             divergencias.append((label, e or "—", s or "—", status_txt))
 
-    # ── Abre o template e aplica substituições ────────────────────────────
     doc = Document(str(template))
 
-    # Em todas as tabelas
     for tbl in doc.tables:
         for row in tbl.rows:
             for cell in row.cells:
                 _substituir_placeholder_no_celula(cell, mapa)
 
-    # Em todos os parágrafos do corpo (cabeçalho, subtítulo, "Contrato X")
     for par in doc.paragraphs:
         _substituir_em_paragrafo(par, mapa)
 
-    # ── Inserir fotos ─────────────────────────────────────────────────────
     _inserir_fotos_no_marcador(doc, "[FOTOS_ENTRADA]",
                                 dados.get("fotos_entrada", []))
     _inserir_fotos_no_marcador(doc, "[FOTOS_SAIDA]",
                                 dados.get("fotos_saida", []))
 
-    # ── Salvar ────────────────────────────────────────────────────────────
     saida = Path(caminho_saida)
     saida.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(saida))
@@ -467,13 +609,21 @@ if __name__ == "__main__":
         "responsavel_saida":  "Ana Karolina",
         "acessorios_saida": {
             **{k: "S" for k in ACESSORIOS},
-            "acc_calotas":   "N",   # perdeu uma calota
-            "acc_tapetes":   "A",   # tapetes avariados
-            "acc_estepe":    "N",   # estepe sumiu
+            "acc_calotas":   "N",
+            "acc_tapetes":   "A",
+            "acc_estepe":    "N",
             "acc_triangulo": "N",
         },
-        "fotos_entrada": [],
-        "fotos_saida":   [],
+        "fotos_entrada": {
+            # "frontal":     "/path/frente.jpg",
+            # "traseira":    "/path/traseira.jpg",
+            # "painel":      "/path/painel.jpg",
+            # "hodometro":   "/path/hodometro.jpg",
+        },
+        "fotos_saida": {
+            # "frontal":     "/path/frente_dev.jpg",
+            # "dano_1":      "/path/amassado.jpg",
+        },
     }
     saida = sys.argv[1] if len(sys.argv) > 1 else "VISTORIA_EXEMPLO.docx"
     resumo = gerar_vistoria_entrada_saida(
