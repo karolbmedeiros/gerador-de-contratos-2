@@ -1299,6 +1299,19 @@ def _gerar_vistoria_impl():
         nome_docx    = f"VISTORIA_{placa_slug}_{data_slug}.docx"
         caminho_docx = str(CONTRATOS_FOLDER / nome_docx)
 
+        # Lê bytes das fotos ANTES do finally apagar os arquivos temporários
+        pasta_fotos   = f"vistorias/fotos/{placa_slug}_{data_slug}"
+        foto_s_paths  = {}   # {angulo: storage_path}
+        foto_s_bytes  = {}   # {storage_path: bytes} — para upload em background
+        for angulo, local_p in fotos_entrada.items():
+            ext = Path(local_p).suffix.lower() or ".jpg"
+            s_path = f"{pasta_fotos}/{angulo}{ext}"
+            foto_s_paths[angulo] = s_path
+            try:
+                foto_s_bytes[s_path] = Path(local_p).read_bytes()
+            except Exception:
+                pass
+
         try:
             resumo = gerar_vistoria_entrada_saida(
                 dados,
@@ -1311,6 +1324,9 @@ def _gerar_vistoria_impl():
         finally:
             for p in fotos_entrada.values():
                 Path(p).unlink(missing_ok=True)
+
+        # fotos_entrada no banco: ["angulo:storage_path", ...] (coluna text[])
+        fotos_entrada_db = [f"{ang}:{pth}" for ang, pth in foto_s_paths.items()]
 
         _storage_path = f"vistorias/{nome_docx}"
         sb = _supabase()
@@ -1336,6 +1352,7 @@ def _gerar_vistoria_impl():
                     "sintomas_entrada":     dados["sintomas_entrada"],
                     "responsavel_entrada":  dados["responsavel_entrada"],
                     "acessorios_entrada":   dados["acessorios_entrada"],
+                    "fotos_entrada":        fotos_entrada_db,
                     "status":               resumo["status"],
                     "arquivo_entrada_path": _storage_path,
                     "arquivo_path":         _storage_path,
@@ -1343,6 +1360,25 @@ def _gerar_vistoria_impl():
             except Exception:
                 _tb.print_exc()
             _upload_bg(_storage_path, Path(caminho_docx).read_bytes())
+            # Upload individual das fotos em background
+            if foto_s_bytes:
+                _fsb = foto_s_bytes
+                def _upload_fotos_bg():
+                    try:
+                        sb2 = _supabase()
+                        if not sb2:
+                            return
+                        for s_path, data in _fsb.items():
+                            ext2 = Path(s_path).suffix.lower()
+                            ct = "image/png" if ext2 == ".png" else "image/jpeg"
+                            try:
+                                sb2.storage.from_("documentos").upload(
+                                    s_path, data, {"content-type": ct, "upsert": "true"})
+                            except Exception:
+                                _tb.print_exc()
+                    except Exception:
+                        _tb.print_exc()
+                threading.Thread(target=_upload_fotos_bg, daemon=True).start()
 
         try:
             _historico_append(dados["cliente_nome"], "VISTORIA", nome_docx)
@@ -1386,6 +1422,22 @@ def _gerar_vistoria_impl():
             if p:
                 fotos_saida[angulo] = p
 
+        # Recupera fotos de entrada do Storage (guardadas na etapa anterior)
+        # Formato no banco: ["angulo:storage_path", ...]
+        fotos_entrada_recuperadas = {}   # {angulo: caminho_temp_local}
+        if sb:
+            for item in (registro.get("fotos_entrada") or []):
+                try:
+                    angulo, s_path = item.split(":", 1)
+                    data_foto = sb.storage.from_("documentos").download(s_path)
+                    if data_foto:
+                        ext_rec = Path(s_path).suffix.lower() or ".jpg"
+                        tmp_rec = TEMP_FOLDER / f"{uuid.uuid4().hex}{ext_rec}"
+                        tmp_rec.write_bytes(bytes(data_foto))
+                        fotos_entrada_recuperadas[angulo] = str(tmp_rec)
+                except Exception:
+                    _tb.print_exc()
+
         dados = {
             "contrato_id":      contrato_id or registro.get("contrato_id", ""),
             "cliente_nome":     registro.get("cliente", dados_fixos["cliente_nome"]),
@@ -1406,6 +1458,7 @@ def _gerar_vistoria_impl():
             "sintomas_entrada":    registro.get("sintomas_entrada", ""),
             "responsavel_entrada": registro.get("responsavel_entrada", ""),
             "acessorios_entrada":  registro.get("acessorios_entrada") or {},
+            "fotos_entrada":       fotos_entrada_recuperadas,
             # Devolução — do form
             "data_saida":        agora.strftime("%d/%m/%Y %H:%M"),
             "hodometro_saida":   request.form.get("hodometro_saida", ""),
@@ -1437,6 +1490,8 @@ def _gerar_vistoria_impl():
             return jsonify({"error": f"Erro ao gerar vistoria (saida): {e}"}), 500
         finally:
             for p in fotos_saida.values():
+                Path(p).unlink(missing_ok=True)
+            for p in fotos_entrada_recuperadas.values():
                 Path(p).unlink(missing_ok=True)
 
         _storage_path = f"vistorias/{nome_docx}"
