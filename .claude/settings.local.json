@@ -15,7 +15,8 @@
       "Bash(cp \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\_vistoria_entrada_saida_pacote\\\\gerar_vistoria_entrada_saida.py\" \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\gerar_vistoria_entrada_saida.py\")",
       "Bash(cp \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\_vistoria_entrada_saida_pacote\\\\docx_templates\\\\VISTORIA_ENTRADA_SAIDA_TEMPLATE.docx\" \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\docx_templates\\\\VISTORIA_ENTRADA_SAIDA_TEMPLATE.docx\")",
       "Bash(Test-Path \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\gerar_vistoria_entrada_saida.py\")",
-      "Bash(Test-Path \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\docx_templates\\\\VISTORIA_ENTRADA_SAIDA_TEMPLATE.docx\")"
+      "Bash(Test-Path \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\docx_templates\\\\VISTORIA_ENTRADA_SAIDA_TEMPLATE.docx\")",
+      "Bash(copy *)"
     ]
   }
 }
