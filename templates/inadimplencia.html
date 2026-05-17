@@ -542,6 +542,9 @@
   .jud-acordo   { background: #d1fae5; color: #065f46; }
   .jud-analise  { background: #f1f5f9; color: #475569; }
 
+  .inad-card.c-green { background: linear-gradient(135deg, #166534 0%, #16a34a 100%); }
+  .inad-card.c-indigo { background: linear-gradient(135deg, #3730a3 0%, #6366f1 100%); }
+
   .jud-form-label {
     font-size: .75rem; font-weight: 600; color: #374151;
     display: block; margin-bottom: 4px;
@@ -1189,10 +1192,48 @@ const _fin = [
 <!-- ══════════════ ABA: CARTEIRA JUDICIALIZADA ══════════════ -->
 <div id="inad-tab-judicializada" style="display:none;">
 
-  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
-              gap:8px; margin-bottom:16px;">
-    <span id="jud-resumo" style="font-size:0.8rem; color:var(--text-muted);"></span>
-    <button onclick="judAbrirModal()"
+  <!-- Cards de análise -->
+  <div class="inad-cards" style="margin-bottom:20px;">
+    <div class="inad-card c-slate">
+      <div class="inad-card-top">Total de Processos</div>
+      <div>
+        <div class="inad-card-val" id="jud-card-total-n">—</div>
+        <div class="inad-card-sub" id="jud-card-total-v">—</div>
+      </div>
+    </div>
+    <div class="inad-card c-dark">
+      <div class="inad-card-top">Valor Total em Disputa</div>
+      <div>
+        <div class="inad-card-val" style="font-size:1.05rem;" id="jud-card-valor">—</div>
+        <div class="inad-card-sub">soma de todos os processos</div>
+      </div>
+    </div>
+    <div class="inad-card c-blue">
+      <div class="inad-card-top">Ajuizados</div>
+      <div>
+        <div class="inad-card-val" id="jud-card-ajuiz-n">—</div>
+        <div class="inad-card-sub" id="jud-card-ajuiz-v">—</div>
+      </div>
+    </div>
+    <div class="inad-card c-green">
+      <div class="inad-card-top">Em Acordo</div>
+      <div>
+        <div class="inad-card-val" id="jud-card-acordo-n">—</div>
+        <div class="inad-card-sub" id="jud-card-acordo-v">—</div>
+      </div>
+    </div>
+    <div class="inad-card c-orange">
+      <div class="inad-card-top">Em Análise</div>
+      <div>
+        <div class="inad-card-val" id="jud-card-analise-n">—</div>
+        <div class="inad-card-sub" id="jud-card-analise-v">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de ação -->
+  <div style="display:flex; align-items:center; justify-content:flex-end; margin-bottom:12px;">
+    <button onclick="judAbrirModal(null)"
             style="display:inline-flex; align-items:center; gap:6px;
                    padding:6px 14px; background:#1e3a5f; color:#fff;
                    border:none; border-radius:8px; font-size:0.82rem; font-weight:600;
@@ -1205,6 +1246,7 @@ const _fin = [
     </button>
   </div>
 
+  <!-- Tabela -->
   <div class="card" style="padding:0; overflow:hidden;">
     <div style="overflow-x:auto;">
       <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
@@ -1216,6 +1258,7 @@ const _fin = [
             <th class="jud-th">Valor atual</th>
             <th class="jud-th">Status</th>
             <th class="jud-th">Nº processo</th>
+            <th class="jud-th"></th>
           </tr>
         </thead>
         <tbody id="jud-tbody"></tbody>
@@ -1225,12 +1268,12 @@ const _fin = [
 
 </div>
 
-<!-- Modal — Carteira Judicializada -->
+<!-- Modal — Adicionar / Editar Carteira Judicializada -->
 <div id="modal-jud" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
      backdrop-filter:blur(3px); z-index:300; align-items:center; justify-content:center; padding:1rem;">
   <div style="background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.2);
               padding:2rem 1.75rem 1.5rem; width:100%; max-width:480px;">
-    <h2 style="font-size:1.05rem; font-weight:700; margin:0 0 1.25rem; color:#0f172a;">
+    <h2 id="jud-modal-titulo" style="font-size:1.05rem; font-weight:700; margin:0 0 1.25rem; color:#0f172a;">
       Adicionar à Carteira Judicializada
     </h2>
     <div style="display:flex; flex-direction:column; gap:.75rem;">
@@ -1282,7 +1325,8 @@ const _fin = [
 
 <script>
 (function () {
-  var LS_KEY = 'ativuz_jud_carteira';
+  var LS_KEY   = 'ativuz_jud_carteira';
+  var _editIdx = null;
 
   var INICIAL = [
     { cliente: "JOSÉ IGO LIMA AMORIM",                              cpf_cnpj: "707.156.094-32", inicio_divida: "09/09/2024", valor_atual: 2332.70,  status: "Ajuizado",    num_processo: "0815681-31.2024.8.20.5004" },
@@ -1301,95 +1345,151 @@ const _fin = [
   }
 
   function _badgeCls(status) {
-    if (status === 'Ajuizado')   return 'jud-badge jud-ajuizado';
-    if (status === 'Acordo')     return 'jud-badge jud-acordo';
+    if (status === 'Ajuizado')  return 'jud-badge jud-ajuizado';
+    if (status === 'Acordo')    return 'jud-badge jud-acordo';
     return 'jud-badge jud-analise';
   }
 
+  /* dd/mm/yyyy → yyyy-mm-dd para o input[date] */
+  function _toISO(s) {
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var p = s.split('/');
+    return p[2] + '-' + p[1] + '-' + p[0];
+  }
+
+  /* yyyy-mm-dd → dd/mm/yyyy para exibição */
+  function _toBR(s) {
+    if (!s) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    var p = s.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
   function _carregar() {
-    try {
-      var raw = localStorage.getItem(LS_KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) {}
+    try { var r = localStorage.getItem(LS_KEY); if (r) return JSON.parse(r); } catch (e) {}
     return null;
   }
 
-  function _salvarLS(dados) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(dados)); } catch (e) {}
+  function _salvarLS(d) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch (e) {}
+  }
+
+  function _atualizarCards(dados) {
+    var total  = dados.length;
+    var soma   = dados.reduce(function (s, r) { return s + Number(r.valor_atual); }, 0);
+    var ajuiz  = dados.filter(function (r) { return r.status === 'Ajuizado'; });
+    var acordo = dados.filter(function (r) { return r.status === 'Acordo'; });
+    var analise= dados.filter(function (r) { return r.status === 'Em Análise'; });
+    var somaAj = ajuiz.reduce(function (s,r)  { return s + Number(r.valor_atual); }, 0);
+    var somaAc = acordo.reduce(function (s,r)  { return s + Number(r.valor_atual); }, 0);
+    var somaAn = analise.reduce(function (s,r) { return s + Number(r.valor_atual); }, 0);
+
+    function _set(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+
+    _set('jud-card-total-n',  total);
+    _set('jud-card-total-v',  _brl(soma));
+    _set('jud-card-valor',    _brl(soma));
+    _set('jud-card-ajuiz-n',  ajuiz.length);
+    _set('jud-card-ajuiz-v',  _brl(somaAj));
+    _set('jud-card-acordo-n', acordo.length);
+    _set('jud-card-acordo-v', _brl(somaAc));
+    _set('jud-card-analise-n',analise.length);
+    _set('jud-card-analise-v',_brl(somaAn));
   }
 
   function _renderizar(dados) {
     var tbody = document.getElementById('jud-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    dados.forEach(function (r) {
+    dados.forEach(function (r, idx) {
       var tr = document.createElement('tr');
       tr.innerHTML =
-        '<td class="jud-td" style="font-weight:600;">' + r.cliente + '</td>' +
-        '<td class="jud-td" style="white-space:nowrap; color:#64748b;">' + r.cpf_cnpj + '</td>' +
-        '<td class="jud-td" style="white-space:nowrap;">' + r.inicio_divida + '</td>' +
+        '<td class="jud-td" style="font-weight:600;">'                                  + r.cliente      + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap; color:#64748b;">'                + r.cpf_cnpj     + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap;">'              + _toBR(r.inicio_divida)           + '</td>' +
         '<td class="jud-td" style="white-space:nowrap; color:#dc2626; font-weight:600;">' + _brl(r.valor_atual) + '</td>' +
-        '<td class="jud-td"><span class="' + _badgeCls(r.status) + '">' + r.status + '</span></td>' +
-        '<td class="jud-td" style="font-size:0.8rem; color:#64748b; white-space:nowrap;">' + r.num_processo + '</td>';
+        '<td class="jud-td"><span class="' + _badgeCls(r.status) + '">' + r.status    + '</span></td>'  +
+        '<td class="jud-td" style="font-size:0.8rem; color:#64748b; white-space:nowrap;">' + r.num_processo + '</td>' +
+        '<td class="jud-td">' +
+          '<button onclick="judAbrirModal(' + idx + ')" ' +
+                  'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;' +
+                         'background:#6b7280;color:#fff;border:none;border-radius:6px;' +
+                         'font-size:0.75rem;font-weight:600;font-family:inherit;cursor:pointer;' +
+                         'transition:opacity .15s;" ' +
+                  'onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">' +
+            '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' +
+              '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+              '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' +
+            '</svg>' +
+            'Atualizar' +
+          '</button>' +
+        '</td>';
       tbody.appendChild(tr);
     });
-
-    var total = dados.reduce(function (s, r) { return s + Number(r.valor_atual); }, 0);
-    var el = document.getElementById('jud-resumo');
-    if (el) el.textContent = dados.length + ' registro' + (dados.length !== 1 ? 's' : '') + ' · Total: ' + _brl(total);
+    _atualizarCards(dados);
   }
 
   /* ── Init ── */
   var dados = _carregar();
-  if (!dados) {
-    dados = INICIAL;
-    _salvarLS(dados);
-  }
+  if (!dados) { dados = INICIAL; _salvarLS(dados); }
   _renderizar(dados);
 
   /* ── Modal ── */
-  window.judAbrirModal = function () {
-    ['jud-f-cliente','jud-f-cpf','jud-f-inicio','jud-f-valor','jud-f-processo'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    var sel = document.getElementById('jud-f-status');
-    if (sel) sel.value = 'Ajuizado';
+  window.judAbrirModal = function (idx) {
+    _editIdx = (idx !== null && idx !== undefined) ? idx : null;
+    var titulo = document.getElementById('jud-modal-titulo');
+    if (titulo) titulo.textContent = _editIdx !== null
+      ? 'Atualizar informações'
+      : 'Adicionar à Carteira Judicializada';
+
+    if (_editIdx !== null) {
+      var d = _carregar() || [];
+      var r = d[_editIdx] || {};
+      document.getElementById('jud-f-cliente').value  = r.cliente      || '';
+      document.getElementById('jud-f-cpf').value      = r.cpf_cnpj     || '';
+      document.getElementById('jud-f-inicio').value   = _toISO(r.inicio_divida || '');
+      document.getElementById('jud-f-valor').value    = r.valor_atual  || '';
+      document.getElementById('jud-f-status').value   = r.status       || 'Ajuizado';
+      document.getElementById('jud-f-processo').value = r.num_processo || '';
+    } else {
+      ['jud-f-cliente','jud-f-cpf','jud-f-inicio','jud-f-valor','jud-f-processo']
+        .forEach(function (id) { document.getElementById(id).value = ''; });
+      document.getElementById('jud-f-status').value = 'Ajuizado';
+    }
     document.getElementById('modal-jud').style.display = 'flex';
   };
 
   window.judFecharModal = function () {
     document.getElementById('modal-jud').style.display = 'none';
+    _editIdx = null;
   };
 
   window.judSalvar = function () {
-    var cliente   = (document.getElementById('jud-f-cliente').value  || '').trim();
-    var cpf       = (document.getElementById('jud-f-cpf').value      || '').trim();
-    var inicio    = (document.getElementById('jud-f-inicio').value   || '').trim();
-    var valorRaw  = document.getElementById('jud-f-valor').value;
-    var status    = document.getElementById('jud-f-status').value;
-    var processo  = (document.getElementById('jud-f-processo').value || '').trim();
+    var cliente  = (document.getElementById('jud-f-cliente').value  || '').trim();
+    var cpf      = (document.getElementById('jud-f-cpf').value      || '').trim();
+    var inicio   = (document.getElementById('jud-f-inicio').value   || '').trim();
+    var valorRaw = document.getElementById('jud-f-valor').value;
+    var status   = document.getElementById('jud-f-status').value;
+    var processo = (document.getElementById('jud-f-processo').value || '').trim();
 
     if (!cliente) { alert('Informe o nome do cliente.'); return; }
 
-    /* converte yyyy-mm-dd → dd/mm/yyyy se vier do input[date] */
-    var inicioFmt = inicio;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(inicio)) {
-      var p = inicio.split('-');
-      inicioFmt = p[2] + '/' + p[1] + '/' + p[0];
-    }
-
-    var novo = {
+    var registro = {
       cliente:       cliente,
       cpf_cnpj:      cpf,
-      inicio_divida: inicioFmt,
+      inicio_divida: _toBR(inicio),
       valor_atual:   parseFloat(valorRaw) || 0,
       status:        status,
       num_processo:  processo
     };
 
     var d = _carregar() || [];
-    d.push(novo);
+    if (_editIdx !== null) {
+      d[_editIdx] = registro;
+    } else {
+      d.push(registro);
+    }
     _salvarLS(d);
     _renderizar(d);
     judFecharModal();
