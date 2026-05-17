@@ -1325,18 +1325,8 @@ const _fin = [
 
 <script>
 (function () {
-  var LS_KEY   = 'ativuz_jud_carteira';
-  var _editIdx = null;
-
-  var INICIAL = [
-    { cliente: "JOSÉ IGO LIMA AMORIM",                              cpf_cnpj: "707.156.094-32", inicio_divida: "09/09/2024", valor_atual: 2332.70,  status: "Ajuizado",    num_processo: "0815681-31.2024.8.20.5004" },
-    { cliente: "MELKDERKIAN ARAUJO DA SILVA",                       cpf_cnpj: "701.168.604-56", inicio_divida: "13/03/2025", valor_atual: 1330.52,  status: "Ajuizado",    num_processo: "0818117-26.2025.8.20.5004" },
-    { cliente: "ANA CONCEIÇÃO CARNEIRO DE ALBUQUERQUE",             cpf_cnpj: "028.590.344-63", inicio_divida: "20/03/2025", valor_atual: 1113.00,  status: "Acordo",      num_processo: "0816019-05.2024.8.20.5004" },
-    { cliente: "JOSÉ MAGNO DA SILVA ROCHA JUNIOR",                  cpf_cnpj: "117.937.804-04", inicio_divida: "26/03/2025", valor_atual: 2463.32,  status: "Ajuizado",    num_processo: "0810937-56.2025.8.20.5004" },
-    { cliente: "PRISSILLA CRISLLEY JESSUS DE ALENCAR SIQUEIRA",     cpf_cnpj: "010.849.934-06", inicio_divida: "22/09/2025", valor_atual: 707.25,   status: "Ajuizado",    num_processo: "0822180-94.2025.8.20.5004" },
-    { cliente: "THIAGO VICENTE DE TEXEIRA",                         cpf_cnpj: "015.841.346-66", inicio_divida: "13/11/2025", valor_atual: 4606.24,  status: "Em Análise",  num_processo: "0821650-90.2025.8.20.5004" },
-    { cliente: "TAFAREL EUCLIOLIS OLIVEIRA MARQUES",                cpf_cnpj: "531.744.022-04", inicio_divida: "10/12/2025", valor_atual: 6288.88,  status: "Ajuizado",    num_processo: "0800579-32.2025.8.20.500"  }
-  ];
+  var _editId  = null;  /* uuid do registro em edição, null = modo inserção */
+  var _dados   = [];    /* cache local */
 
   function _brl(v) {
     return 'R$ ' + Number(v).toFixed(2)
@@ -1350,79 +1340,61 @@ const _fin = [
     return 'jud-badge jud-analise';
   }
 
-  /* dd/mm/yyyy → yyyy-mm-dd para o input[date] */
-  function _toISO(s) {
-    if (!s) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    var p = s.split('/');
-    return p[2] + '-' + p[1] + '-' + p[0];
-  }
-
-  /* yyyy-mm-dd → dd/mm/yyyy para exibição */
   function _toBR(s) {
     if (!s) return '';
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
     var p = s.split('-');
-    return p[2] + '/' + p[1] + '/' + p[0];
+    return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : s;
   }
 
-  function _carregar() {
-    try { var r = localStorage.getItem(LS_KEY); if (r) return JSON.parse(r); } catch (e) {}
-    return null;
-  }
-
-  function _salvarLS(d) {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(d)); } catch (e) {}
+  function _toISO(s) {
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    var p = s.split('/');
+    return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : '';
   }
 
   function _atualizarCards(dados) {
-    var total  = dados.length;
-    var soma   = dados.reduce(function (s, r) { return s + Number(r.valor_atual); }, 0);
-    var ajuiz  = dados.filter(function (r) { return r.status === 'Ajuizado'; });
-    var acordo = dados.filter(function (r) { return r.status === 'Acordo'; });
-    var analise= dados.filter(function (r) { return r.status === 'Em Análise'; });
-    var somaAj = ajuiz.reduce(function (s,r)  { return s + Number(r.valor_atual); }, 0);
-    var somaAc = acordo.reduce(function (s,r)  { return s + Number(r.valor_atual); }, 0);
-    var somaAn = analise.reduce(function (s,r) { return s + Number(r.valor_atual); }, 0);
-
+    var soma    = dados.reduce(function (s, r) { return s + Number(r.valor_atual); }, 0);
+    var ajuiz   = dados.filter(function (r) { return r.status === 'Ajuizado'; });
+    var acordo  = dados.filter(function (r) { return r.status === 'Acordo'; });
+    var analise = dados.filter(function (r) { return r.status === 'Em Análise'; });
     function _set(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
-
-    _set('jud-card-total-n',  total);
-    _set('jud-card-total-v',  _brl(soma));
-    _set('jud-card-valor',    _brl(soma));
-    _set('jud-card-ajuiz-n',  ajuiz.length);
-    _set('jud-card-ajuiz-v',  _brl(somaAj));
-    _set('jud-card-acordo-n', acordo.length);
-    _set('jud-card-acordo-v', _brl(somaAc));
-    _set('jud-card-analise-n',analise.length);
-    _set('jud-card-analise-v',_brl(somaAn));
+    _set('jud-card-total-n',   dados.length);
+    _set('jud-card-total-v',   _brl(soma));
+    _set('jud-card-valor',     _brl(soma));
+    _set('jud-card-ajuiz-n',   ajuiz.length);
+    _set('jud-card-ajuiz-v',   _brl(ajuiz.reduce(function (s,r)  { return s + Number(r.valor_atual); }, 0)));
+    _set('jud-card-acordo-n',  acordo.length);
+    _set('jud-card-acordo-v',  _brl(acordo.reduce(function (s,r)  { return s + Number(r.valor_atual); }, 0)));
+    _set('jud-card-analise-n', analise.length);
+    _set('jud-card-analise-v', _brl(analise.reduce(function (s,r) { return s + Number(r.valor_atual); }, 0)));
   }
 
   function _renderizar(dados) {
+    _dados = dados;
     var tbody = document.getElementById('jud-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    dados.forEach(function (r, idx) {
+    dados.forEach(function (r) {
       var tr = document.createElement('tr');
       tr.innerHTML =
-        '<td class="jud-td" style="font-weight:600;">'                                  + r.cliente      + '</td>' +
-        '<td class="jud-td" style="white-space:nowrap; color:#64748b;">'                + r.cpf_cnpj     + '</td>' +
-        '<td class="jud-td" style="white-space:nowrap;">'              + _toBR(r.inicio_divida)           + '</td>' +
-        '<td class="jud-td" style="white-space:nowrap; color:#dc2626; font-weight:600;">' + _brl(r.valor_atual) + '</td>' +
-        '<td class="jud-td"><span class="' + _badgeCls(r.status) + '">' + r.status    + '</span></td>'  +
-        '<td class="jud-td" style="font-size:0.8rem; color:#64748b; white-space:nowrap;">' + r.num_processo + '</td>' +
+        '<td class="jud-td" style="font-weight:600;">'                                       + r.cliente      + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap; color:#64748b;">'                     + (r.cpf_cnpj || '—')    + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap;">'                + _toBR(r.inicio_divida || '') + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap; color:#dc2626; font-weight:600;">'   + _brl(r.valor_atual)    + '</td>' +
+        '<td class="jud-td"><span class="' + _badgeCls(r.status) + '">' + r.status          + '</span></td>'         +
+        '<td class="jud-td" style="font-size:0.8rem; color:#64748b; white-space:nowrap;">'  + (r.num_processo || '—') + '</td>' +
         '<td class="jud-td">' +
-          '<button onclick="judAbrirModal(' + idx + ')" ' +
+          '<button onclick="judAbrirModal(\'' + r.id + '\')" ' +
                   'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;' +
                          'background:#6b7280;color:#fff;border:none;border-radius:6px;' +
-                         'font-size:0.75rem;font-weight:600;font-family:inherit;cursor:pointer;' +
-                         'transition:opacity .15s;" ' +
+                         'font-size:0.75rem;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .15s;" ' +
                   'onmouseover="this.style.opacity=\'.8\'" onmouseout="this.style.opacity=\'1\'">' +
             '<svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">' +
               '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
               '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' +
-            '</svg>' +
-            'Atualizar' +
+            '</svg>Atualizar' +
           '</button>' +
         '</td>';
       tbody.appendChild(tr);
@@ -1430,28 +1402,30 @@ const _fin = [
     _atualizarCards(dados);
   }
 
+  function _carregar() {
+    fetch('/api/carteira-judicializada')
+      .then(function (r) { return r.json(); })
+      .then(function (json) { if (json.ok) _renderizar(json.data); })
+      .catch(function (e) { console.error('Carteira Judicializada:', e); });
+  }
+
   /* ── Init ── */
-  var dados = _carregar();
-  if (!dados) { dados = INICIAL; _salvarLS(dados); }
-  _renderizar(dados);
+  _carregar();
 
   /* ── Modal ── */
-  window.judAbrirModal = function (idx) {
-    _editIdx = (idx !== null && idx !== undefined) ? idx : null;
+  window.judAbrirModal = function (id) {
+    _editId = id || null;
     var titulo = document.getElementById('jud-modal-titulo');
-    if (titulo) titulo.textContent = _editIdx !== null
-      ? 'Atualizar informações'
-      : 'Adicionar à Carteira Judicializada';
+    if (titulo) titulo.textContent = _editId ? 'Atualizar informações' : 'Adicionar à Carteira Judicializada';
 
-    if (_editIdx !== null) {
-      var d = _carregar() || [];
-      var r = d[_editIdx] || {};
-      document.getElementById('jud-f-cliente').value  = r.cliente      || '';
-      document.getElementById('jud-f-cpf').value      = r.cpf_cnpj     || '';
+    if (_editId) {
+      var r = _dados.filter(function (d) { return d.id === _editId; })[0] || {};
+      document.getElementById('jud-f-cliente').value  = r.cliente       || '';
+      document.getElementById('jud-f-cpf').value      = r.cpf_cnpj      || '';
       document.getElementById('jud-f-inicio').value   = _toISO(r.inicio_divida || '');
-      document.getElementById('jud-f-valor').value    = r.valor_atual  || '';
-      document.getElementById('jud-f-status').value   = r.status       || 'Ajuizado';
-      document.getElementById('jud-f-processo').value = r.num_processo || '';
+      document.getElementById('jud-f-valor').value    = r.valor_atual   || '';
+      document.getElementById('jud-f-status').value   = r.status        || 'Ajuizado';
+      document.getElementById('jud-f-processo').value = r.num_processo  || '';
     } else {
       ['jud-f-cliente','jud-f-cpf','jud-f-inicio','jud-f-valor','jud-f-processo']
         .forEach(function (id) { document.getElementById(id).value = ''; });
@@ -1462,7 +1436,7 @@ const _fin = [
 
   window.judFecharModal = function () {
     document.getElementById('modal-jud').style.display = 'none';
-    _editIdx = null;
+    _editId = null;
   };
 
   window.judSalvar = function () {
@@ -1475,24 +1449,34 @@ const _fin = [
 
     if (!cliente) { alert('Informe o nome do cliente.'); return; }
 
-    var registro = {
+    var payload = {
       cliente:       cliente,
       cpf_cnpj:      cpf,
-      inicio_divida: _toBR(inicio),
+      inicio_divida: inicio || null,
       valor_atual:   parseFloat(valorRaw) || 0,
       status:        status,
       num_processo:  processo
     };
 
-    var d = _carregar() || [];
-    if (_editIdx !== null) {
-      d[_editIdx] = registro;
-    } else {
-      d.push(registro);
-    }
-    _salvarLS(d);
-    _renderizar(d);
-    judFecharModal();
+    var url    = _editId ? '/api/carteira-judicializada/' + _editId : '/api/carteira-judicializada';
+    var method = _editId ? 'PUT' : 'POST';
+    var btn    = document.querySelector('#modal-jud button[onclick="judSalvar()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Salvando…'; }
+
+    fetch(url, {
+      method:  method,
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (json) {
+      if (json.ok) { judFecharModal(); _carregar(); }
+      else alert('Erro: ' + (json.erro || 'desconhecido'));
+    })
+    .catch(function (e) { alert('Erro de conexão: ' + e); })
+    .finally(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+    });
   };
 
   document.addEventListener('keydown', function (e) {

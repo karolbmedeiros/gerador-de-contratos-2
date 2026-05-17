@@ -31,7 +31,7 @@ Cole `migrate_vistoria_entrada_saida.sql` no SQL Editor e execute. Ele:
 - Cria índices em `contrato_id`, `placa`, `status`.
 
 > As colunas antigas continuam existindo. Quando o app estiver 100% migrado, dá para
-> dropar (`alter table … drop column hodometro_entrega`).
+> dropar (`alter table … drop column hodometro_entrega`).o
 
 ## 2. Colocar o template e o script na pasta certa
 

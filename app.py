@@ -500,6 +500,7 @@ def dashboard():
         pass
 
     inad = _inad_summary()
+    contratos_vencendo = _contratos_vencendo(dias_limite=60)
     return render_template(
         "dashboard.html",
         active="dashboard",
@@ -513,6 +514,7 @@ def dashboard():
         frota_valor_fipe=frota_valor_fipe,
         ck_pendentes_total=ck_pendentes_total,
         ck_pendentes_placas=ck_pendentes_placas,
+        contratos_vencendo=contratos_vencendo,
     )
 
 
@@ -1897,6 +1899,36 @@ def _parse_valor_excel(raw):
         return float(s)
     except (ValueError, TypeError):
         return 0.0
+
+
+def _contratos_vencendo(dias_limite: int = 60):
+    """Return contracts expiring within `dias_limite` days, sorted by termino asc."""
+    try:
+        veiculos, _ = _ler_veiculos()
+    except Exception:
+        return []
+    hoje = date.today()
+    resultado = []
+    for v in veiculos:
+        termino_str = v.get("termino", "")
+        if not termino_str or termino_str == "—":
+            continue
+        try:
+            termino = datetime.strptime(termino_str, "%d/%m/%Y").date()
+        except ValueError:
+            continue
+        dias_rest = (termino - hoje).days
+        if dias_rest < 0 or dias_rest > dias_limite:
+            continue
+        resultado.append({
+            "placa":         v["placa"],
+            "cliente":       v["cliente"],
+            "modelo":        v["modelo"],
+            "termino":       termino_str,
+            "dias_restantes": dias_rest,
+        })
+    resultado.sort(key=lambda x: x["dias_restantes"])
+    return resultado
 
 
 def _inad_summary():
@@ -3717,6 +3749,67 @@ def api_frota_manual_batch():
         sb.table("frota_fipe_historico").upsert(rows, on_conflict="placa,mes_ref").execute()
 
     return jsonify({"ok": True, "atualizados": len(rows)})
+
+
+# ── Carteira Judicializada ────────────────────────────────────────────────────
+
+@app.route("/api/carteira-judicializada", methods=["GET"])
+def api_carteira_judicializada_listar():
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        res = sb.table("carteira_judicializada").select("*").order("criado_em").execute()
+        return jsonify({"ok": True, "data": res.data or []})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+@app.route("/api/carteira-judicializada", methods=["POST"])
+def api_carteira_judicializada_inserir():
+    body = request.get_json(silent=True) or {}
+    cliente = (body.get("cliente") or "").strip()
+    if not cliente:
+        return jsonify({"ok": False, "erro": "Cliente obrigatório"}), 400
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        res = sb.table("carteira_judicializada").insert({
+            "cliente":       cliente,
+            "cpf_cnpj":      (body.get("cpf_cnpj")     or "").strip(),
+            "inicio_divida": body.get("inicio_divida")  or None,
+            "valor_atual":   float(body.get("valor_atual") or 0),
+            "status":        body.get("status")         or "Ajuizado",
+            "num_processo":  (body.get("num_processo")  or "").strip(),
+        }).execute()
+        return jsonify({"ok": True, "data": res.data[0] if res.data else {}})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+@app.route("/api/carteira-judicializada/<uuid:registro_id>", methods=["PUT"])
+def api_carteira_judicializada_atualizar(registro_id):
+    body = request.get_json(silent=True) or {}
+    cliente = (body.get("cliente") or "").strip()
+    if not cliente:
+        return jsonify({"ok": False, "erro": "Cliente obrigatório"}), 400
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        res = sb.table("carteira_judicializada").update({
+            "cliente":        cliente,
+            "cpf_cnpj":       (body.get("cpf_cnpj")     or "").strip(),
+            "inicio_divida":  body.get("inicio_divida")  or None,
+            "valor_atual":    float(body.get("valor_atual") or 0),
+            "status":         body.get("status")         or "Ajuizado",
+            "num_processo":   (body.get("num_processo")  or "").strip(),
+            "atualizado_em":  "now()",
+        }).eq("id", str(registro_id)).execute()
+        return jsonify({"ok": True, "data": res.data[0] if res.data else {}})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
 
 
 # ── Checklist ─────────────────────────────────────────────────────────────────
