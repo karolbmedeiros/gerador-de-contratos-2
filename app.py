@@ -1385,9 +1385,7 @@ def _gerar_vistoria_impl():
         except Exception:
             _tb.print_exc()
 
-        destino = (url_for("pagina_vistoria_contrato", contrato_id=contrato_id)
-                   if contrato_id else url_for("historico_vistorias"))
-        return jsonify({"redirect_url": destino})
+        return jsonify({"redirect_url": url_for("historico_vistorias")})
 
     # ─────────────────────────────────────────────────────────────────────────
     # ETAPA SAÍDA  (cliente devolve o carro)
@@ -1628,7 +1626,7 @@ def historico_vistorias():
     if sb:
         try:
             res = sb.table("vistorias").select(
-                "id, cliente, placa, veiculo, preenchido_por, data_hora, criado_em, arquivo_path"
+                "id, cliente, placa, veiculo, preenchido_por, data_hora, criado_em, arquivo_path, status, contrato_id"
             ).neq("deletado", True).order("criado_em", desc=True).execute()
             vistorias = res.data or []
         except Exception as e:
