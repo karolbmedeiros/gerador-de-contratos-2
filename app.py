@@ -3483,7 +3483,12 @@ def _ler_sob_administracao():
 
             unid = "GC AUTOELÉTRICA" if eh_extra else _v(row, i_prop)
 
-            valor_s = _SOB_ADM_PLACA_VALORES.get(placa.upper())
+            if eh_polo:
+                valor_s = 800.0
+            elif eh_byd:
+                valor_s = 1200.0
+            else:
+                valor_s = _SOB_ADM_PLACA_VALORES.get(placa.upper())
             taxa_s  = round(valor_s * _SOB_ADM_TAXA, 2) if valor_s else None
 
             ini_raw = row[i_ini] if i_ini is not None and i_ini < len(row) else None
