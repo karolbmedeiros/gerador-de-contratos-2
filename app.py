@@ -3481,7 +3481,7 @@ def _ler_sob_administracao():
             if not (eh_polo or eh_byd or eh_extra):
                 continue
 
-            unid = _v(row, i_prop)
+            unid = "GC AUTOELÉTRICA" if eh_extra else _v(row, i_prop)
 
             valor_s = _SOB_ADM_PLACA_VALORES.get(placa.upper())
             taxa_s  = round(valor_s * _SOB_ADM_TAXA, 2) if valor_s else None
