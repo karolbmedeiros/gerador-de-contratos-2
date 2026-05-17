@@ -1056,7 +1056,7 @@ VISTORIA_ES_TEMPLATE = DOCX_TEMPLATES / "VISTORIA_ENTRADA_SAIDA_TEMPLATE.docx"
 def pagina_vistoria():
     return render_template("vistoria.html", active="vistoria", vistoria=None,
                            contrato_id=None, edit_id=None, acessorios={},
-                           usuario=session.get("usuario", ""))
+                           usuario=session.get("usuario", "").split("@")[0].split(".")[0].upper())
 
 
 @app.route("/vistoria/<contrato_id>", methods=["GET"])
@@ -1080,7 +1080,7 @@ def pagina_vistoria_contrato(contrato_id):
                            vistoria=vistoria, contrato_id=contrato_id,
                            edit_id=None,
                            acessorios=(vistoria or {}).get("acessorios") or {},
-                           usuario=session.get("usuario", ""))
+                           usuario=session.get("usuario", "").split("@")[0].split(".")[0].upper())
 
 
 @app.route("/vistoria", methods=["POST"])
