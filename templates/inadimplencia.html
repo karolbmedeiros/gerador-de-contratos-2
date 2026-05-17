@@ -510,6 +510,50 @@
   @media (max-width: 420px) {
     .inad-cards { grid-template-columns: 1fr; }
   }
+
+  /* ── Carteira Judicializada ── */
+  .jud-th {
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+  }
+  .jud-td {
+    padding: 10px 14px;
+    color: #374151;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  #jud-tbody tr:last-child .jud-td { border-bottom: none; }
+  #jud-tbody tr:hover { background: #f8fafc; }
+
+  .jud-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .jud-ajuizado { background: #dbeafe; color: #1d4ed8; }
+  .jud-acordo   { background: #d1fae5; color: #065f46; }
+  .jud-analise  { background: #f1f5f9; color: #475569; }
+
+  .jud-form-label {
+    font-size: .75rem; font-weight: 600; color: #374151;
+    display: block; margin-bottom: 4px;
+  }
+  .jud-form-input {
+    width: 100%; padding: 7px 10px;
+    border: 1.5px solid #e2e8f0; border-radius: 8px;
+    font-size: .875rem; font-family: inherit;
+    outline: none; box-sizing: border-box;
+    transition: border-color .12s;
+  }
+  .jud-form-input:focus { border-color: #1e3a5f; }
 </style>
 {% endblock %}
 
@@ -1144,17 +1188,218 @@ const _fin = [
 
 <!-- ══════════════ ABA: CARTEIRA JUDICIALIZADA ══════════════ -->
 <div id="inad-tab-judicializada" style="display:none;">
-  <div style="text-align:center; padding:4rem 1rem; color:#94a3b8;">
-    <svg width="48" height="48" fill="none" stroke="#cbd5e1" stroke-width="1.5"
-         viewBox="0 0 24 24" style="margin-bottom:1rem; display:block; margin-left:auto; margin-right:auto;">
-      <rect x="2" y="3" width="20" height="14" rx="2"/>
-      <line x1="8" y1="21" x2="16" y2="21"/>
-      <line x1="12" y1="17" x2="12" y2="21"/>
-    </svg>
-    <p style="margin:0; font-size:0.95rem; font-weight:600; color:#64748b;">Carteira Judicializada</p>
-    <p style="margin:6px 0 0; font-size:0.825rem;">Em construção — em breve disponível.</p>
+
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+              gap:8px; margin-bottom:16px;">
+    <span id="jud-resumo" style="font-size:0.8rem; color:var(--text-muted);"></span>
+    <button onclick="judAbrirModal()"
+            style="display:inline-flex; align-items:center; gap:6px;
+                   padding:6px 14px; background:#1e3a5f; color:#fff;
+                   border:none; border-radius:8px; font-size:0.82rem; font-weight:600;
+                   font-family:inherit; cursor:pointer; transition:opacity .15s;"
+            onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Adicionar cliente
+    </button>
+  </div>
+
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
+        <thead>
+          <tr>
+            <th class="jud-th">Cliente</th>
+            <th class="jud-th">CPF/CNPJ</th>
+            <th class="jud-th">Início dívida</th>
+            <th class="jud-th">Valor atual</th>
+            <th class="jud-th">Status</th>
+            <th class="jud-th">Nº processo</th>
+          </tr>
+        </thead>
+        <tbody id="jud-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal — Carteira Judicializada -->
+<div id="modal-jud" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
+     backdrop-filter:blur(3px); z-index:300; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.2);
+              padding:2rem 1.75rem 1.5rem; width:100%; max-width:480px;">
+    <h2 style="font-size:1.05rem; font-weight:700; margin:0 0 1.25rem; color:#0f172a;">
+      Adicionar à Carteira Judicializada
+    </h2>
+    <div style="display:flex; flex-direction:column; gap:.75rem;">
+      <div>
+        <label class="jud-form-label">Cliente</label>
+        <input id="jud-f-cliente" type="text" placeholder="Nome completo" class="jud-form-input">
+      </div>
+      <div>
+        <label class="jud-form-label">CPF/CNPJ</label>
+        <input id="jud-f-cpf" type="text" placeholder="000.000.000-00" class="jud-form-input">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+        <div>
+          <label class="jud-form-label">Início da dívida</label>
+          <input id="jud-f-inicio" type="date" class="jud-form-input">
+        </div>
+        <div>
+          <label class="jud-form-label">Valor atual (R$)</label>
+          <input id="jud-f-valor" type="number" step="0.01" min="0" placeholder="0.00" class="jud-form-input">
+        </div>
+      </div>
+      <div>
+        <label class="jud-form-label">Status</label>
+        <select id="jud-f-status" class="jud-form-input" style="background:#fff;">
+          <option value="Ajuizado">Ajuizado</option>
+          <option value="Acordo">Acordo</option>
+          <option value="Em Análise">Em Análise</option>
+        </select>
+      </div>
+      <div>
+        <label class="jud-form-label">Nº processo</label>
+        <input id="jud-f-processo" type="text" placeholder="0000000-00.0000.0.00.0000" class="jud-form-input">
+      </div>
+    </div>
+    <div style="display:flex; gap:.75rem; margin-top:1.5rem;">
+      <button onclick="judSalvar()"
+              style="flex:1; padding:.7rem; background:#1e3a5f; color:#fff; border:none;
+                     border-radius:8px; font-weight:600; cursor:pointer; font-size:.875rem; font-family:inherit;">
+        Salvar
+      </button>
+      <button onclick="judFecharModal()"
+              style="flex:1; padding:.7rem; background:#f1f5f9; color:#374151; border:none;
+                     border-radius:8px; font-weight:600; cursor:pointer; font-size:.875rem; font-family:inherit;">
+        Cancelar
+      </button>
+    </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var LS_KEY = 'ativuz_jud_carteira';
+
+  var INICIAL = [
+    { cliente: "JOSÉ IGO LIMA AMORIM",                              cpf_cnpj: "707.156.094-32", inicio_divida: "09/09/2024", valor_atual: 2332.70,  status: "Ajuizado",    num_processo: "0815681-31.2024.8.20.5004" },
+    { cliente: "MELKDERKIAN ARAUJO DA SILVA",                       cpf_cnpj: "701.168.604-56", inicio_divida: "13/03/2025", valor_atual: 1330.52,  status: "Ajuizado",    num_processo: "0818117-26.2025.8.20.5004" },
+    { cliente: "ANA CONCEIÇÃO CARNEIRO DE ALBUQUERQUE",             cpf_cnpj: "028.590.344-63", inicio_divida: "20/03/2025", valor_atual: 1113.00,  status: "Acordo",      num_processo: "0816019-05.2024.8.20.5004" },
+    { cliente: "JOSÉ MAGNO DA SILVA ROCHA JUNIOR",                  cpf_cnpj: "117.937.804-04", inicio_divida: "26/03/2025", valor_atual: 2463.32,  status: "Ajuizado",    num_processo: "0810937-56.2025.8.20.5004" },
+    { cliente: "PRISSILLA CRISLLEY JESSUS DE ALENCAR SIQUEIRA",     cpf_cnpj: "010.849.934-06", inicio_divida: "22/09/2025", valor_atual: 707.25,   status: "Ajuizado",    num_processo: "0822180-94.2025.8.20.5004" },
+    { cliente: "THIAGO VICENTE DE TEXEIRA",                         cpf_cnpj: "015.841.346-66", inicio_divida: "13/11/2025", valor_atual: 4606.24,  status: "Em Análise",  num_processo: "0821650-90.2025.8.20.5004" },
+    { cliente: "TAFAREL EUCLIOLIS OLIVEIRA MARQUES",                cpf_cnpj: "531.744.022-04", inicio_divida: "10/12/2025", valor_atual: 6288.88,  status: "Ajuizado",    num_processo: "0800579-32.2025.8.20.500"  }
+  ];
+
+  function _brl(v) {
+    return 'R$ ' + Number(v).toFixed(2)
+      .replace('.', ',')
+      .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function _badgeCls(status) {
+    if (status === 'Ajuizado')   return 'jud-badge jud-ajuizado';
+    if (status === 'Acordo')     return 'jud-badge jud-acordo';
+    return 'jud-badge jud-analise';
+  }
+
+  function _carregar() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+  }
+
+  function _salvarLS(dados) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(dados)); } catch (e) {}
+  }
+
+  function _renderizar(dados) {
+    var tbody = document.getElementById('jud-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    dados.forEach(function (r) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td class="jud-td" style="font-weight:600;">' + r.cliente + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap; color:#64748b;">' + r.cpf_cnpj + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap;">' + r.inicio_divida + '</td>' +
+        '<td class="jud-td" style="white-space:nowrap; color:#dc2626; font-weight:600;">' + _brl(r.valor_atual) + '</td>' +
+        '<td class="jud-td"><span class="' + _badgeCls(r.status) + '">' + r.status + '</span></td>' +
+        '<td class="jud-td" style="font-size:0.8rem; color:#64748b; white-space:nowrap;">' + r.num_processo + '</td>';
+      tbody.appendChild(tr);
+    });
+
+    var total = dados.reduce(function (s, r) { return s + Number(r.valor_atual); }, 0);
+    var el = document.getElementById('jud-resumo');
+    if (el) el.textContent = dados.length + ' registro' + (dados.length !== 1 ? 's' : '') + ' · Total: ' + _brl(total);
+  }
+
+  /* ── Init ── */
+  var dados = _carregar();
+  if (!dados) {
+    dados = INICIAL;
+    _salvarLS(dados);
+  }
+  _renderizar(dados);
+
+  /* ── Modal ── */
+  window.judAbrirModal = function () {
+    ['jud-f-cliente','jud-f-cpf','jud-f-inicio','jud-f-valor','jud-f-processo'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    var sel = document.getElementById('jud-f-status');
+    if (sel) sel.value = 'Ajuizado';
+    document.getElementById('modal-jud').style.display = 'flex';
+  };
+
+  window.judFecharModal = function () {
+    document.getElementById('modal-jud').style.display = 'none';
+  };
+
+  window.judSalvar = function () {
+    var cliente   = (document.getElementById('jud-f-cliente').value  || '').trim();
+    var cpf       = (document.getElementById('jud-f-cpf').value      || '').trim();
+    var inicio    = (document.getElementById('jud-f-inicio').value   || '').trim();
+    var valorRaw  = document.getElementById('jud-f-valor').value;
+    var status    = document.getElementById('jud-f-status').value;
+    var processo  = (document.getElementById('jud-f-processo').value || '').trim();
+
+    if (!cliente) { alert('Informe o nome do cliente.'); return; }
+
+    /* converte yyyy-mm-dd → dd/mm/yyyy se vier do input[date] */
+    var inicioFmt = inicio;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(inicio)) {
+      var p = inicio.split('-');
+      inicioFmt = p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    var novo = {
+      cliente:       cliente,
+      cpf_cnpj:      cpf,
+      inicio_divida: inicioFmt,
+      valor_atual:   parseFloat(valorRaw) || 0,
+      status:        status,
+      num_processo:  processo
+    };
+
+    var d = _carregar() || [];
+    d.push(novo);
+    _salvarLS(d);
+    _renderizar(d);
+    judFecharModal();
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') judFecharModal();
+  });
+})();
+</script>
 
 <script>
 function inadSwitch(aba) {
