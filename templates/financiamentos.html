@@ -177,7 +177,6 @@
         <th>ID Operação</th>
         <th>Contrato</th>
         <th>Placa</th>
-        <th>Vencimento</th>
         <th>Restante</th>
         <th>Parcelas</th>
         <th>R$ Parcela</th>
@@ -201,11 +200,6 @@
         </td>
         <td>{{ c.contrato }}</td>
         <td>{{ c.placa }}</td>
-        <td>
-          {% if c.data_vencimento %}
-            {{ c.data_vencimento[8:10] }}/{{ c.data_vencimento[5:7] }}/{{ c.data_vencimento[:4] }}
-          {% else %}—{% endif %}
-        </td>
         <td>{{ c.restante }}</td>
         <td>{{ c.parcelas_total }}</td>
         <td>{{ c.valor_parcela | brl }}</td>
