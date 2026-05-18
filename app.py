@@ -3688,6 +3688,8 @@ def api_carteira_judicializada_inserir():
         res = sb.table("carteira_judicializada").insert({
             "cliente":       cliente,
             "cpf_cnpj":      (body.get("cpf_cnpj")     or "").strip(),
+            "avalista":      (body.get("avalista")      or "").strip(),
+            "cpf_avalista":  (body.get("cpf_avalista")  or "").strip(),
             "inicio_divida": body.get("inicio_divida")  or None,
             "valor_atual":   float(body.get("valor_atual") or 0),
             "status":        body.get("status")         or "Ajuizado",
@@ -3711,6 +3713,8 @@ def api_carteira_judicializada_atualizar(registro_id):
         res = sb.table("carteira_judicializada").update({
             "cliente":        cliente,
             "cpf_cnpj":       (body.get("cpf_cnpj")     or "").strip(),
+            "avalista":       (body.get("avalista")      or "").strip(),
+            "cpf_avalista":   (body.get("cpf_avalista")  or "").strip(),
             "inicio_divida":  body.get("inicio_divida")  or None,
             "valor_atual":    float(body.get("valor_atual") or 0),
             "status":         body.get("status")         or "Ajuizado",
@@ -3718,6 +3722,71 @@ def api_carteira_judicializada_atualizar(registro_id):
             "atualizado_em":  "now()",
         }).eq("id", str(registro_id)).execute()
         return jsonify({"ok": True, "data": res.data[0] if res.data else {}})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+# ── Checklist Judicializada ───────────────────────────────────────────────────
+
+@app.route("/api/jud-checklist/<uuid:registro_id>", methods=["GET"])
+def api_jud_checklist_get(registro_id):
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        key = "JUD-" + str(registro_id)
+        res = sb.table("checklist_contratos").select("*").eq("contrato", key).execute()
+        if res.data:
+            contrato_id = res.data[0]["id"]
+        else:
+            ins = sb.table("checklist_contratos").insert({"contrato": key, "placa": "", "cliente": "", "unidade": ""}).execute()
+            contrato_id = ins.data[0]["id"]
+        itens = sb.table("checklist_itens").select("*").eq("contrato_id", contrato_id).order("created_at").execute().data or []
+        return jsonify({"ok": True, "contrato_id": contrato_id,
+                        "itens": [{"id": i["id"], "nome": i["nome"], "marcado": i["marcado"]} for i in itens]})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+@app.route("/api/jud-checklist/<uuid:registro_id>/item", methods=["POST"])
+def api_jud_checklist_add_item(registro_id):
+    body = request.get_json(silent=True) or {}
+    contrato_id = body.get("contrato_id")
+    nome = (body.get("nome") or "").strip()
+    if not contrato_id or not nome:
+        return jsonify({"ok": False, "erro": "contrato_id e nome são obrigatórios"}), 400
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        res = sb.table("checklist_itens").insert({"contrato_id": contrato_id, "nome": nome, "marcado": False}).execute()
+        item = res.data[0]
+        return jsonify({"ok": True, "item": {"id": item["id"], "nome": item["nome"], "marcado": item["marcado"]}})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+@app.route("/api/jud-checklist/item/<uuid:item_id>", methods=["PUT"])
+def api_jud_checklist_toggle(item_id):
+    body = request.get_json(silent=True) or {}
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        sb.table("checklist_itens").update({"marcado": bool(body.get("marcado", False))}).eq("id", str(item_id)).execute()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
+
+
+@app.route("/api/jud-checklist/item/<uuid:item_id>", methods=["DELETE"])
+def api_jud_checklist_delete(item_id):
+    sb = _supabase()
+    if sb is None:
+        return jsonify({"ok": False, "erro": "Supabase não configurado"}), 503
+    try:
+        sb.table("checklist_itens").delete().eq("id", str(item_id)).execute()
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "erro": str(e)}), 500
 
