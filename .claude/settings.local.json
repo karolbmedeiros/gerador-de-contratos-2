@@ -22,7 +22,10 @@
       "PowerShell(cmd /c \"py --list\")",
       "PowerShell(cmd /c \"py -3.13 -m venv \"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\.venv\"\"\")",
       "PowerShell(cmd /c \"\"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\.venv\\\\Scripts\\\\pip.exe\"\" install -r \"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\requirements.txt\"\"\")",
-      "PowerShell(cmd /c \"\"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\.venv\\\\Scripts\\\\pip.exe\"\" install --no-cache-dir -r \"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\requirements.txt\"\"\")"
+      "PowerShell(cmd /c \"\"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\.venv\\\\Scripts\\\\pip.exe\"\" install --no-cache-dir -r \"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\requirements.txt\"\"\")",
+      "WebFetch(domain:statusinvest.com.br)",
+      "PowerShell(cmd /c \"\"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\.venv\\\\Scripts\\\\pip.exe\"\" install --no-cache-dir beautifulsoup4>=4.12\")",
+      "PowerShell(cmd /c \"\"\"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Desktop\\\\projeto_ativuz\\\\.venv\\\\Scripts\\\\pip.exe\"\" install --no-cache-dir \"\"beautifulsoup4>=4.12\"\"\")"
     ]
   }
 }

@@ -82,7 +82,7 @@
       </div>
 
       <!-- ── Insights ── -->
-      {% set grp_insights_open = active in ['dre','financiamentos','capital_investido','frota','contratos','inadimplencia'] %}
+      {% set grp_insights_open = active in ['dre','financiamentos','capital_investido','frota','contratos','inadimplencia','benchmarking'] %}
       <div class="sb-group" id="grp-insights" data-open="{{ 'true' if grp_insights_open else 'false' }}">
         <button class="sb-group-head" onclick="toggleGroup('grp-insights')"
                 aria-expanded="{{ 'true' if grp_insights_open else 'false' }}" aria-controls="grp-insights-body">
@@ -166,6 +166,18 @@
                 </svg>
               </span>
               <span class="sb-item-label">Contratos</span>
+            </a>
+            <a href="{{ url_for('pagina_benchmarking') }}" class="sb-item"
+               data-active="{{ 'true' if active == 'benchmarking' else 'false' }}"
+               aria-current="{{ 'page' if active == 'benchmarking' else 'false' }}">
+              <span class="sb-item-icon" aria-hidden="true">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <line x1="18" y1="20" x2="18" y2="10"/>
+                  <line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+              </span>
+              <span class="sb-item-label">Benchmarking</span>
             </a>
           </div>
         </div>

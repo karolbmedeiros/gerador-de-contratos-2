@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Benchmarking — Ativuz{% endblock %}
+
+{% block head %}
+<style>
+.bm-header {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin-bottom: 28px;
+}
+.bm-title { font-size: 20px; font-weight: 700; color: var(--ink); }
+.bm-subtitle { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+.bm-meta { font-size: 12px; color: var(--ink-3); }
+
+.bm-refresh-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 8px;
+  background: var(--brand); color: #fff;
+  border: none; cursor: pointer; font-size: 13px; font-weight: 600;
+  transition: opacity .15s;
+}
+.bm-refresh-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.bm-wrap { overflow-x: auto; }
+
+.bm-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; min-width: 560px;
+}
+.bm-table th, .bm-table td {
+  padding: 12px 16px; text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+.bm-table th {
+  background: var(--surface-2, #f5f5f5);
+  font-weight: 700; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: var(--ink-2);
+}
+.bm-table th.col-ind {
+  text-align: left; color: var(--ink);
+}
+.bm-table td.col-ind {
+  text-align: left; font-weight: 600; color: var(--ink);
+}
+.bm-table tr:hover td { background: var(--surface-hover, #fafafa); }
+
+.bm-company-name { font-weight: 700; font-size: 14px; color: var(--ink); }
+.bm-ticker { font-size: 11px; color: var(--brand); font-weight: 600; }
+
+.bm-val { color: var(--ink); }
+.bm-nd { color: var(--ink-3); font-size: 12px; }
+.bm-erro { color: #e03; font-size: 11px; }
+
+.bm-source {
+  margin-top: 20px; font-size: 11px; color: var(--ink-3);
+}
+.bm-source a { color: var(--brand); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bm-header">
+  <div>
+    <div class="bm-title">Benchmarking — Ativuz x Mercado</div>
+    <div class="bm-subtitle">Indicadores fundamentalistas das principais locadoras listadas na B3</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span class="bm-meta" id="bm-meta">Atualizado em: {{ atualizado_em }}</span>
+    <button class="bm-refresh-btn" id="bm-refresh-btn" onclick="atualizarDados()">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Atualizar dados
+    </button>
+  </div>
+</div>
+
+<div class="bm-wrap">
+  <table class="bm-table" id="bm-table">
+    <thead>
+      <tr>
+        <th class="col-ind">Indicador</th>
+        {% for d in dados %}
+        <th>
+          <div class="bm-company-name">{{ d.nome }}</div>
+          <div class="bm-ticker">{{ d.ticker }}</div>
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% set labels = {
+        'pl':             'P/L',
+        'pvp':            'P/VP',
+        'roe':            'ROE',
+        'margem_bruta':   'M. Bruta',
+        'margem_ebit':    'M. EBIT',
+        'margem_ebitda':  'M. EBITDA',
+        'margem_liquida': 'M. Líquida',
+        'div_ebitda':     'Dív. Líq./EBITDA',
+        'div_ebit':       'Dív. Líq./EBIT'
+      } %}
+      {% for chave, label in indicadores %}
+      <tr>
+        <td class="col-ind">{{ label }}</td>
+        {% for d in dados %}
+        <td>
+          {% if d.erro and d.get(chave) == 'N/D' %}
+            <span class="bm-nd">—</span>
+          {% elif d.get(chave, 'N/D') == 'N/D' %}
+            <span class="bm-nd">N/D</span>
+          {% else %}
+            <span class="bm-val">{{ d.get(chave, '—') }}</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% for d in dados %}
+{% if d.erro %}
+<p class="bm-erro" style="margin-top:12px;">
+  ⚠ Erro ao buscar {{ d.ticker }}: {{ d.erro }}
+</p>
+{% endif %}
+{% endfor %}
+
+<p class="bm-source">
+  Fonte: <a href="https://statusinvest.com.br" target="_blank" rel="noopener">StatusInvest</a>
+  — dados atualizados a cada 4 horas.
+</p>
+
+<script>
+async function atualizarDados() {
+  const btn = document.getElementById('bm-refresh-btn');
+  const meta = document.getElementById('bm-meta');
+  btn.disabled = true;
+  btn.textContent = 'Atualizando...';
+  try {
+    const r = await fetch('/benchmarking/atualizar', { method: 'POST' });
+    const j = await r.json();
+    if (j.ok) {
+      meta.textContent = 'Atualizado em: ' + j.atualizado_em;
+      window.location.reload();
+    }
+  } catch (e) {
+    alert('Erro ao atualizar: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Atualizar dados`;
+  }
+}
+</script>
+{% endblock %}

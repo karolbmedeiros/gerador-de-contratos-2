@@ -22,6 +22,7 @@ import uuid
 
 from services.gerar_contrato import gerar_docx, gerar_termo_quitacao, gerar_notificacao_avalista, gerar_notificacao_inadimplente, nome_arquivo_saida
 from services.gerar_vistoria_entrada_saida import gerar_vistoria_entrada_saida, docx_para_pdf as _docx_para_pdf_es
+from services import benchmarking_scraper
 
 app = Flask(__name__)
 app.secret_key = _os.environ.get("SECRET_KEY", "ativuz-secret-dev-2026")
@@ -3822,6 +3823,23 @@ def api_checklist_salvar():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ── Benchmarking ──────────────────────────────────────────────────────────────
+
+@app.route("/benchmarking")
+def pagina_benchmarking():
+    dados = benchmarking_scraper.obter_dados()
+    atualizado_em = benchmarking_scraper.cache_info()
+    return render_template("benchmarking.html", active="benchmarking",
+                           dados=dados, atualizado_em=atualizado_em,
+                           indicadores=benchmarking_scraper.INDICADORES)
+
+
+@app.route("/benchmarking/atualizar", methods=["POST"])
+def atualizar_benchmarking():
+    benchmarking_scraper.obter_dados(forcar=True)
+    return jsonify({"ok": True, "atualizado_em": benchmarking_scraper.cache_info()})
 
 
 if __name__ == "__main__":
