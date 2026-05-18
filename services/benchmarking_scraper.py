@@ -1,5 +1,5 @@
-import re
 import requests
+from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
 HEADERS = {
@@ -19,65 +19,64 @@ TICKERS = [
     {"ticker": "LCAM3", "nome": "Unidas"},
 ]
 
+# Chave interna → label exato que aparece no HTML do StatusInvest
+LABEL_MAP = {
+    "pl":             "P/L",
+    "pvp":            "P/VP",
+    "roe":            "ROE",
+    "margem_bruta":   "M. Bruta",
+    "margem_ebitda":  "M. EBITDA",
+    "margem_ebit":    "M. EBIT",
+    "margem_liquida": "M. Líquida",
+    "div_ebitda":     "Dív. líquida/EBITDA",
+    "div_ebit":       "Dív. líquida/EBIT",
+}
+
 INDICADORES = [
     ("pl",            "P/L"),
     ("pvp",           "P/VP"),
     ("roe",           "ROE"),
     ("margem_bruta",  "M. Bruta"),
-    ("margem_ebit",   "M. EBIT"),
     ("margem_ebitda", "M. EBITDA"),
+    ("margem_ebit",   "M. EBIT"),
     ("margem_liquida","M. Líquida"),
-    ("div_ebitda",    "Dív. líq./EBITDA"),
-    ("div_ebit",      "Dív. líq./EBIT"),
+    ("div_ebitda",    "Dív. Líq./EBITDA"),
+    ("div_ebit",      "Dív. Líq./EBIT"),
 ]
 
 _cache: dict = {}
-_CACHE_TTL = timedelta(hours=4)
+_CACHE_TTL = timedelta(hours=24)
 
 
-def _get_html(ticker: str) -> str:
-    url = f"https://statusinvest.com.br/acoes/{ticker.lower()}"
-    r = requests.get(url, headers=HEADERS, timeout=15)
-    r.raise_for_status()
-    return r.text
-
-
-def _extrair(html: str, label: str) -> str:
-    """
-    Localiza o label no HTML e retorna o valor na strong mais próxima.
-    Tenta dois padrões diferentes para cobrir variações de estrutura.
-    """
-    escaped = re.escape(label)
-
-    # Padrão 1: label aparece como texto, valor em <strong> nas próximas 300 chars
-    m = re.search(
-        escaped + r'[\s\S]{0,300}?<strong[^>]*>\s*([\d\.,\-\–]+\s*%?)\s*</strong>',
-        html, re.IGNORECASE
-    )
-    if m:
-        return m.group(1).strip()
-
-    # Padrão 2: valor em span/b/div imediatamente após o label
-    m = re.search(
-        escaped + r'[^<]{0,80}<(?:span|b|div)[^>]*>\s*([\d\.,\-\–]+\s*%?)\s*</',
-        html, re.IGNORECASE
-    )
-    if m:
-        return m.group(1).strip()
-
-    return "N/D"
+def _build_map(html: str) -> dict:
+    """Extrai todos os indicadores da página, usando apenas o primeiro valor encontrado."""
+    soup = BeautifulSoup(html, "html.parser")
+    result = {}
+    for h3 in soup.find_all("h3", class_=lambda c: c and "title" in c and "uppercase" in c):
+        label = h3.get_text(strip=True)
+        if label in result:
+            continue
+        strong = h3.find_next("strong", class_=lambda c: c and "value" in c)
+        if strong:
+            val = strong.get_text(strip=True)
+            if val and val != "-":
+                result[label] = val
+    return result
 
 
 def scrape_ticker(ticker: str) -> dict:
     try:
-        html = _get_html(ticker)
+        url = f"https://statusinvest.com.br/acoes/{ticker.lower()}"
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        mapa = _build_map(r.text)
         resultado = {"ticker": ticker, "erro": None}
-        for chave, label in INDICADORES:
-            resultado[chave] = _extrair(html, label)
+        for chave, label_html in LABEL_MAP.items():
+            resultado[chave] = mapa.get(label_html, "N/D")
         return resultado
     except Exception as e:
         return {"ticker": ticker, "erro": str(e),
-                **{chave: "N/D" for chave, _ in INDICADORES}}
+                **{chave: "N/D" for chave in LABEL_MAP}}
 
 
 def obter_dados(forcar: bool = False) -> list[dict]:
@@ -86,7 +85,6 @@ def obter_dados(forcar: bool = False) -> list[dict]:
         return _cache["dados"]
 
     dados = [scrape_ticker(t["ticker"]) for t in TICKERS]
-
     for i, d in enumerate(dados):
         d["nome"] = TICKERS[i]["nome"]
 
