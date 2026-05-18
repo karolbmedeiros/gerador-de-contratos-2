@@ -2954,7 +2954,7 @@ def _calcular_indicadores_ativuz():
             return "N/D"
         return f"{numerador / denominador:.2f}".replace(".", ",")
 
-    rl     = dre["rl"]
+    rl     = dre["receita_liquida"]
     ebitda = dre["ebitda"]
     ebit   = ebitda - depreciacao_anual
     pct_ebit = (ebit / rl) if rl else 0
