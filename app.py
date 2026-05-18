@@ -2767,19 +2767,22 @@ def _dre_ler_lancamentos():
                 if not isinstance(dt, datetime) or not isinstance(valor, (int, float)):
                     continue
                 cod, _ = _split(str(row[2]) if row[2] else "")
-                registros.append({"codigo": cod, "dt": dt, "valor": float(valor)})
+                num = str(row[6]).strip() if row[6] else ""
+                registros.append({"num": num, "codigo": cod, "dt": dt, "valor": float(valor)})
         except Exception:
             pass
         return registros
 
-    # Deduplicação por nome de arquivo: ignora se o mesmo nome aparecer duas vezes
-    nomes_vistos = set()
+    # Combina todos os arquivos e deduplica por (número do lançamento, código de natureza)
+    vistos = set()
     result = []
-    for arq in arquivos:
-        if arq.name in nomes_vistos:
-            continue
-        nomes_vistos.add(arq.name)
-        result.extend(_ler_arquivo(arq))
+    for arq in sorted(arquivos, key=lambda p: p.stat().st_mtime):
+        for reg in _ler_arquivo(arq):
+            chave = (reg["num"], reg["codigo"])
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            result.append(reg)
     return result
 
 
