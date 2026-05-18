@@ -17,7 +17,8 @@
       "Bash(Test-Path \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\gerar_vistoria_entrada_saida.py\")",
       "Bash(Test-Path \"C:\\\\Users\\\\anabm\\\\OneDrive\\\\Documentos\\\\projeto_ativuz\\\\docx_templates\\\\VISTORIA_ENTRADA_SAIDA_TEMPLATE.docx\")",
       "Bash(copy *)",
-      "Bash(Select-Object -ExpandProperty FullName)"
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(py *)"
     ]
   }
 }
