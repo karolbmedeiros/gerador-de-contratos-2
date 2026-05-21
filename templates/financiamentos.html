@@ -104,6 +104,11 @@
 .prog-fill.yellow { background: #e6a817; }
 .prog-fill.red    { background: var(--danger, #e53e3e); }
 .prog-pct { font-size: 11px; font-weight: 600; min-width: 30px; text-align: right; }
+.fin-tfoot td {
+  padding: 7px 7px; border-top: 2px solid var(--line);
+  background: var(--bg); font-variant-numeric: tabular-nums;
+  white-space: nowrap; text-align: center;
+}
 </style>
 {% endblock %}
 
@@ -223,6 +228,22 @@
       </tr>
       {% endfor %}
     </tbody>
+    <tfoot>
+      <tr class="fin-tfoot">
+        <td colspan="2" style="text-align:left;font-weight:700;color:var(--ink)">Total</td>
+        <td class="col-vencimento"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td style="font-weight:700;color:var(--ink)">{{ contratos | sum(attribute='valor_parcela') | brl }}</td>
+        <td style="font-weight:700;color:var(--ink)">{{ contratos | sum(attribute='total_pago') | brl }}</td>
+        <td style="font-weight:700;color:var(--ink)">{{ contratos | sum(attribute='total') | brl }}</td>
+        <td style="font-weight:700;color:var(--ink)">{{ contratos | sum(attribute='devedor') | brl }}</td>
+        <td style="font-weight:700;color:var(--ink)">{{ contratos | sum(attribute='c_prazo') | brl }}</td>
+        <td style="font-weight:700;color:var(--ink)">{{ contratos | sum(attribute='l_prazo') | brl }}</td>
+        <td></td>
+      </tr>
+    </tfoot>
   </table>
 </div>
 
