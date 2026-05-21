@@ -223,6 +223,55 @@
   background:#dcfce7; color:#15803d;
   letter-spacing:.04em; text-transform:uppercase;
 }
+
+/* ── Sob Adm — controle de recebimentos ── */
+.adm-kpis5 { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:28px; }
+@media (max-width:1200px){ .adm-kpis5 { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:600px) { .adm-kpis5 { grid-template-columns:repeat(2,1fr); } }
+.adm-kpi-icon.red   { background:rgba(229,72,77,.12); color:#E5484D; }
+.adm-kpi-icon.slate { background:rgba(100,116,139,.12); color:#64748b; }
+.adm-kpi-value.up   { color:#22a06b; }
+.adm-kpi-value.down { color:#E5484D; }
+
+/* Controle semanal — cards accordion */
+.adm-ctrl-card { background:var(--surface); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+.adm-ctrl-hd {
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:12px 16px; cursor:pointer; user-select:none;
+  border-bottom:1px solid transparent; transition:background .12s;
+}
+.adm-ctrl-hd:hover { background:#f5f5f8; }
+.adm-ctrl-hd.open  { border-bottom-color:var(--line); background:#f9f9fb; }
+.adm-ctrl-hd-left  { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.adm-ctrl-placa    { font-weight:700; font-family:monospace; letter-spacing:.04em; color:var(--ink); font-size:13px; }
+.adm-ctrl-modelo   { font-size:12px; color:var(--ink-2); font-weight:600; }
+.adm-ctrl-prop     { font-size:11px; color:var(--ink-3); }
+.adm-ctrl-hd-right { display:flex; align-items:center; gap:7px; flex-shrink:0; }
+.adm-ctrl-pill { font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+.adm-ctrl-pill.green { background:#dcfce7; color:#15803d; }
+.adm-ctrl-pill.red   { background:#fee2e2; color:#dc2626; }
+.adm-ctrl-pill.blue  { background:#dbeafe; color:#1d4ed8; }
+.adm-ctrl-pill.gray  { background:#f1f5f9; color:#475569; }
+.adm-ctrl-arrow { font-size:10px; color:var(--ink-3); transition:transform .2s; display:inline-block; }
+.adm-ctrl-hd.open .adm-ctrl-arrow { transform:rotate(180deg); }
+.adm-ctrl-body { padding:16px; display:none; }
+.adm-ctrl-body.open { display:block; }
+.adm-ctrl-weeks { display:flex; flex-wrap:wrap; gap:7px; }
+.adm-week-cell {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  width:60px; padding:6px 4px; border-radius:7px; border:1px solid var(--line);
+  transition:background .12s;
+}
+.adm-week-cell.ok   { background:#f0fdf4; border-color:#86efac; }
+.adm-week-cell.pend { background:#fff7f7; border-color:#fca5a5; }
+.adm-week-cell.fut  { background:#f8fafc; border-color:#e2e8f0; opacity:.65; }
+.adm-week-cb   { width:20px; height:20px; cursor:pointer; accent-color:#22a06b; }
+.adm-week-cb:disabled { cursor:default; }
+.adm-week-date { font-size:10.5px; color:var(--ink-2); font-weight:700; }
+.adm-week-val  { font-size:9.5px;  color:var(--ink-3); }
+.adm-ctrl-prog { margin-bottom:14px; }
+.adm-ctrl-prog-bar { height:5px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:4px; }
+.adm-ctrl-prog-fill { height:100%; border-radius:3px; background:#22a06b; transition:width .4s; }
 </style>
 {% endblock %}
 
@@ -350,131 +399,63 @@
   <!-- ══ ABA: SOB ADMINISTRAÇÃO ══ -->
   <div id="tab-adm" style="display:none">
 
-  {% if sob_adm_erro %}
-    <div class="fr-error">Erro ao carregar dados: {{ sob_adm_erro }}</div>
-  {% elif not sob_adm %}
-    <div class="fr-error" style="background:#fefce8;border-color:#fde68a;color:#92400e;">Nenhum veículo sob administração encontrado na planilha.</div>
-  {% else %}
+  <div id="adm-loading" style="text-align:center;padding:48px;color:var(--ink-3);font-size:13px;">Carregando dados...</div>
+  <div id="adm-error" class="fr-error" style="display:none;"></div>
 
-  {# ── KPIs ── #}
-  {% set total_vei = sob_adm | length %}
-  {% set proprietarios = sob_adm | map(attribute='proprietario') | list | unique | list %}
-  {% set receita_sem = sob_adm | selectattr('taxa_semanal') | sum(attribute='taxa_semanal') %}
-  {% set receita_mes = receita_sem * 4 %}
-  {% set receita_acum = sob_adm | sum(attribute='receita_acum') %}
-  {% set dias_total = sob_adm | sum(attribute='dias_ativos') %}
+  <div id="adm-content" style="display:none">
 
-  <div class="adm-kpis">
+    <!-- KPIs 5 colunas (dinâmico via JS) -->
+    <div class="adm-kpis5" id="adm-kpis-wrap"></div>
 
-    <div class="adm-kpi">
-      <div class="adm-kpi-icon orange">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M5 17H3a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h1l2-3h12l2 3h1a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-          <circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>
-        </svg>
+    <!-- Gráficos linha 1 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="fr-chart-card">
+        <div class="fr-chart-title">Receita Acumulada vs Projetada</div>
+        <div class="fr-chart-wrap"><canvas id="adm-chart-acum"></canvas></div>
       </div>
-      <div class="adm-kpi-label">Total de Veículos</div>
-      <div class="adm-kpi-value">{{ total_vei }}</div>
-      <div class="adm-kpi-sub">{{ proprietarios | length }} proprietário{{ 's' if proprietarios | length != 1 else '' }}</div>
+      <div class="fr-chart-card">
+        <div class="fr-chart-title">Recebido por Veículo</div>
+        <div class="fr-chart-wrap"><canvas id="adm-chart-veic"></canvas></div>
+      </div>
     </div>
 
-    <div class="adm-kpi">
-      <div class="adm-kpi-icon green">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <line x1="12" y1="1" x2="12" y2="23"/>
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-        </svg>
+    <!-- Gráfico linha 2 — largura total -->
+    <div style="margin-bottom:28px;">
+      <div class="fr-chart-card">
+        <div class="fr-chart-title">Fluxo Mensal de Recebimentos</div>
+        <div class="fr-chart-wrap" style="height:200px"><canvas id="adm-chart-mensal"></canvas></div>
       </div>
-      <div class="adm-kpi-label">Receita Semanal (Taxa Adm. 15%)</div>
-      <div class="adm-kpi-value sm">R$ {{ receita_sem | brl }}</div>
-      <div class="adm-kpi-sub">15% sobre R$ {{ (receita_sem / 0.15) | brl }}/sem</div>
     </div>
 
-    <div class="adm-kpi">
-      <div class="adm-kpi-icon blue">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-          <line x1="16" y1="2" x2="16" y2="6"/>
-          <line x1="8" y1="2" x2="8" y2="6"/>
-          <line x1="3" y1="10" x2="21" y2="10"/>
-        </svg>
-      </div>
-      <div class="adm-kpi-label">Receita Mensal Estimada</div>
-      <div class="adm-kpi-value sm">R$ {{ receita_mes | brl }}</div>
-      <div class="adm-kpi-sub">estimativa baseada em 4 semanas</div>
+    <!-- Controle semanal accordion -->
+    <p class="fr-section">Controle Semanal de Recebimentos</p>
+    <div id="adm-controle" style="margin-bottom:28px;"></div>
+
+    <!-- Tabela resumo por veículo -->
+    <p class="fr-section">Resumo por Veículo</p>
+    <div class="adm-table-wrap">
+      <table class="adm-table" style="min-width:900px;">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Modelo</th>
+            <th>Proprietário</th>
+            <th>Locatário</th>
+            <th>Val. Semanal</th>
+            <th>Taxa 15%/sem</th>
+            <th>Início</th>
+            <th>Término</th>
+            <th>Recebido</th>
+            <th>Pendente</th>
+            <th>Projetado</th>
+          </tr>
+        </thead>
+        <tbody id="adm-tbody"></tbody>
+      </table>
     </div>
 
-    <div class="adm-kpi">
-      <div class="adm-kpi-icon amber">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-        </svg>
-      </div>
-      <div class="adm-kpi-label">Receita Acumulada no Contrato</div>
-      <div class="adm-kpi-value sm">R$ {{ receita_acum | brl }}</div>
-      <div class="adm-kpi-sub">{{ dias_total }} dias de contrato ativo</div>
-    </div>
+  </div>{# /adm-content #}
 
-  </div>
-
-  {# ── Tabela agrupada por proprietário ── #}
-  {% set grupos = {} %}
-  {% for v in sob_adm %}
-    {% if v.proprietario not in grupos %}{% set _ = grupos.update({v.proprietario: []}) %}{% endif %}
-    {% set _ = grupos[v.proprietario].append(v) %}
-  {% endfor %}
-
-  <div class="adm-table-wrap">
-    <table class="adm-table" id="adm-table">
-      <thead>
-        <tr>
-          <th data-col="placa">Placa</th>
-          <th data-col="modelo">Modelo</th>
-          <th data-col="proprietario">Proprietário</th>
-          <th data-col="locatario">Locatário</th>
-          <th data-col="valor_semanal">Valor Semanal</th>
-          <th data-col="taxa_semanal">Taxa Adm. Sem.</th>
-          <th data-col="inicio">Início Contrato</th>
-          <th data-col="termino">Término Contrato</th>
-          <th data-col="situacao">Situação</th>
-        </tr>
-      </thead>
-      <tbody id="adm-tbody">
-        {% for prop, veics in grupos.items() %}
-        <tr>
-          <td colspan="9" style="padding:0;">
-            <div class="adm-group-hd" style="padding:10px 12px 6px;">
-              <span class="adm-group-hd-label">{{ prop }}</span>
-              <div class="adm-group-hd-line"></div>
-              <span style="font-size:11px;color:var(--ink-3);white-space:nowrap;">{{ veics | length }} veículo{{ 's' if veics | length != 1 else '' }}</span>
-            </div>
-          </td>
-        </tr>
-        {% for v in veics %}
-        <tr data-prop="{{ v.proprietario }}" data-inicio="{{ v.inicio }}">
-          <td style="font-weight:700;font-family:monospace;letter-spacing:.03em;">{{ v.placa }}</td>
-          <td class="td-left" style="font-weight:600;color:var(--ink);">{{ v.modelo }}</td>
-          <td class="td-left" style="font-size:11px;">{{ v.proprietario }}</td>
-          <td class="td-left" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;" title="{{ v.locatario }}">{{ v.locatario }}</td>
-          <td style="font-weight:600;color:var(--ink);">{% if v.valor_semanal %}R$ {{ v.valor_semanal | brl }}{% else %}—{% endif %}</td>
-          <td style="font-weight:600;color:#22a06b;">{% if v.taxa_semanal %}R$ {{ v.taxa_semanal | brl }}{% else %}—{% endif %}</td>
-          <td>{{ v.inicio or '—' }}</td>
-          <td>{{ v.termino or '—' }}</td>
-          <td>
-            {% if v.situacao and 'locado' in v.situacao | lower %}
-              <span class="adm-badge-locado">Locado</span>
-            {% else %}
-              <span style="font-size:11px;color:var(--ink-3);">{{ v.situacao or '—' }}</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  {% endif %}
   </div>{# /tab-adm #}
 
 </div>{# /fr-wrap #}
@@ -529,7 +510,455 @@ function frTabSwitch(tab) {
   document.getElementById('tab-adm').style.display     = tab === 'adm'     ? '' : 'none';
   document.getElementById('tab-btn-propria').classList.toggle('active', tab === 'propria');
   document.getElementById('tab-btn-adm').classList.toggle('active', tab === 'adm');
+  if (tab === 'adm') admCarregar();
 }
+</script>
+<script>
+/* ══ SOB ADMINISTRAÇÃO — controle de recebimentos ══ */
+(function () {
+'use strict';
+
+var _admData   = null;   /* veiculos[] */
+var _admLoaded = false;
+var _admCharts = {};
+
+/* ── Formatters ── */
+function admBrl(v) {
+  if (v == null || isNaN(v)) return '—';
+  return Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtD(iso) { /* "2025-01-06" → "06/01" */
+  if (!iso) return '—';
+  return iso.slice(8, 10) + '/' + iso.slice(5, 7);
+}
+function fmtMesKey(iso) { /* "2025-01-06" → "2025-01" */
+  return iso ? iso.slice(0, 7) : '';
+}
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/* ── Carregar dados ── */
+window.admCarregar = function admCarregar() {
+  if (_admLoaded) return;
+  document.getElementById('adm-loading').style.display = '';
+  document.getElementById('adm-error').style.display   = 'none';
+  document.getElementById('adm-content').style.display = 'none';
+
+  fetch('/api/sob-adm/recebimentos')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      document.getElementById('adm-loading').style.display = 'none';
+      if (!d.ok) {
+        document.getElementById('adm-error').textContent = 'Erro: ' + (d.erro || 'desconhecido');
+        document.getElementById('adm-error').style.display = '';
+        return;
+      }
+      _admData   = d.veiculos;
+      _admLoaded = true;
+      renderAll();
+      document.getElementById('adm-content').style.display = '';
+    })
+    .catch(function (e) {
+      document.getElementById('adm-loading').style.display = 'none';
+      document.getElementById('adm-error').textContent = 'Erro de rede: ' + e.message;
+      document.getElementById('adm-error').style.display = '';
+    });
+};
+
+function renderAll() {
+  renderKPIs();
+  renderChartAcumulado();
+  renderChartVeiculo();
+  renderChartMensal();
+  renderControle();
+  renderTabela();
+}
+
+/* ── KPIs ── */
+function renderKPIs() {
+  var hoje = todayIso();
+
+  /* próximas 4 segundas-feiras */
+  var mondays4 = [];
+  var d = new Date();
+  var dDow = d.getDay();
+  var skip = dDow === 1 ? 0 : (8 - dDow) % 7;
+  d.setDate(d.getDate() + skip);
+  for (var i = 0; i < 4; i++) {
+    mondays4.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 7);
+  }
+
+  var totalRec = 0, totalPend = 0, totalFut = 0, prox4 = 0;
+  _admData.forEach(function (v) {
+    totalRec  += v.recebido_total   || 0;
+    totalPend += v.pendente_total   || 0;
+    totalFut  += v.projetado_futuro || 0;
+    v.semanas.forEach(function (s) {
+      if (!s.passada && mondays4.indexOf(s.data) >= 0) prox4 += v.taxa_semanal;
+    });
+  });
+
+  var totalRecPend = totalRec + totalPend;
+  var pctRec = totalRecPend > 0 ? (totalRec / totalRecPend * 100) : 0;
+  var pctColor = pctRec >= 90 ? 'green' : (pctRec >= 70 ? 'amber' : 'red');
+
+  document.getElementById('adm-kpis-wrap').innerHTML = [
+    _kpiCard('Total Recebido',        'R$ ' + admBrl(totalRec),       'green', _admData.length + ' veíc. ativos',            _svgMoney()),
+    _kpiCard('Pendentes',             'R$ ' + admBrl(totalPend),      totalPend > 0 ? 'red' : 'green', 'semanas passadas não recebidas', _svgAlert()),
+    _kpiCard('Próximas 4 Semanas',    'R$ ' + admBrl(prox4),          'blue',  'previsão próximo mês',                       _svgCalendar()),
+    _kpiCard('Projetado até Fim',     'R$ ' + admBrl(totalFut),       'amber', 'semanas futuras nos contratos',               _svgTrend()),
+    _kpiCard('Taxa de Recebimento',   pctRec.toFixed(1) + '%',        pctColor,'recebido / (recebido + pendente)',            _svgCheck()),
+  ].join('');
+}
+
+function _kpiCard(label, value, color, sub, icon) {
+  return '<div class="adm-kpi">' +
+    '<div class="adm-kpi-icon ' + color + '">' + icon + '</div>' +
+    '<div class="adm-kpi-label">' + label + '</div>' +
+    '<div class="adm-kpi-value sm">' + value + '</div>' +
+    '<div class="adm-kpi-sub">' + sub + '</div>' +
+    '</div>';
+}
+function _svgMoney()    { return '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'; }
+function _svgAlert()    { return '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'; }
+function _svgCalendar() { return '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'; }
+function _svgTrend()    { return '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>'; }
+function _svgCheck()    { return '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'; }
+
+/* ── Gráfico: Acumulado vs Projetado ── */
+function renderChartAcumulado() {
+  var weekSet = {};
+  _admData.forEach(function (v) { v.semanas.forEach(function (s) { weekSet[s.data] = true; }); });
+  var sorted = Object.keys(weekSet).sort();
+
+  var cumRec = 0, cumProj = 0, dataRec = [], dataProj = [];
+  sorted.forEach(function (d) {
+    _admData.forEach(function (v) {
+      v.semanas.forEach(function (s) {
+        if (s.data !== d) return;
+        cumProj += v.taxa_semanal;
+        if (s.passada && s.recebido) cumRec += v.taxa_semanal;
+      });
+    });
+    dataRec.push(cumRec);
+    dataProj.push(cumProj);
+  });
+
+  _destroyChart('acum');
+  var ctx = document.getElementById('adm-chart-acum');
+  if (!ctx) return;
+  _admCharts.acum = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: sorted.map(fmtD),
+      datasets: [
+        { label: 'Recebido',  data: dataRec,  borderColor: '#22a06b', backgroundColor: 'rgba(34,160,107,.1)', borderWidth: 2, fill: true,  tension: 0.3, pointRadius: 0 },
+        { label: 'Projetado', data: dataProj, borderColor: '#94a3b8', backgroundColor: 'transparent',          borderWidth: 2, borderDash: [4,3], fill: false, tension: 0.3, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 12 } },
+        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': R$ ' + admBrl(c.parsed.y); } } }
+      },
+      scales: {
+        x: { ticks: { font: { size: 9 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 14 } },
+        y: { ticks: { callback: function (v) { return 'R$' + (v / 1000).toFixed(1) + 'k'; }, font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+/* ── Gráfico: Por Veículo ── */
+function renderChartVeiculo() {
+  _destroyChart('veic');
+  var ctx = document.getElementById('adm-chart-veic');
+  if (!ctx) return;
+  _admCharts.veic = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: _admData.map(function (v) { return v.placa; }),
+      datasets: [
+        { label: 'Recebido', data: _admData.map(function (v) { return v.recebido_total; }),   backgroundColor: '#22a06b' },
+        { label: 'Pendente', data: _admData.map(function (v) { return v.pendente_total; }),   backgroundColor: '#ef4444' },
+        { label: 'Futuro',   data: _admData.map(function (v) { return v.projetado_futuro; }), backgroundColor: '#e2e8f0' }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 12 } },
+        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': R$ ' + admBrl(c.parsed.x); } } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { callback: function (v) { return 'R$' + (v / 1000).toFixed(0) + 'k'; }, font: { size: 9 } } },
+        y: { stacked: true, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+/* ── Gráfico: Fluxo Mensal ── */
+function renderChartMensal() {
+  var byMes = {};
+  _admData.forEach(function (v) {
+    v.semanas.forEach(function (s) {
+      var mes = fmtMesKey(s.data);
+      if (!byMes[mes]) byMes[mes] = { rec: 0, pend: 0, fut: 0 };
+      if (!s.passada)          byMes[mes].fut  += v.taxa_semanal;
+      else if (s.recebido)     byMes[mes].rec  += v.taxa_semanal;
+      else                     byMes[mes].pend += v.taxa_semanal;
+    });
+  });
+
+  var meses = Object.keys(byMes).sort();
+  var mN = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var labels = meses.map(function (m) {
+    var p = m.split('-');
+    return mN[parseInt(p[1], 10) - 1] + '/' + p[0].slice(2);
+  });
+
+  _destroyChart('mensal');
+  var ctx = document.getElementById('adm-chart-mensal');
+  if (!ctx) return;
+  _admCharts.mensal = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'Recebido', data: meses.map(function (m) { return byMes[m].rec;  }), backgroundColor: '#22a06b' },
+        { label: 'Pendente', data: meses.map(function (m) { return byMes[m].pend; }), backgroundColor: '#ef4444' },
+        { label: 'Futuro',   data: meses.map(function (m) { return byMes[m].fut;  }), backgroundColor: '#e2e8f0' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 12 } },
+        tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': R$ ' + admBrl(c.parsed.y); } } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } } },
+        y: { stacked: true, ticks: { callback: function (v) { return 'R$' + (v / 1000).toFixed(1) + 'k'; }, font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+function _destroyChart(key) {
+  if (_admCharts[key]) { _admCharts[key].destroy(); delete _admCharts[key]; }
+}
+
+/* ── Controle semanal accordion ── */
+function renderControle() {
+  var container = document.getElementById('adm-controle');
+  container.innerHTML = '';
+
+  _admData.forEach(function (v, vi) {
+    var semPass = v.semanas.filter(function (s) { return s.passada; });
+    var nRec    = semPass.filter(function (s) { return s.recebido; }).length;
+    var nPend   = semPass.filter(function (s) { return !s.recebido; }).length;
+    var nFut    = v.semanas.filter(function (s) { return !s.passada; }).length;
+    var total   = v.recebido_total + v.pendente_total;
+    var pct     = total > 0 ? Math.round(v.recebido_total / total * 100) : 0;
+
+    var card = document.createElement('div');
+    card.className = 'adm-ctrl-card';
+    card.id = 'adm-ctrl-' + vi;
+
+    /* cabeçalho */
+    var hd = document.createElement('div');
+    hd.className = 'adm-ctrl-hd';
+    hd.innerHTML =
+      '<div class="adm-ctrl-hd-left">' +
+        '<span class="adm-ctrl-placa">' + v.placa + '</span>' +
+        '<span class="adm-ctrl-modelo">' + (v.modelo || '') + '</span>' +
+        '<span class="adm-ctrl-prop">' + (v.proprietario || '') + '</span>' +
+      '</div>' +
+      '<div class="adm-ctrl-hd-right" id="adm-ctrl-hd-right-' + vi + '">' +
+        _pills(nRec, nPend, nFut) +
+        '<span class="adm-ctrl-arrow">▼</span>' +
+      '</div>';
+
+    /* corpo */
+    var body = document.createElement('div');
+    body.className = 'adm-ctrl-body';
+    body.id = 'adm-ctrl-body-' + vi;
+
+    /* barra de progresso */
+    body.innerHTML =
+      '<div class="adm-ctrl-prog" id="adm-ctrl-prog-' + vi + '">' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-3);margin-bottom:3px;">' +
+          '<span id="adm-ctrl-prog-txt-' + vi + '">R$ ' + admBrl(v.recebido_total) + ' recebido de R$ ' + admBrl(total) + '</span>' +
+          '<span id="adm-ctrl-prog-pct-' + vi + '">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="adm-ctrl-prog-bar"><div class="adm-ctrl-prog-fill" id="adm-ctrl-prog-fill-' + vi + '" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+
+    /* semanas */
+    var weeksWrap = document.createElement('div');
+    weeksWrap.className = 'adm-ctrl-weeks';
+
+    v.semanas.forEach(function (s) {
+      var state = !s.passada ? 'fut' : (s.recebido ? 'ok' : 'pend');
+      var cell = document.createElement('div');
+      cell.className = 'adm-week-cell ' + state;
+      cell.dataset.vi   = vi;
+      cell.dataset.data = s.data;
+
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'adm-week-cb';
+      cb.checked  = s.recebido;
+      cb.disabled = !s.passada;
+      cb.dataset.placa = v.placa;
+      cb.dataset.data  = s.data;
+      cb.dataset.taxa  = v.taxa_semanal;
+      cb.dataset.vi    = vi;
+      cb.addEventListener('change', _onToggle);
+
+      var dateSpan = document.createElement('span');
+      dateSpan.className = 'adm-week-date';
+      dateSpan.textContent = fmtD(s.data);
+
+      var valSpan = document.createElement('span');
+      valSpan.className = 'adm-week-val';
+      valSpan.textContent = 'R$ ' + admBrl(v.taxa_semanal);
+
+      cell.appendChild(cb);
+      cell.appendChild(dateSpan);
+      cell.appendChild(valSpan);
+      weeksWrap.appendChild(cell);
+    });
+
+    body.appendChild(weeksWrap);
+
+    hd.addEventListener('click', function () {
+      var open = body.classList.contains('open');
+      hd.classList.toggle('open', !open);
+      body.classList.toggle('open', !open);
+    });
+
+    card.appendChild(hd);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function _pills(nRec, nPend, nFut) {
+  return (nRec  ? '<span class="adm-ctrl-pill green">' + nRec  + ' rec.</span>' : '') +
+         (nPend ? '<span class="adm-ctrl-pill red">'   + nPend + ' pend.</span>' : '') +
+         (nFut  ? '<span class="adm-ctrl-pill gray">'  + nFut  + ' fut.</span>' : '');
+}
+
+function _onToggle(e) {
+  var cb       = e.currentTarget;
+  var placa    = cb.dataset.placa;
+  var data     = cb.dataset.data;
+  var taxa     = parseFloat(cb.dataset.taxa);
+  var vi       = parseInt(cb.dataset.vi, 10);
+  var novoRec  = cb.checked;
+
+  cb.disabled = true;
+
+  fetch('/api/sob-adm/recebimentos/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ placa: placa, data_semana: data })
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (d) {
+    cb.disabled = false;
+    if (!d.ok) {
+      cb.checked = !novoRec;
+      alert('Erro: ' + (d.erro || 'falha ao salvar'));
+      return;
+    }
+    /* atualizar dados em memória */
+    var v = _admData[vi];
+    for (var i = 0; i < v.semanas.length; i++) {
+      if (v.semanas[i].data === data) {
+        var era = v.semanas[i].recebido;
+        v.semanas[i].recebido = novoRec;
+        if (novoRec && !era) { v.recebido_total += taxa; v.pendente_total -= taxa; }
+        else if (!novoRec && era) { v.recebido_total -= taxa; v.pendente_total += taxa; }
+        break;
+      }
+    }
+    /* atualizar estado visual da célula */
+    var cell = cb.closest('.adm-week-cell');
+    if (cell) {
+      cell.classList.remove('ok', 'pend', 'fut');
+      cell.classList.add(novoRec ? 'ok' : 'pend');
+    }
+    /* atualizar cabeçalho + progresso do card */
+    _updateCardHeader(vi);
+    /* atualizar KPIs e gráficos */
+    renderKPIs();
+    renderChartAcumulado();
+    renderChartVeiculo();
+    renderChartMensal();
+    renderTabela();
+  })
+  .catch(function (err) {
+    cb.disabled = false;
+    cb.checked = !novoRec;
+    alert('Erro de rede: ' + err.message);
+  });
+}
+
+function _updateCardHeader(vi) {
+  var v = _admData[vi];
+  var semPass = v.semanas.filter(function (s) { return s.passada; });
+  var nRec  = semPass.filter(function (s) { return  s.recebido; }).length;
+  var nPend = semPass.filter(function (s) { return !s.recebido; }).length;
+  var nFut  = v.semanas.filter(function (s) { return !s.passada; }).length;
+  var total = v.recebido_total + v.pendente_total;
+  var pct   = total > 0 ? Math.round(v.recebido_total / total * 100) : 0;
+
+  var hd = document.getElementById('adm-ctrl-hd-right-' + vi);
+  if (hd) {
+    var arrow = hd.querySelector('.adm-ctrl-arrow');
+    var arrowStyle = (arrow && arrow.style.transform) ? ' style="transform:' + arrow.style.transform + '"' : '';
+    hd.innerHTML = _pills(nRec, nPend, nFut) + '<span class="adm-ctrl-arrow"' + arrowStyle + '>▼</span>';
+  }
+
+  var fill = document.getElementById('adm-ctrl-prog-fill-' + vi);
+  if (fill) fill.style.width = pct + '%';
+
+  var txtEl = document.getElementById('adm-ctrl-prog-txt-' + vi);
+  if (txtEl) txtEl.textContent = 'R$ ' + admBrl(v.recebido_total) + ' recebido de R$ ' + admBrl(total);
+
+  var pctEl = document.getElementById('adm-ctrl-prog-pct-' + vi);
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+/* ── Tabela resumo ── */
+function renderTabela() {
+  var tbody = document.getElementById('adm-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = _admData.map(function (v) {
+    return '<tr>' +
+      '<td style="font-weight:700;font-family:monospace;letter-spacing:.03em;">' + v.placa + '</td>' +
+      '<td class="td-left" style="font-weight:600;color:var(--ink);">' + (v.modelo || '—') + '</td>' +
+      '<td class="td-left" style="font-size:11px;">' + (v.proprietario || '—') + '</td>' +
+      '<td class="td-left" style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;" title="' + (v.locatario || '') + '">' + (v.locatario || '—') + '</td>' +
+      '<td>R$ ' + admBrl(v.valor_semanal)    + '</td>' +
+      '<td style="font-weight:600;color:#22a06b;">R$ ' + admBrl(v.taxa_semanal) + '</td>' +
+      '<td>' + (v.inicio   || '—') + '</td>' +
+      '<td>' + (v.termino  || '—') + '</td>' +
+      '<td style="color:#22a06b;font-weight:700;">R$ ' + admBrl(v.recebido_total)   + '</td>' +
+      '<td style="color:#ef4444;font-weight:700;">R$ ' + admBrl(v.pendente_total)   + '</td>' +
+      '<td style="color:#94a3b8;font-weight:600;">R$ ' + admBrl(v.projetado_futuro) + '</td>' +
+      '</tr>';
+  }).join('');
+}
+
+})();
 </script>
 <script>
 (function () {

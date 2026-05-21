@@ -3657,6 +3657,135 @@ def _ler_sob_administracao():
         return [], str(e)
 
 
+def _gerar_segundas(ini, fim):
+    """Retorna todas as segundas-feiras em [ini, fim] inclusive."""
+    from datetime import timedelta
+    days = (7 - ini.weekday()) % 7   # 0 se já é segunda
+    cur = ini + timedelta(days=days)
+    result = []
+    while cur <= fim:
+        result.append(cur)
+        cur += timedelta(weeks=1)
+    return result
+
+
+@app.route("/api/sob-adm/recebimentos")
+def api_sob_adm_recebimentos():
+    """
+    Retorna cada veículo com seu calendário de segundas-feiras (passadas + futuras)
+    e o status de recebimento de cada uma.
+
+    Supabase — tabela necessária (execute uma vez):
+      CREATE TABLE sob_adm_recebimentos (
+        id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+        placa text NOT NULL,
+        data_semana date NOT NULL,
+        taxa_valor numeric(10,2) NOT NULL DEFAULT 0,
+        recebido boolean DEFAULT false,
+        created_at timestamptz DEFAULT now(),
+        UNIQUE(placa, data_semana)
+      );
+    """
+    from datetime import timedelta
+    sob_adm, erro = _ler_sob_administracao()
+    if erro:
+        return jsonify({"ok": False, "erro": erro})
+
+    # Carrega registros do Supabase
+    recebidos = {}   # (placa, "YYYY-MM-DD") -> bool
+    sb = _supabase()
+    if sb:
+        try:
+            res = sb.table("sob_adm_recebimentos").select("placa,data_semana,recebido").execute()
+            for r in (res.data or []):
+                ds = str(r["data_semana"])[:10]
+                recebidos[(r["placa"], ds)] = bool(r.get("recebido", False))
+        except Exception:
+            pass
+
+    hoje = date.today()
+    result = []
+
+    for v in sob_adm:
+        if not v["inicio"] or not v["taxa_semanal"]:
+            continue
+        try:
+            ini = datetime.strptime(v["inicio"], "%d/%m/%Y").date()
+        except ValueError:
+            continue
+
+        fim_contrato = None
+        if v.get("termino"):
+            for fmt in ["%d/%m/%Y", "%Y-%m-%d"]:
+                try:
+                    fim_contrato = datetime.strptime(str(v["termino"])[:10], fmt).date()
+                    break
+                except ValueError:
+                    pass
+
+        ate_hoje = min(hoje, fim_contrato) if fim_contrato else hoje
+        segundas_passadas = _gerar_segundas(ini, ate_hoje)
+        segundas_futuras  = _gerar_segundas(hoje + timedelta(days=1), fim_contrato) if fim_contrato and fim_contrato > hoje else []
+
+        semanas = []
+        for d in segundas_passadas:
+            ds = d.isoformat()
+            semanas.append({"data": ds, "recebido": recebidos.get((v["placa"], ds), False), "passada": True})
+        for d in segundas_futuras:
+            ds = d.isoformat()
+            semanas.append({"data": ds, "recebido": False, "passada": False})
+
+        taxa = v["taxa_semanal"]
+        rec  = round(sum(taxa for s in semanas if s["passada"] and s["recebido"]), 2)
+        pend = round(sum(taxa for s in semanas if s["passada"] and not s["recebido"]), 2)
+        fut  = round(sum(taxa for s in semanas if not s["passada"]), 2)
+
+        result.append({
+            "placa":            v["placa"],
+            "modelo":           v["modelo"],
+            "proprietario":     v["proprietario"],
+            "locatario":        v["locatario"],
+            "valor_semanal":    v["valor_semanal"],
+            "taxa_semanal":     taxa,
+            "inicio":           v["inicio"],
+            "termino":          v.get("termino") or None,
+            "semanas":          semanas,
+            "recebido_total":   rec,
+            "pendente_total":   pend,
+            "projetado_futuro": fut,
+        })
+
+    return jsonify({"ok": True, "veiculos": result})
+
+
+@app.route("/api/sob-adm/recebimentos/toggle", methods=["POST"])
+def api_sob_adm_toggle():
+    dados = request.get_json(force=True, silent=True) or {}
+    placa       = str(dados.get("placa", "")).strip()
+    data_semana = str(dados.get("data_semana", "")).strip()
+
+    if not placa or not data_semana:
+        return jsonify({"ok": False, "erro": "Parâmetros inválidos"}), 400
+
+    sob_adm, _ = _ler_sob_administracao()
+    v = next((x for x in sob_adm if x["placa"] == placa), None)
+    taxa = float(v["taxa_semanal"]) if v and v.get("taxa_semanal") else 0.0
+
+    sb = _supabase()
+    if not sb:
+        return jsonify({"ok": False, "erro": "Banco indisponível"}), 503
+
+    try:
+        res = sb.table("sob_adm_recebimentos").select("id,recebido").eq("placa", placa).eq("data_semana", data_semana).execute()
+        if res.data:
+            novo = not res.data[0]["recebido"]
+            sb.table("sob_adm_recebimentos").update({"recebido": novo}).eq("id", res.data[0]["id"]).execute()
+        else:
+            novo = True
+            sb.table("sob_adm_recebimentos").insert({"placa": placa, "data_semana": data_semana, "taxa_valor": taxa, "recebido": True}).execute()
+        return jsonify({"ok": True, "recebido": novo})
+    except Exception as e:
+        return jsonify({"ok": False, "erro": str(e)}), 500
 
 
 
