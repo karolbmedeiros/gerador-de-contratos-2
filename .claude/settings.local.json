@@ -35,7 +35,13 @@
       "PowerShell(& \"C:\\\\Users\\\\ativu\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\python.exe\" -m pip install openpyxl; & \"C:\\\\Users\\\\ativu\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\python.exe\" -c \"import openpyxl; print\\('ok'\\)\")",
       "Bash(python3 *)",
       "Bash(brew install *)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Bash(awk NR>=2990 && NR<=3010 *)",
+      "Bash(awk NR>=3615 && NR<=3640 *)",
+      "Bash(awk NR>=3930 && NR<=3980 *)",
+      "Bash(awk NR>=2860 && NR<=2900 *)",
+      "Bash(awk NR>=100 && NR<=130 *)",
+      "Bash(awk NR>=3600 && NR<=3615 *)"
     ]
   }
 }
