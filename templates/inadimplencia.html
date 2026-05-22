@@ -1702,24 +1702,41 @@ const _fin = [
     for (var i = 0; i < parcelas.length; i++) {
       if (!parcelas[i].pago) { proxima = parcelas[i].data; break; }
     }
-    var pct     = Math.round(pagas / total * 100);
-    var quitado = pagas === total;
-    var cor     = quitado ? '#166534' : (pct >= 50 ? '#065f46' : '#92400e');
-    var barCor  = quitado ? '#16a34a' : '#22c55e';
+    function _parseData(s) {
+      if (!s) return null;
+      var iso = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : (function(){ var p=s.split('/'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:s; })();
+      var d = new Date(iso + 'T00:00:00');
+      return isNaN(d) ? null : d;
+    }
     function _mesBR(s) {
       if (!s) return '';
       var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-      var iso = /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : (function(){ var p=s.split('/'); return p.length===3?p[2]+'-'+p[1]+'-'+p[0]:s; })();
-      var d = new Date(iso + 'T00:00:00');
-      return isNaN(d) ? s : (meses[d.getMonth()] + '/' + d.getFullYear());
+      var d = _parseData(s);
+      return d ? (meses[d.getMonth()] + '/' + d.getFullYear()) : s;
     }
+
+    var atrasadas = parcelas.filter(function (p) {
+      if (p.pago) return false;
+      var d = _parseData(p.data);
+      return d && d < today;
+    }).length;
+
+    var pct     = Math.round(pagas / total * 100);
+    var quitado = pagas === total;
+    var temAtraso = atrasadas > 0;
+    var cor    = quitado ? '#166534' : (temAtraso ? '#065f46' : '#065f46');
+    var barCor = quitado ? '#16a34a' : (temAtraso ? '#ef4444' : '#22c55e');
+    var bgBar  = quitado ? '#d1fae5' : (temAtraso ? '#fee2e2' : '#d1fae5');
     var proxTxt = quitado ? 'Quitado ✓' : ('Próx: ' + _mesBR(proxima || ''));
+    var atrasadoHtml = temAtraso
+      ? '<span style="color:#dc2626;font-weight:700;">' + atrasadas + ' em atraso</span>'
+      : '<span>' + pagas + '/' + total + ' pagas</span>';
     return '<div style="margin-top:5px;min-width:120px;">' +
-      '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:' + cor + ';font-weight:600;margin-bottom:2px;">' +
-        '<span>' + pagas + '/' + total + ' pagas</span>' +
-        '<span>' + proxTxt + '</span>' +
+      '<div style="display:flex;justify-content:space-between;font-size:.65rem;color:#065f46;font-weight:600;margin-bottom:2px;">' +
+        atrasadoHtml +
+        '<span' + (temAtraso ? ' style="color:#dc2626;"' : '') + '>' + proxTxt + '</span>' +
       '</div>' +
-      '<div style="height:4px;border-radius:99px;background:#d1fae5;overflow:hidden;">' +
+      '<div style="height:4px;border-radius:99px;background:' + bgBar + ';overflow:hidden;">' +
         '<div style="height:100%;width:' + pct + '%;background:' + barCor + ';border-radius:99px;transition:width .3s;"></div>' +
       '</div>' +
     '</div>';
