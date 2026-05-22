@@ -572,11 +572,13 @@ def dashboard():
 
     # ── Receita mensal real + contratos ativos ─────────────
     contratos_ativos = 0
+    total_contratos_planilha = 0
     receita_mensal_real = None
     try:
         lista_contratos, _ = _ler_contratos()
         ativos_lst = [c for c in lista_contratos if c['situacao'] == 'EM ANDAMENTO']
         contratos_ativos = len(ativos_lst)
+        total_contratos_planilha = len(lista_contratos)
         s = sum(c['valor_locacao'] for c in ativos_lst)
         if s > 0:
             receita_mensal_real = s
@@ -628,7 +630,7 @@ def dashboard():
     return render_template(
         "dashboard.html",
         active="dashboard",
-        total_contratos=total_contratos,
+        total_contratos=total_contratos_planilha or total_contratos,
         contratos_ativos=contratos_ativos,
         total_vistorias=total_vistorias,
         total_docs=total_docs,
