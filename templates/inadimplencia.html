@@ -589,7 +589,12 @@
     transition: border-color .12s, color .12s;
   }
   .ac-data:hover { color: #1e3a5f; border-color: #1e3a5f; }
-  .ac-val  { color: #374151; font-size: .78rem; }
+  .ac-val {
+    color: #374151; font-size: .78rem; cursor: pointer;
+    border-bottom: 1px dashed #94a3b8; padding-bottom: 1px;
+    transition: border-color .12s, color .12s;
+  }
+  .ac-val:hover { color: #1e3a5f; border-color: #1e3a5f; }
 
   .ac-btn-pago {
     display: inline-flex; align-items: center; gap: 4px;
@@ -1820,7 +1825,7 @@ const _fin = [
     document.getElementById('ac-f-forma').value       = ad.forma_pagamento  || 'mensal';
     document.getElementById('ac-f-primeira').value    = ad.data_primeira_parcela || '';
     _acParcelas = (ad.parcelas || []).map(function (p) {
-      return { numero: p.numero, data: p.data, pago: !!p.pago };
+      return { numero: p.numero, data: p.data, pago: !!p.pago, valor: (p.valor !== undefined ? p.valor : null) };
     });
 
     document.getElementById('modal-jud-acordo').style.display = 'flex';
@@ -1853,18 +1858,21 @@ const _fin = [
 
     if (!qtd || !primeira) { _acParcelas = []; _acRenderParcelas(0); return; }
 
+    var valor   = parseFloat(document.getElementById('ac-f-valor').value) || 0;
+    var valParc = (valor && qtd) ? valor / qtd : 0;
     var prev = _acParcelas.slice();
     _acParcelas = [];
     var cur = primeira;
     for (var i = 0; i < qtd; i++) {
+      var prevValor = (prev[i] && prev[i].valor !== null && prev[i].valor !== undefined) ? prev[i].valor : null;
       _acParcelas.push({
         numero: i + 1,
         data:   cur,
-        pago:   (prev[i] && prev[i].data === cur) ? prev[i].pago : false
+        pago:   (prev[i] && prev[i].data === cur) ? prev[i].pago : false,
+        valor:  prevValor !== null ? prevValor : valParc
       });
       cur = forma === 'semanal' ? _acAddDias(cur, 7) : _acAddMes(cur);
     }
-    var valor = parseFloat(document.getElementById('ac-f-valor').value) || 0;
     _acRenderParcelas(valor);
   };
 
@@ -1880,31 +1888,32 @@ const _fin = [
       return;
     }
 
-    var qtd        = _acParcelas.length;
-    var valParc    = valorTotal ? valorTotal / qtd : 0;
-    var today      = new Date(); today.setHours(0,0,0,0);
-    var pagas      = 0;
-    var proxima    = null;
+    var qtd       = _acParcelas.length;
+    var today     = new Date(); today.setHours(0,0,0,0);
+    var pagas     = 0;
+    var somaPaga  = 0;
+    var somaTotal = 0;
+    var proxima   = null;
 
     _acParcelas.forEach(function (p, i) {
       var dt      = new Date(p.data + 'T00:00:00');
       var vencida = !p.pago && dt < today;
       var cls     = p.pago ? 'pago' : (vencida ? 'vencida' : 'pendente');
       if (!p.pago && !proxima) proxima = p.data;
-      if (p.pago) pagas++;
+      var pVal = (p.valor !== null && p.valor !== undefined) ? p.valor : 0;
+      somaTotal += pVal;
+      if (p.pago) { pagas++; somaPaga += pVal; }
 
       var row = document.createElement('div');
       row.className = 'ac-parcela-row ' + cls;
       row.id = 'ac-row-' + i;
 
-      var btnLabel = p.pago
-        ? '✓ Pago'
-        : (vencida ? '⚠ Vencida' : 'Marcar pago');
+      var btnLabel = p.pago ? '✓ Pago' : (vencida ? '⚠ Vencida' : 'Marcar pago');
 
       row.innerHTML =
         '<span class="ac-num">' + p.numero + '/' + qtd + '</span>' +
         '<span class="ac-data" id="ac-data-' + i + '" onclick="acEditarData(' + i + ',' + valorTotal + ')" title="Clique para editar a data">' + _toBR(p.data) + '</span>' +
-        (valParc ? '<span class="ac-val">' + _brl(valParc) + '</span>' : '<span></span>') +
+        (pVal ? '<span class="ac-val" id="ac-val-' + i + '" onclick="acEditarValor(' + i + ',' + valorTotal + ')" title="Clique para editar o valor">' + _brl(pVal) + '</span>' : '<span class="ac-val" id="ac-val-' + i + '" onclick="acEditarValor(' + i + ',' + valorTotal + ')" title="Clique para editar o valor" style="color:#94a3b8;">—</span>') +
         '<button class="ac-btn-pago ' + cls + '" onclick="acToggle(' + i + ',' + valorTotal + ')">' + btnLabel + '</button>';
       painel.appendChild(row);
     });
@@ -1915,7 +1924,7 @@ const _fin = [
       res.style.display = '';
       var pct = qtd ? Math.round(pagas / qtd * 100) : 0;
       document.getElementById('ac-res-texto').textContent  = pagas + ' de ' + qtd + ' parcelas pagas (' + pct + '%)';
-      document.getElementById('ac-res-valor').textContent  = valorTotal ? _brl(pagas * valParc) + ' de ' + _brl(valorTotal) : '';
+      document.getElementById('ac-res-valor').textContent  = somaTotal ? _brl(somaPaga) + ' de ' + _brl(somaTotal) : '';
       document.getElementById('ac-res-bar').style.width    = pct + '%';
       var proxEl = document.getElementById('ac-res-proxima');
       if (proxEl) proxEl.textContent = proxima ? 'Próximo vencimento: ' + _toBR(proxima) : 'Todas as parcelas pagas!';
@@ -1954,6 +1963,38 @@ const _fin = [
     input.focus();
   };
 
+  window.acEditarValor = function (idx, valorTotal) {
+    var span = document.getElementById('ac-val-' + idx);
+    if (!span || !_acParcelas[idx]) return;
+
+    var input = document.createElement('input');
+    input.type  = 'number';
+    input.step  = '0.01';
+    input.min   = '0';
+    var cur = _acParcelas[idx].valor;
+    input.value = (cur !== null && cur !== undefined && cur > 0) ? cur.toFixed(2) : '';
+    input.placeholder = '0,00';
+    input.style.cssText = 'border:1.5px solid #1e3a5f;border-radius:5px;padding:2px 6px;' +
+                          'font-size:.78rem;font-family:inherit;color:#374151;outline:none;width:90px;';
+
+    function _confirmar() {
+      var v = parseFloat(input.value);
+      _acParcelas[idx].valor = (!isNaN(v) && v >= 0) ? v : (_acParcelas[idx].valor || 0);
+      _acRenderParcelas(valorTotal || parseFloat(document.getElementById('ac-f-valor').value) || 0);
+    }
+
+    input.addEventListener('change', _confirmar);
+    input.addEventListener('blur',   _confirmar);
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter')  input.blur();
+      if (e.key === 'Escape') _acRenderParcelas(valorTotal || parseFloat(document.getElementById('ac-f-valor').value) || 0);
+    });
+
+    span.parentNode.replaceChild(input, span);
+    input.focus();
+    input.select();
+  };
+
   window.judSalvarAcordo = function () {
     if (!_acRegistroId) return;
     var payload = {
@@ -1963,7 +2004,7 @@ const _fin = [
         data_acordo:          document.getElementById('ac-f-data-acordo').value       || null,
         forma_pagamento:      document.getElementById('ac-f-forma').value,
         data_primeira_parcela: document.getElementById('ac-f-primeira').value         || null,
-        parcelas: _acParcelas.map(function (p) { return { numero: p.numero, data: p.data, pago: p.pago }; })
+        parcelas: _acParcelas.map(function (p) { return { numero: p.numero, data: p.data, pago: p.pago, valor: p.valor }; })
       }
     };
     var btn = document.querySelector('#modal-jud-acordo button[onclick="judSalvarAcordo()"]');
