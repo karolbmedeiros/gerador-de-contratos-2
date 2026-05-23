@@ -2205,36 +2205,33 @@ def pagina_inadimplencia():
                     proxima = "Enviar lembrete de vencimento"
                 elif dias == 1:
                     etapa, etapa_cls = "D+1",  "stage-d1"
-                    proxima = "Cobrança formal + aplicar multa e juros"
+                    proxima = "Aviso de atraso — tem até o final do dia para pagar, caso contrário amanhã entram os juros"
                 elif dias == 2:
                     etapa, etapa_cls = "D+2",  "stage-d2"
-                    proxima = "Cobrança formal + aplicar multa e juros"
+                    proxima = "Juros aplicado — a partir de amanhã inicia a contagem dos juros de mora"
                 elif dias == 3:
                     etapa, etapa_cls = "D+3",  "stage-d3"
-                    proxima = "Pressão + avisar suspensão em 48h"
+                    proxima = "Juros de mora em contagem — regularize hoje para evitar suspensão do serviço"
                 elif dias == 4:
                     etapa, etapa_cls = "D+4",  "stage-d4"
-                    proxima = "Suspensão iminente — último aviso"
+                    proxima = "Aviso final — regularize até hoje ou o serviço será suspenso"
                 elif dias <= 6:
                     etapa, etapa_cls = "D+5",  "stage-d5"
-                    proxima = "Bloqueio do veículo"
+                    proxima = "Serviço suspenso — exigir comprovante de pagamento para reativação"
                 elif dias <= 9:
                     etapa, etapa_cls = "D+7",  "stage-d7"
-                    proxima = "Notificação formal — prazo 48h para negativação"
+                    proxima = "Encaminhar para cobrança jurídica extrajudicial"
                 elif dias <= 14:
                     etapa, etapa_cls = "D+10", "stage-d10"
-                    proxima = "Negativação + encaminhamento jurídico"
+                    proxima = "Negativação no SPC/Serasa + encaminhamento jurídico"
                 else:
                     etapa, etapa_cls = "D+15", "stage-d15"
-                    proxima = "Recolhimento + protesto em cartório + execução contratual"
+                    proxima = "Processo judicial iniciado — recolhimento imediato do veículo"
 
-                # Multa applies only to specific contract values (locação fixa)
-                _MULTA_VALS = {600, 630, 650, 680, 700, 800, 1200}
-                valor_qualifica_multa = int(round(valor)) in _MULTA_VALS
-                tem_multa = dias >= 1 and valor_qualifica_multa
-                multa  = valor * 0.05 if tem_multa else 0.0
-                juros  = valor * 0.005 * dias if dias >= 1 else 0.0
-                total  = valor + multa + juros
+                multa      = valor * 0.10 if dias >= 2 else 0.0
+                juros_mora = valor * 0.005 * dias if dias >= 3 else 0.0
+                juros      = multa + juros_mora
+                total      = valor + juros
                 pausar = total * 0.5
 
                 dias_label = (f"{dias} dia{'s' if dias != 1 else ''} de atraso"
