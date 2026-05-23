@@ -2458,8 +2458,10 @@ def exportar_inadimplencia():
                 if dias < 0:
                     continue
 
-                juros = valor * 0.10 if dias >= 2 else 0.0
-                total = valor + juros
+                multa      = valor * 0.10 if dias >= 2 else 0.0
+                juros_mora = valor * 0.005 * dias if dias >= 3 else 0.0
+                juros      = multa + juros_mora
+                total      = valor + juros
 
                 if   dias == 0:     etapa, proxima = "D+0",  "Enviar lembrete de vencimento"
                 elif dias == 1:     etapa, proxima = "D+1",  "Cobrança formal + aplicar multa e juros"
