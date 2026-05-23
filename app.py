@@ -2082,7 +2082,24 @@ def pagina_inadimplencia():
         return "".join(c for c in s if unicodedata.category(c) != "Mn")
 
     _base = Path(__file__).parent / "planilhas"
-    xlsx_path = _base / "CONTAS-A-RECEBER.xlsx"
+    xlsx_path       = _base / "CONTAS-A-RECEBER.xlsx"
+    clientes_path   = _base / "DADOS_CLIENTES_CONS.xlsx"
+
+    # Carrega mapa nome → telefone WhatsApp (ex: "5584981787788")
+    _tel_map = {}
+    if clientes_path.exists():
+        try:
+            _wb_c = openpyxl.load_workbook(str(clientes_path), read_only=True, data_only=True)
+            for row in _wb_c.active.iter_rows(min_row=2, values_only=True):
+                nome_c = str(row[0] or "").strip()
+                fone_c = str(row[11] or "").strip()
+                if nome_c and fone_c:
+                    digits = "".join(c for c in fone_c if c.isdigit())
+                    if len(digits) >= 10:
+                        _tel_map[_nh(nome_c)] = "55" + digits
+            _wb_c.close()
+        except Exception:
+            pass
 
     hoje = date.today()
     registros_vencidos = []   # VENCIDO rows + A VENCER rows whose date == hoje (D+0)
@@ -2268,8 +2285,9 @@ def pagina_inadimplencia():
                 else:
                     msg_pausar = None
 
-                wa_cobranca = "https://wa.me/?text=" + _url_quote(msg)
-                wa_pausar   = (("https://wa.me/?text=" + _url_quote(msg_pausar))
+                _fone = _tel_map.get(_nh(nome), "")
+                wa_cobranca = f"https://wa.me/{_fone}?text=" + _url_quote(msg)
+                wa_pausar   = ((f"https://wa.me/{_fone}?text=" + _url_quote(msg_pausar))
                                if mostrar_pausar else None)
 
                 sit_key = "vence-hoje" if dias == 0 else "vencido"
