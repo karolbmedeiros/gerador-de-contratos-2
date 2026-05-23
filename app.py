@@ -2529,8 +2529,7 @@ def exportar_inadimplencia():
     ws1 = wb["Resumo Executivo"]
 
     # Atualiza data de geração
-    if ws1["B3"].value:
-        ws1["B3"].value = f"ATIVUZ VEÍCULOS  —  Gerado em: {hoje_str}"
+    _safe_set(ws1["B3"], value=f"ATIVUZ VEÍCULOS  —  Gerado em: {hoje_str}")
 
     # Colunas: B=Cliente C=Etapa D=Venc E=Dias F:G=Valor(merge) H=Juros I=Total
     # KPIs: B5=contagem  C5=valor original  E5=juros  H5=total
@@ -2648,31 +2647,24 @@ def exportar_inadimplencia():
 
     for etapa, row_num in ETAPA_ROWS.items():
         g = agrup[etapa]
-        ws3.cell(row=row_num, column=3).value = g["n"]
-        ws3.cell(row=row_num, column=4).value = g["valor"]
-        ws3.cell(row=row_num, column=4).number_format = FMT_BRL
-        ws3.cell(row=row_num, column=4).fill  = F_VALOR
-        ws3.cell(row=row_num, column=5).value = g["juros"]
-        ws3.cell(row=row_num, column=5).number_format = FMT_BRL
-        ws3.cell(row=row_num, column=5).fill  = F_JUROS
-        ws3.cell(row=row_num, column=6).value = g["valor"] + g["juros"]
-        ws3.cell(row=row_num, column=6).number_format = FMT_BRL
-        ws3.cell(row=row_num, column=6).fill  = F_TOTAL
+        _safe_set(ws3.cell(row=row_num, column=3), value=g["n"])
+        _safe_set(ws3.cell(row=row_num, column=4), value=g["valor"],
+                  number_format=FMT_BRL, fill=F_VALOR)
+        _safe_set(ws3.cell(row=row_num, column=5), value=g["juros"],
+                  number_format=FMT_BRL, fill=F_JUROS)
+        _safe_set(ws3.cell(row=row_num, column=6), value=g["valor"] + g["juros"],
+                  number_format=FMT_BRL, fill=F_TOTAL)
 
     # Total row at row 16 for Análise por Etapa
     F_TOTAL_ROW3 = _fill("1A5276")
     F_WHITE_BOLD3 = Font(color="FFFFFF", bold=True, size=10)
-    ws3.cell(row=16, column=3).value = "=SUM(C6:C14)"
-    ws3.cell(row=16, column=3).fill = F_TOTAL_ROW3
-    ws3.cell(row=16, column=3).font = F_WHITE_BOLD3
-    ws3.cell(row=16, column=3).alignment = _align("center")
+    _safe_set(ws3.cell(row=16, column=3), value="=SUM(C6:C14)",
+              fill=F_TOTAL_ROW3, font=F_WHITE_BOLD3, alignment=_align("center"))
     for col, letter in [(4, "D"), (5, "E"), (6, "F")]:
-        cell = ws3.cell(row=16, column=col)
-        cell.value = f"=SUM({letter}6:{letter}14)"
-        cell.number_format = FMT_BRL
-        cell.fill = F_TOTAL_ROW3
-        cell.font = F_WHITE_BOLD3
-        cell.alignment = _align("right")
+        _safe_set(ws3.cell(row=16, column=col),
+                  value=f"=SUM({letter}6:{letter}14)",
+                  number_format=FMT_BRL, fill=F_TOTAL_ROW3,
+                  font=F_WHITE_BOLD3, alignment=_align("right"))
 
     # ── Serve o arquivo ───────────────────────────────────────────────────────
     buf = BytesIO()
