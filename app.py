@@ -2559,13 +2559,14 @@ def exportar_inadimplencia():
 
     # Colunas: B=Cliente C=Etapa D=Venc E=Dias F:G=Valor(merge) H=Juros I=Total
     # KPIs: B5=contagem  C5=valor original  E5=juros  H5=total
-    # Template: dados nas linhas 9-78, TOTAIS fixo na linha 79
     D_INI  = 9
-    D_DATA = 200  # última linha reservada para dados no template
-    T_ROW1 = 201  # linha de TOTAIS fixa do template
+    D_DATA = 300  # limite de limpeza (garante apagar exports anteriores maiores)
     D_FIM  = max(D_INI + len(registros) - 1, D_INI)
+    T_ROW1 = D_FIM + 1  # totais sempre logo após o último registro
 
-    # Desmescla e limpa apenas a área de dados (linhas 9-63, colunas B-I)
+    F_TOT_ROW = _fill("1A3A5C")  # fundo escuro igual ao cabeçalho
+
+    # Limpa área de dados + totais antiga
     _unmerge_area(ws1, D_INI, D_DATA, 2, 9)
     for r in range(D_INI, D_DATA + 1):
         for c in range(2, 10):
@@ -2592,24 +2593,34 @@ def exportar_inadimplencia():
         _w(4, rec["vencimento"],base,    F_BLACK, align=_align("center"))
         _w(5, rec["dias"],      bf,      bft,     align=_align("center"))
         _w(6, rec["valor"],     F_VALOR, F_BLACK, FMT_BRL, _align("right"))
-        # col 7 (G) é merge com F no modelo — deixar vazio
         _w(8, rec["juros"],     F_JUROS, F_BLACK, FMT_BRL, _align("right"))
         _w(9, f"=F{r}+H{r}",   F_TOTAL, F_BOLD,  FMT_BRL, _align("right"))
-        # Re-aplicar merge F:G para cada linha de dados
         try:
             ws1.merge_cells(start_row=r, start_column=6, end_row=r, end_column=7)
         except Exception:
             pass
 
-    # Atualiza fórmulas da linha de TOTAIS fixa (linha 64) com o range real
+    # Linha de totais dinâmica (logo após último registro)
+    F_TOT_FONT = Font(color="FFFFFF", bold=True, size=10)
+    _safe_set(ws1.cell(row=T_ROW1, column=2),
+              value="TOTAL", fill=F_TOT_ROW, font=F_TOT_FONT, alignment=_align("center"))
+    for col in [3, 4, 5]:
+        _safe_set(ws1.cell(row=T_ROW1, column=col), fill=F_TOT_ROW)
     _safe_set(ws1.cell(row=T_ROW1, column=6),
-              value=f"=SUM(F{D_INI}:F{D_FIM})", number_format=FMT_BRL)
+              value=f"=SUM(F{D_INI}:F{D_FIM})", fill=F_TOT_ROW, font=F_TOT_FONT,
+              number_format=FMT_BRL, alignment=_align("right"))
     _safe_set(ws1.cell(row=T_ROW1, column=8),
-              value=f"=SUM(H{D_INI}:H{D_FIM})", number_format=FMT_BRL)
+              value=f"=SUM(H{D_INI}:H{D_FIM})", fill=F_TOT_ROW, font=F_TOT_FONT,
+              number_format=FMT_BRL, alignment=_align("right"))
     _safe_set(ws1.cell(row=T_ROW1, column=9),
-              value=f"=SUM(I{D_INI}:I{D_FIM})", number_format=FMT_BRL)
+              value=f"=SUM(I{D_INI}:I{D_FIM})", fill=F_TOT_ROW, font=F_TOT_FONT,
+              number_format=FMT_BRL, alignment=_align("right"))
+    try:
+        ws1.merge_cells(start_row=T_ROW1, start_column=6, end_row=T_ROW1, end_column=7)
+    except Exception:
+        pass
 
-    # KPIs no topo referenciam a linha de totais fixa
+    # KPIs no topo referenciam a linha de totais dinâmica
     _safe_set(ws1["B5"], value=f"=COUNTA(C{D_INI}:C{D_FIM})")
     _safe_set(ws1["C5"], value=f"=F{T_ROW1}")
     _safe_set(ws1["E5"], value=f"=H{T_ROW1}")
@@ -2618,23 +2629,21 @@ def exportar_inadimplencia():
     # ── Aba 2: Detalhamento por Cliente ──────────────────────────────────────
     ws2 = wb["Detalhamento por Cliente"]
 
-    # Template: dados nas linhas 6-74, TOTAL GERAL fixo na linha 75
     D_INI2 = 6
-    D_DAT2 = 200  # última linha de dados no template
-    T_ROW2 = 201  # linha de TOTAL GERAL fixa do template
+    D_DAT2 = 300  # limite de limpeza
+    registros_det = sorted(registros, key=lambda x: x["dias"], reverse=True)
+    last_det = D_INI2 + max(len(registros_det) - 1, 0)
+    T_ROW2   = last_det + 1  # totais logo após último registro
 
     _unmerge_area(ws2, D_INI2, D_DAT2, 2, 8)
     for r in range(D_INI2, D_DAT2 + 1):
         for c in range(2, 9):
             _safe_set(ws2.cell(row=r, column=c), value=None)
 
-    registros_det = sorted(registros, key=lambda x: x["dias"], reverse=True)
-    last_det = D_INI2  # rastreia última linha escrita
     for i, rec in enumerate(registros_det):
         r    = D_INI2 + i
         base = F_DET_ODD if i % 2 == 0 else F_ROW_EVN
         bf, bft = badge_dias(rec["dias"])
-        last_det = r
 
         def _wd(col, val, fill=None, font=None, fmt=None, align=None):
             cell = ws2.cell(row=r, column=col)
@@ -2654,12 +2663,17 @@ def exportar_inadimplencia():
         _wd(7, rec["juros"],     F_JUROS, F_BLACK, FMT_BRL, _align("right"))
         _wd(8, f"=F{r}+G{r}",   F_TOTAL, F_BOLD,  FMT_BRL, _align("right"))
 
-    # Atualiza fórmulas da linha de TOTAL GERAL fixa (linha 60) com o range real
+    # Linha de totais dinâmica
     if registros_det:
+        _safe_set(ws2.cell(row=T_ROW2, column=2),
+                  value="TOTAL GERAL", fill=F_TOT_ROW, font=F_TOT_FONT, alignment=_align("center"))
+        for col in [3, 4, 5]:
+            _safe_set(ws2.cell(row=T_ROW2, column=col), fill=F_TOT_ROW)
         for col, letter in [(6, "F"), (7, "G"), (8, "H")]:
             _safe_set(ws2.cell(row=T_ROW2, column=col),
                       value=f"=SUM({letter}{D_INI2}:{letter}{last_det})",
-                      number_format=FMT_BRL)
+                      fill=F_TOT_ROW, font=F_TOT_FONT,
+                      number_format=FMT_BRL, alignment=_align("right"))
 
     # ── Aba 3: Análise por Etapa ──────────────────────────────────────────────
     ws3 = wb["Análise por Etapa"]
