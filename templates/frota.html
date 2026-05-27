@@ -521,11 +521,11 @@
         </div>
       </div>
       <div class="inv-input-row">
-        <label for="inv-ipva">IPVA Anual (por veículo)</label>
+        <label for="inv-ipva">IPVA Anual (3 veículos)</label>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:12px;color:var(--ink-3)">R$</span>
-          <input type="number" class="inv-input-num" id="inv-ipva" value="1700" min="0" step="100" oninput="invCalcUpdate()">
-          <span style="font-size:11px;color:var(--ink-3)" id="inv-ipva-nota">× 3 = R$ 5.100/ano → R$ 425/mês</span>
+          <input type="number" class="inv-input-num" id="inv-ipva" value="5100" min="0" step="100" oninput="invCalcUpdate()">
+          <span style="font-size:11px;color:var(--ink-3)" id="inv-ipva-nota">÷ 3 = R$ 1.700/veículo/ano → R$ 141,67/mês</span>
         </div>
       </div>
       <div class="inv-input-row" style="border-bottom:none">
@@ -1679,13 +1679,13 @@ function getParams() {
   var aq = parseFloat(document.getElementById('inv-aquisicao').value)   || 102000;
   var ma   = parseFloat(document.getElementById('inv-manutencao').value) || 0;
   var ipva = parseFloat(document.getElementById('inv-ipva').value)       || 0;
-  return { aquisicao: aq, manutencao: ma, ipva_anual: ipva };
+  return { aquisicao: aq, manutencao: ma, ipva_total: ipva };
 }
 
 function calcMetrics(valor_semanal, params) {
   var inv_sem    = valor_semanal * 0.85;
   var inv_mes    = inv_sem * (SEMANAS_ANO / 12);
-  var ipva_mes   = params.ipva_anual / 12;
+  var ipva_mes   = (params.ipva_total / 3) / 12;
   var descontos  = params.manutencao + ipva_mes;
   var liq_mes    = inv_mes - descontos;
   var yield_aa   = liq_mes > 0 ? (liq_mes * 12 / params.aquisicao * 100) : 0;
@@ -1700,7 +1700,7 @@ function renderComparacao(data) {
     { label: 'BYD (Elétrico)', cls: 'byd', valor_semanal: 1200, aquisicao: params.aquisicao }
   ];
   var html = modelos.map(function(m) {
-    var p = { aquisicao: m.aquisicao, manutencao: params.manutencao, ipva_anual: params.ipva_anual };
+    var p = { aquisicao: m.aquisicao, manutencao: params.manutencao, ipva_total: params.ipva_total };
     var c = calcMetrics(m.valor_semanal, p);
     var diffCDI  = (c.yield_aa - CDI_AA).toFixed(1);
     var diffPoup = (c.yield_aa - POUP_AA).toFixed(1);
@@ -1732,8 +1732,8 @@ function renderCalc() {
   /* atualiza nota IPVA */
   var notaIpva = document.getElementById('inv-ipva-nota');
   if (notaIpva) {
-    var total_anual = params.ipva_anual * 3;
-    notaIpva.textContent = '× 3 veículos = R$ ' + brl(total_anual) + '/ano → R$ ' + brl(total_anual / 12) + '/mês';
+    var por_veiculo = params.ipva_total / 3;
+    notaIpva.textContent = '÷ 3 = R$ ' + brl(por_veiculo) + '/veículo/ano → R$ ' + brl(por_veiculo / 12) + '/mês';
   }
 
   var diffCDI  = (c.yield_aa - CDI_AA).toFixed(1);
@@ -1741,7 +1741,7 @@ function renderCalc() {
   var html =
     '<div class="inv-out-card"><div class="inv-out-lbl">Renda Bruta Semanal (85%)</div><div class="inv-out-val">R$ ' + brl(c.inv_sem) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Renda Bruta Mensal</div><div class="inv-out-val">R$ ' + brl(c.inv_mes) + '</div></div>' +
-    '<div class="inv-out-card"><div class="inv-out-lbl">IPVA mensal (R$ ' + brl(params.ipva_anual) + '/ano ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(c.ipva_mes) + '</div></div>' +
+    '<div class="inv-out-card"><div class="inv-out-lbl">IPVA mensal (R$ ' + brl(params.ipva_total) + '/ano ÷ 3 ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(c.ipva_mes) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Manutenção Mensal</div><div class="inv-out-val orange">− R$ ' + brl(params.manutencao) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Yield Anual (a.a.)</div><div class="inv-out-val purple">' + c.yield_aa.toFixed(1) + '%</div></div>' +
@@ -1872,7 +1872,7 @@ window.invCalcUpdate = function() {
   var params = getParams();
   localStorage.setItem('inv_aquisicao',  params.aquisicao);
   localStorage.setItem('inv_manutencao', params.manutencao);
-  localStorage.setItem('inv_ipva',       params.ipva_anual);
+  localStorage.setItem('inv_ipva',       params.ipva_total);
   var data = window._getAdmData ? window._getAdmData() : null;
   renderComparacao(data);
   renderCalc();
