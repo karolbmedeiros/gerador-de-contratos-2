@@ -67,7 +67,8 @@
       "Bash(flyctl auth *)",
       "Bash(flyctl launch *)",
       "Bash(flyctl apps *)",
-      "Bash(flyctl deploy *)"
+      "Bash(flyctl deploy *)",
+      "Bash(flyctl secrets *)"
     ]
   }
 }
