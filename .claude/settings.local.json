@@ -59,7 +59,8 @@
       "Bash(printenv)",
       "Bash(launchctl load *)",
       "Bash(chmod +x *)",
-      "Bash(launchctl unload *)"
+      "Bash(launchctl unload *)",
+      "Bash(brew --version)"
     ]
   }
 }
