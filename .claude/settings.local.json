@@ -69,7 +69,11 @@
       "Bash(flyctl apps *)",
       "Bash(flyctl deploy *)",
       "Bash(flyctl secrets *)",
-      "Bash(flyctl machines *)"
+      "Bash(flyctl machines *)",
+      "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz add planilhas/CONTAS-A-RECEBER.xlsx planilhas/DADOS_CLIENTES_CONS.xlsx)",
+      "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz commit -m ' *)",
+      "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz log --oneline -5)",
+      "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz status)"
     ]
   }
 }
