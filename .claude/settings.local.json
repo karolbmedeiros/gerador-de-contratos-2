@@ -82,7 +82,8 @@
       "WebFetch(domain:www.tabelafipebrasil.com)",
       "WebFetch(domain:www.uol.com.br)",
       "WebFetch(domain:autoesporte.globo.com)",
-      "Bash(railway logs *)"
+      "Bash(railway logs *)",
+      "Bash(pip install *)"
     ]
   }
 }

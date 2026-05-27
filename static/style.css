@@ -896,3 +896,62 @@
   .form-row { grid-template-columns: 1fr; }
   .witnesses-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════
+   DARK MODE — page-level overrides
+   (tokens handle variables; these fix
+   hardcoded #fff / colors in templates)
+   ═══════════════════════════════════ */
+
+/* ── Shared surfaces ── */
+[data-theme="dark"] .filter-bar,
+[data-theme="dark"] .inad-item,
+[data-theme="dark"] .av-item,
+[data-theme="dark"] .inad-empty { background: var(--surface); border-color: var(--line); }
+
+[data-theme="dark"] .inad-fin { background: var(--surface-2); }
+
+[data-theme="dark"] .fpill { background: var(--surface-2); color: var(--ink-3); border-color: var(--line); }
+[data-theme="dark"] .fpill:hover { background: var(--brand-orange-soft); color: var(--brand-orange); border-color: var(--brand-orange); }
+
+[data-theme="dark"] .filter-search input,
+[data-theme="dark"] .btn-sort { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+[data-theme="dark"] .filter-search input::placeholder { color: var(--ink-4); }
+
+/* ── Stage / risk / dias badges ── */
+[data-theme="dark"] .risk-green  { background: rgba(22,163,74,.18);  color: #4ade80; }
+[data-theme="dark"] .risk-yellow { background: rgba(202,138,4,.18);  color: #facc15; }
+
+[data-theme="dark"] .stage-d0  { background: rgba(3,105,161,.22);   color: #38bdf8; }
+[data-theme="dark"] .stage-d1,
+[data-theme="dark"] .stage-d2  { background: rgba(161,98,7,.22);    color: #facc15; }
+[data-theme="dark"] .stage-d3  { background: rgba(194,65,12,.22);   color: #fb923c; }
+[data-theme="dark"] .stage-d4  { background: rgba(154,52,18,.22);   color: #f97316; }
+[data-theme="dark"] .stage-d5  { background: rgba(220,38,38,.22);   color: #f87171; }
+[data-theme="dark"] .stage-d7  { background: rgba(127,29,29,.35);   color: #fca5a5; }
+[data-theme="dark"] .stage-d10 { background: #ef4444;               color: #fff; }
+[data-theme="dark"] .stage-d15 { background: #7f1d1d;               color: #fca5a5; }
+[data-theme="dark"] .stage-av  { background: rgba(22,163,74,.18);   color: #4ade80; }
+
+[data-theme="dark"] .dias-badge      { background: rgba(220,38,38,.22); color: #f87171; }
+[data-theme="dark"] .dias-badge.d0   { background: rgba(3,105,161,.22); color: #38bdf8; }
+[data-theme="dark"] .dias-badge.dav  { background: rgba(22,163,74,.18); color: #4ade80; }
+
+/* ── Próxima ação accordion (yellow) ── */
+[data-theme="dark"] .inad-acao-wrap                { border-color: rgba(253,230,138,.18); }
+[data-theme="dark"] .inad-acao-wrap > summary      { background: rgba(253,230,138,.07); color: #fbbf24; }
+[data-theme="dark"] .inad-acao-body                { background: rgba(253,230,138,.05); color: #d97706; border-color: rgba(253,230,138,.14); }
+
+/* ── Pausar card (blue gradient) ── */
+[data-theme="dark"] .fin-pausar-card { background: rgba(219,234,254,.05); border-color: rgba(147,197,253,.18); }
+
+/* ── Judicializado table ── */
+[data-theme="dark"] .jud-th { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+[data-theme="dark"] .jud-td { color: var(--ink-2); border-color: var(--line); }
+[data-theme="dark"] #jud-tbody tr:hover,
+[data-theme="dark"] #jud-tbody-perdidos tr:hover { background: var(--surface-2); }
+
+[data-theme="dark"] .jud-ajuizado { background: rgba(29,78,216,.2);  color: #60a5fa; }
+[data-theme="dark"] .jud-acordo   { background: rgba(6,95,70,.2);    color: #34d399; }
+[data-theme="dark"] .jud-analise  { background: rgba(71,85,105,.2);  color: #94a3b8; }
+[data-theme="dark"] .jud-perdido  { background: rgba(153,27,27,.2);  color: #f87171; }
