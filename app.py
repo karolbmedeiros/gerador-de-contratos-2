@@ -3591,9 +3591,12 @@ def _ler_frota_dados():
             key = row["mes_ref"].replace("/", "").lower()
             hist.setdefault(row["placa"], {})[key] = float(row["valor"])
 
+        _EXCLUIR_PLACAS = {"QGO-2H58"}
         veiculos = []
         for v in (res_v.data or []):
             placa = v["placa"]
+            if placa.upper() in _EXCLUIR_PLACAS:
+                continue
             meses = hist.get(placa, {})
             dt = v.get("dt_aquisicao") or ""
             try:
@@ -3693,11 +3696,9 @@ _SOB_ADM_FIPE_VALORES = {
     "005540-9": 800.0,
     "095010-6": 1200.0,
 }
-_SOB_ADM_PLACA_VALORES = {
-    "QGO-2H58": 650.0,
-}
+_SOB_ADM_PLACA_VALORES = {}
 _SOB_ADM_TAXA = 0.15
-_SOB_ADM_PLACA_EXTRA = "QGO-2H58"
+_SOB_ADM_PLACA_EXTRA = ""
 
 
 def _ler_sob_administracao():
@@ -3763,7 +3764,7 @@ def _ler_sob_administracao():
             # inclui: Polo, BYD ou placa especial
             eh_polo  = "polo" in modelo
             eh_byd   = "byd" in marca
-            eh_extra = placa_id == _EXTRA
+            eh_extra = bool(_EXTRA) and placa_id == _EXTRA
             if not (eh_polo or eh_byd or eh_extra):
                 continue
 
