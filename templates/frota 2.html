@@ -275,7 +275,7 @@
 
 /* ── INVESTIDORES ── */
 .inv-section { font-size:13px; font-weight:700; color:var(--ink-2); text-transform:uppercase; letter-spacing:.06em; margin:28px 0 10px; border-left:3px solid #6366f1; padding-left:8px; }
-.inv-bloco { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:18px; }
+.inv-bloco { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:18px; overflow:visible; }
 .inv-bloco-title { font-size:13px; font-weight:700; color:var(--ink-1); margin-bottom:14px; }
 .inv-cards { display:grid; grid-template-columns:1fr; gap:14px; }
 @media(max-width:600px){ .inv-cards { grid-template-columns:1fr; } }
@@ -1727,7 +1727,7 @@ function renderComparacao(data) {
       '<div class="inv-row"><span class="inv-row-lbl">Manutenção mensal</span><span class="inv-row-val red">− R$ ' + brl(params.manutencao) + '</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Renda líquida mensal</span><span class="inv-row-val green">R$ ' + brl(c.liq_mes) + '</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Margem líquida</span><span class="inv-row-val purple">' + c.margem_liq.toFixed(1) + '%</span></div>' +
-      '<div class="inv-row"><span class="inv-row-lbl">Depreciação anual (' + params.depreciacao_pct + '%)</span><span class="inv-row-val red">− R$ ' + brl(c.depreciacao_anual) + '</span></div>' +
+      '<div class="inv-row"><span class="inv-row-lbl">Depreciação mensal (' + params.depreciacao_pct + '% a.a.)</span><span class="inv-row-val red">− R$ ' + brl(c.depreciacao_mes) + '</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Retorno real a.a.</span><span class="inv-row-val ' + (c.retorno_real_aa >= 0 ? 'green' : 'red') + '">' + c.retorno_real_aa.toFixed(1) + '%</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Ocupação de equilíbrio</span><span class="inv-row-val">' + c.pct_ocupacao.toFixed(1) + '% (' + c.sem_equilibrio.toFixed(1) + ' sem.)</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Renda acumulada 1 ano</span><span class="inv-row-val">R$ ' + brl(c.acum_ano1) + '</span></div>' +
@@ -1759,7 +1759,7 @@ function renderCalc() {
     '<div class="inv-out-card" data-tip="O que efetivamente entra no bolso todo mês, depois de pagar a revisão. É o lucro operacional do investimento."><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="De cada R$100 gerado bruto, quanto sobra após os custos. Quanto maior, mais eficiente é o investimento."><div class="inv-out-lbl">Margem Líquida</div><div class="inv-out-val purple">' + c.margem_liq.toFixed(1) + '%</div></div>' +
     '<div class="inv-out-card" data-tip="Rentabilidade anual sobre o valor pago no veículo. Não considera a desvalorização — veja o Retorno Real para o número mais honesto."><div class="inv-out-lbl">Yield Anual (a.a.)</div><div class="inv-out-val purple">' + c.yield_aa.toFixed(1) + '%</div></div>' +
-    '<div class="inv-out-card" data-tip="Quanto o carro perde de valor por ano no mercado. Dado real da Mobiauto (2024–2025). Você pode ajustar esse % acima."><div class="inv-out-lbl">Depreciação Anual (' + params.depreciacao_pct + '%)</div><div class="inv-out-val red">− R$ ' + brl(c.depreciacao_anual) + '</div></div>' +
+    '<div class="inv-out-card" data-tip="Quanto o carro perde de valor por mês (' + params.depreciacao_pct + '% a.a. ÷ 12). Dado real da Mobiauto (2024–2025). Você pode ajustar o % acima."><div class="inv-out-lbl">Depreciação Mensal (' + params.depreciacao_pct + '% a.a.)</div><div class="inv-out-val red">− R$ ' + brl(c.depreciacao_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="O retorno verdadeiro: yield menos a perda de valor do veículo. É o número que importa na hora de comparar com outros investimentos."><div class="inv-out-lbl">Retorno Real a.a.</div><div class="inv-out-val ' + (c.retorno_real_aa >= 0 ? 'green' : 'red') + '">' + c.retorno_real_aa.toFixed(1) + '%</div></div>' +
     '<div class="inv-out-card" data-tip="Mínimo de semanas alugadas no ano para que a renda cubra os custos fixos. Abaixo disso, o investimento começa a dar prejuízo operacional."><div class="inv-out-lbl">Ocupação de Equilíbrio</div><div class="inv-out-val">' + c.pct_ocupacao.toFixed(1) + '% · ' + c.sem_equilibrio.toFixed(1) + ' sem./ano</div></div>' +
     '<div class="inv-out-card" data-tip="Total líquido acumulado em 12 meses mantendo esses parâmetros. Não considera valorização ou desvalorização do veículo."><div class="inv-out-lbl">Renda Acumulada 1 Ano</div><div class="inv-out-val">R$ ' + brl(c.acum_ano1) + '</div></div>' +
