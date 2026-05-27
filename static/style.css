@@ -983,17 +983,22 @@
 [data-theme="dark"] .fin-table tr:hover td { background: var(--line); }
 
 /* ── DRE ── */
-[data-theme="dark"] .dre-l2:hover { background: var(--line); }
+[data-theme="dark"] .dre-l1:hover { background: var(--line) !important; }
+[data-theme="dark"] .dre-l2:hover { background: var(--line) !important; }
 
-/* ── Histórico Contratos & Vistorias (usam seletores bare) ── */
-[data-theme="dark"] thead th               { background: var(--surface-2) !important; color: var(--ink-2) !important; }
-[data-theme="dark"] tbody td               { color: var(--ink-2) !important; }
-[data-theme="dark"] tbody tr:hover         { background: var(--line) !important; }
-[data-theme="dark"] .dropdown-menu         { background: var(--surface); border-color: var(--line); }
-[data-theme="dark"] .dropdown-menu a       { color: var(--ink-2) !important; }
+/* ── Benchmarking ── */
+[data-theme="dark"] .bm-table tr:hover td { background: var(--line) !important; }
+
+/* ── Histórico Contratos & Vistorias (.table-wrap é exclusivo dessas páginas) ── */
+[data-theme="dark"] .table-wrap thead th  { background: var(--surface-2) !important; color: var(--ink-2) !important; }
+[data-theme="dark"] .table-wrap tbody td  { color: var(--ink-2) !important; }
+[data-theme="dark"] .table-wrap tbody tr:hover { background: var(--line) !important; }
+[data-theme="dark"] .table-wrap tbody tr:hover td { color: var(--ink) !important; }
+[data-theme="dark"] .dropdown-menu        { background: var(--surface); border-color: var(--line); }
+[data-theme="dark"] .dropdown-menu a      { color: var(--ink-2) !important; }
 [data-theme="dark"] .dropdown-menu a:hover { background: var(--line); }
-[data-theme="dark"] .badge-pendente        { background: rgba(146,64,14,.2);  color: #fbbf24; }
-[data-theme="dark"] .badge-completa        { background: rgba(6,95,70,.2);    color: #34d399; }
+[data-theme="dark"] .badge-pendente       { background: rgba(146,64,14,.2);  color: #fbbf24; }
+[data-theme="dark"] .badge-completa       { background: rgba(6,95,70,.2);    color: #34d399; }
 [data-theme="dark"] textarea[style*="#f1f5f9"],
 [data-theme="dark"] input[style*="#f1f5f9"] { background: var(--surface-2) !important; color: var(--ink) !important; }
 
