@@ -56,7 +56,10 @@
       "Bash(node --check /tmp/inv_check.js)",
       "Bash(pkill -f \"app.py\")",
       "Bash(venv/bin/python app.py)",
-      "Bash(printenv)"
+      "Bash(printenv)",
+      "Bash(launchctl load *)",
+      "Bash(chmod +x *)",
+      "Bash(launchctl unload *)"
     ]
   }
 }
