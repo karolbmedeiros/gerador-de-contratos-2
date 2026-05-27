@@ -540,10 +540,11 @@
         </div>
       </div>
       <div class="inv-input-row">
-        <label for="inv-ipva">IPVA Anual (3 veículos)</label>
+        <label for="inv-ipva">IPVA Anual (por veículo)</label>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:12px;color:var(--ink-3)">R$</span>
           <input type="number" class="inv-input-num" id="inv-ipva" value="5100" min="0" step="100" oninput="invCalcUpdate()">
+          <span style="font-size:11px;color:var(--ink-3)">× 4 = R$ 20.400/ano (frota)</span>
         </div>
       </div>
       <div class="inv-input-row" style="border-bottom:none">
@@ -1703,7 +1704,7 @@ function getParams() {
 function calcMetrics(valor_semanal, params) {
   var inv_sem    = valor_semanal * 0.85;
   var inv_mes    = inv_sem * (SEMANAS_ANO / 12);
-  var ipva_mes   = (params.ipva_total / 3) / 12;
+  var ipva_mes   = params.ipva_total / 12;
   var descontos  = params.manutencao + ipva_mes;
   var liq_mes    = inv_mes - descontos;
   var yield_aa   = liq_mes > 0 ? (liq_mes * 12 / params.aquisicao * 100) : 0;
@@ -1789,7 +1790,7 @@ function renderComparacao(data) {
       '<div class="inv-row"><span class="inv-row-lbl">Aluguel semanal</span><span class="inv-row-val">R$ ' + brl(m.valor_semanal) + '</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Renda bruta semanal (85%)</span><span class="inv-row-val">R$ ' + brl(c.inv_sem) + '</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Renda bruta mensal</span><span class="inv-row-val">R$ ' + brl(c.inv_mes) + '</span></div>' +
-      '<div class="inv-row"><span class="inv-row-lbl">IPVA mensal (÷ 12)</span><span class="inv-row-val red">− R$ ' + brl(c.ipva_mes) + '</span></div>' +
+      '<div class="inv-row"><span class="inv-row-lbl">IPVA mensal (R$ ' + brl(params.ipva_total) + '/ano ÷ 12)</span><span class="inv-row-val red">− R$ ' + brl(c.ipva_mes) + '</span></div>' +
       (params.manutencao > 0 ? '<div class="inv-row"><span class="inv-row-lbl">Manutenção mensal</span><span class="inv-row-val red">− R$ ' + brl(params.manutencao) + '</span></div>' : '') +
       '<div class="inv-row"><span class="inv-row-lbl">Renda líquida mensal</span><span class="inv-row-val green">R$ ' + brl(c.liq_mes) + '</span></div>' +
       '<div class="inv-row"><span class="inv-row-lbl">Aquisição estimada</span><span class="inv-row-val">R$ ' + brl(m.aquisicao) + '</span></div>' +
@@ -1813,7 +1814,7 @@ function renderCalc() {
   var html =
     '<div class="inv-out-card"><div class="inv-out-lbl">Renda Bruta Semanal (85%)</div><div class="inv-out-val">R$ ' + brl(c.inv_sem) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Renda Bruta Mensal</div><div class="inv-out-val">R$ ' + brl(c.inv_mes) + '</div></div>' +
-    '<div class="inv-out-card"><div class="inv-out-lbl">IPVA mensal (R$ ' + brl(params.ipva_total) + '/ano ÷ 3 ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(c.ipva_mes) + '</div></div>' +
+    '<div class="inv-out-card"><div class="inv-out-lbl">IPVA mensal (R$ ' + brl(params.ipva_total) + '/ano ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(c.ipva_mes) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Manutenção Mensal</div><div class="inv-out-val orange">− R$ ' + brl(params.manutencao) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
     '<div class="inv-out-card"><div class="inv-out-lbl">Yield Anual (a.a.)</div><div class="inv-out-val purple">' + c.yield_aa.toFixed(1) + '%</div></div>' +
