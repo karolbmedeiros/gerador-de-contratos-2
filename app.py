@@ -2394,6 +2394,33 @@ def pagina_inadimplencia():
     except Exception:
         pass
 
+    # ── Comparativo com último snapshot ────────────────────────
+    import json as _json
+    comparativo = None
+    try:
+        hist_dir = _base / "historico_inadimplencia"
+        snaps = sorted(hist_dir.glob("*.json")) if hist_dir.exists() else []
+        # ignora snapshot do dia atual (compara com anterior)
+        snaps_ant = [s for s in snaps if s.stem != hoje.isoformat()]
+        if snaps_ant:
+            snap = _json.loads(snaps_ant[-1].read_text())
+            _cur_val  = sum(r["_valor"]  for r in registros_vencidos)
+            _cur_tot  = sum(r["_total"]  for r in registros_vencidos)
+            _cur_cli  = len({r["nome"] for r in registros_vencidos})
+            _cur_tit  = total_vencidos
+            def _pct(cur, ant):
+                if ant == 0: return None
+                return round((cur - ant) / ant * 100, 1)
+            comparativo = {
+                "data_ref":   datetime.strptime(snap["data"], "%Y-%m-%d").strftime("%d/%m/%Y"),
+                "valor_orig": {"atual": _cur_val,  "ant": snap["valor_original"],   "pct": _pct(_cur_val,  snap["valor_original"])},
+                "total_atu":  {"atual": _cur_tot,  "ant": snap["total_atualizado"],  "pct": _pct(_cur_tot,  snap["total_atualizado"])},
+                "clientes":   {"atual": _cur_cli,  "ant": snap["clientes_unicos"],   "pct": _pct(_cur_cli,  snap["clientes_unicos"])},
+                "titulos":    {"atual": _cur_tit,  "ant": snap["total_titulos"],     "pct": _pct(_cur_tit,  snap["total_titulos"])},
+            }
+    except Exception:
+        pass
+
     return render_template(
         "inadimplencia.html",
         registros=registros_vencidos,
@@ -2413,6 +2440,7 @@ def pagina_inadimplencia():
         hoje=hoje.strftime("%d/%m/%Y"),
         active="inadimplencia",
         obs_map=obs_map,
+        comparativo=comparativo,
     )
 
 
