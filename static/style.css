@@ -136,6 +136,7 @@
   overflow-x: hidden;
   padding: 12px 10px;
   scrollbar-width: none;
+  scroll-behavior: smooth;
 }
 .sb-nav::-webkit-scrollbar { display: none; }
 
