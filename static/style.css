@@ -903,6 +903,9 @@
    hardcoded #fff / colors in templates)
    ═══════════════════════════════════ */
 
+/* ── Topbar ── */
+[data-theme="dark"] .topbar { background: var(--bg); border-bottom: none; }
+
 /* ── Shared surfaces ── */
 [data-theme="dark"] .filter-bar,
 [data-theme="dark"] .inad-item,
