@@ -1711,18 +1711,18 @@ function getParams() {
 }
 
 function calcMetrics(valor_semanal, params) {
-  var inv_sem    = valor_semanal * 0.85;
-  var inv_mes    = inv_sem * (SEMANAS_ANO / 12);
-  var ipva_mes   = params.ipva_total / 12;
-  var descontos  = params.manutencao + ipva_mes;
-  var liq_mes    = inv_mes - descontos;
-  var yield_aa          = liq_mes > 0 ? (liq_mes * 12 / params.aquisicao * 100) : 0;
-  var payback           = liq_mes > 0 ? (params.aquisicao / liq_mes) : Infinity;
-  var margem_liq        = inv_mes > 0 ? (liq_mes / inv_mes * 100) : 0;
+  var inv_sem           = valor_semanal * 0.85;
+  var inv_mes           = inv_sem * (SEMANAS_ANO / 12);
+  var ipva_mes          = params.ipva_total / 12;
   var depreciacao_anual = params.aquisicao * ((params.depreciacao_pct || 0) / 100);
   var depreciacao_mes   = depreciacao_anual / 12;
-  var retorno_real_aa   = (liq_mes - depreciacao_mes) * 12 / params.aquisicao * 100;
-  var custo_anual       = params.manutencao * 12 + params.ipva_total;
+  var descontos         = params.manutencao + ipva_mes + depreciacao_mes;
+  var liq_mes           = inv_mes - descontos;
+  var yield_aa          = liq_mes > 0 ? (liq_mes * 12 / params.aquisicao * 100) : 0;
+  var retorno_real_aa   = yield_aa;
+  var payback           = liq_mes > 0 ? (params.aquisicao / liq_mes) : Infinity;
+  var margem_liq        = inv_mes > 0 ? (liq_mes / inv_mes * 100) : 0;
+  var custo_anual       = params.manutencao * 12 + params.ipva_total + depreciacao_anual;
   var sem_equilibrio    = custo_anual > 0 && valor_semanal > 0 ? custo_anual / (valor_semanal * 0.85) : 0;
   var pct_ocupacao      = sem_equilibrio / 52 * 100;
   var acum_ano1         = liq_mes * 12;
@@ -1791,7 +1791,7 @@ function renderExecSummary() {
       '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Yield líquido a.a.</div><div class="inv-exec-metric-val">' + c.yield_aa.toFixed(1) + '%</div><div class="inv-exec-metric-sub">por veículo BYD</div></div>' +
       '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Retorno real a.a.</div><div class="inv-exec-metric-val ' + (c.retorno_real_aa >= 0 ? '' : 'red') + '">' + c.retorno_real_aa.toFixed(1) + '%</div><div class="inv-exec-metric-sub">após depreciação de ' + params.depreciacao_pct + '% a.a.</div></div>' +
       '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Margem Líquida</div><div class="inv-exec-metric-val">' + c.margem_liq.toFixed(1) + '%</div><div class="inv-exec-metric-sub">da renda bruta mensal</div></div>' +
-      '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Renda líquida mensal</div><div class="inv-exec-metric-val">R$ ' + brl(c.liq_mes) + '</div><div class="inv-exec-metric-sub">após IPVA e revisão</div></div>' +
+      '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Renda líquida mensal</div><div class="inv-exec-metric-val">R$ ' + brl(c.liq_mes) + '</div><div class="inv-exec-metric-sub">após IPVA, revisão e depreciação</div></div>' +
       '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Ocupação de equilíbrio</div><div class="inv-exec-metric-val">' + c.pct_ocupacao.toFixed(1) + '%</div><div class="inv-exec-metric-sub">' + c.sem_equilibrio.toFixed(1) + ' semanas/ano para cobrir custos</div></div>' +
       '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Renda acumulada</div><div class="inv-exec-metric-val">R$ ' + brl(c.acum_ano1) + '</div><div class="inv-exec-metric-sub">1 ano · 2 anos: R$ ' + brl(c.acum_ano2) + ' · 3 anos: R$ ' + brl(c.acum_ano3) + '</div></div>' +
       '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Payback estimado</div><div class="inv-exec-metric-val">' + paybackStr + '</div><div class="inv-exec-metric-sub">recuperação total</div></div>' +
@@ -1850,7 +1850,7 @@ function renderCalc() {
     '<div class="inv-out-card" data-tip="Total que o veículo gera por mês, antes de descontar qualquer custo. É a base de cálculo da margem."><div class="inv-out-lbl">Renda Bruta Mensal</div><div class="inv-out-val">R$ ' + brl(c.inv_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="O IPVA é pago uma vez por ano. Aqui ele é dividido em 12 para mostrar o impacto mensal real no retorno."><div class="inv-out-lbl">IPVA mensal (R$ ' + brl(params.ipva_total) + '/ano ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(c.ipva_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="Total anual das 10 revisões obrigatórias do BYD Dolphin Mini. Aqui dividido por 12 para mostrar o impacto mensal real no retorno."><div class="inv-out-lbl">Revisão Programada (R$ ' + brl(params.manutencao * 12) + '/ano ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(params.manutencao) + '</div></div>' +
-    '<div class="inv-out-card" data-tip="O que efetivamente entra no bolso todo mês, depois de pagar IPVA e revisão. É o lucro operacional do investimento."><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
+    '<div class="inv-out-card" data-tip="O que efetivamente fica no bolso todo mês, depois de descontar IPVA, revisão e depreciação do veículo."><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="De cada R$100 gerado bruto, quanto sobra após os custos. Quanto maior, mais eficiente é o investimento."><div class="inv-out-lbl">Margem Líquida</div><div class="inv-out-val purple">' + c.margem_liq.toFixed(1) + '%</div></div>' +
     '<div class="inv-out-card" data-tip="Rentabilidade anual sobre o valor pago no veículo. Não considera a desvalorização — veja o Retorno Real para o número mais honesto."><div class="inv-out-lbl">Yield Anual (a.a.)</div><div class="inv-out-val purple">' + c.yield_aa.toFixed(1) + '%</div></div>' +
     '<div class="inv-out-card" data-tip="Quanto o carro perde de valor por mês (' + params.depreciacao_pct + '% a.a. ÷ 12). Dado real da Mobiauto (2024–2025). Você pode ajustar o % acima."><div class="inv-out-lbl">Depreciação Mensal (' + params.depreciacao_pct + '% a.a.)</div><div class="inv-out-val red">− R$ ' + brl(c.depreciacao_mes) + '</div></div>' +

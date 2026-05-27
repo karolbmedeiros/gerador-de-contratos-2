@@ -1685,16 +1685,16 @@ function getParams() {
 }
 
 function calcMetrics(valor_semanal, params) {
-  var inv_sem  = valor_semanal * 0.85;
-  var inv_mes  = inv_sem * (SEMANAS_ANO / 12);
-  var liq_mes  = inv_mes - params.manutencao;
-  var yield_aa          = liq_mes > 0 ? (liq_mes * 12 / params.aquisicao * 100) : 0;
-  var payback           = liq_mes > 0 ? (params.aquisicao / liq_mes) : Infinity;
-  var margem_liq        = inv_mes > 0 ? (liq_mes / inv_mes * 100) : 0;
+  var inv_sem           = valor_semanal * 0.85;
+  var inv_mes           = inv_sem * (SEMANAS_ANO / 12);
   var depreciacao_anual = params.aquisicao * ((params.depreciacao_pct || 0) / 100);
   var depreciacao_mes   = depreciacao_anual / 12;
-  var retorno_real_aa   = (liq_mes - depreciacao_mes) * 12 / params.aquisicao * 100;
-  var custo_anual       = params.manutencao * 12;
+  var liq_mes           = inv_mes - params.manutencao - depreciacao_mes;
+  var yield_aa          = liq_mes > 0 ? (liq_mes * 12 / params.aquisicao * 100) : 0;
+  var retorno_real_aa   = yield_aa;
+  var payback           = liq_mes > 0 ? (params.aquisicao / liq_mes) : Infinity;
+  var margem_liq        = inv_mes > 0 ? (liq_mes / inv_mes * 100) : 0;
+  var custo_anual       = params.manutencao * 12 + depreciacao_anual;
   var sem_equilibrio    = custo_anual > 0 && valor_semanal > 0 ? custo_anual / (valor_semanal * 0.85) : 0;
   var pct_ocupacao      = sem_equilibrio / 52 * 100;
   var acum_ano1         = liq_mes * 12;
@@ -1756,7 +1756,7 @@ function renderCalc() {
     '<div class="inv-out-card" data-tip="O investidor recebe 85% do aluguel semanal. Os 15% restantes são a taxa de administração da Ativuz."><div class="inv-out-lbl">Renda Bruta Semanal (85%)</div><div class="inv-out-val">R$ ' + brl(c.inv_sem) + '</div></div>' +
     '<div class="inv-out-card" data-tip="Total que o veículo gera por mês, antes de descontar qualquer custo. É a base de cálculo da margem."><div class="inv-out-lbl">Renda Bruta Mensal</div><div class="inv-out-val">R$ ' + brl(c.inv_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="Total anual das 10 revisões obrigatórias do BYD Dolphin Mini. Aqui dividido por 12 para mostrar o impacto mensal real no retorno."><div class="inv-out-lbl">Revisão Programada (R$ ' + brl(params.manutencao * 12) + '/ano ÷ 12)</div><div class="inv-out-val orange">− R$ ' + brl(params.manutencao) + '</div></div>' +
-    '<div class="inv-out-card" data-tip="O que efetivamente entra no bolso todo mês, depois de pagar a revisão. É o lucro operacional do investimento."><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
+    '<div class="inv-out-card" data-tip="O que efetivamente fica no bolso todo mês, depois de descontar revisão e depreciação do veículo."><div class="inv-out-lbl">Renda Líquida Mensal</div><div class="inv-out-val green">R$ ' + brl(c.liq_mes) + '</div></div>' +
     '<div class="inv-out-card" data-tip="De cada R$100 gerado bruto, quanto sobra após os custos. Quanto maior, mais eficiente é o investimento."><div class="inv-out-lbl">Margem Líquida</div><div class="inv-out-val purple">' + c.margem_liq.toFixed(1) + '%</div></div>' +
     '<div class="inv-out-card" data-tip="Rentabilidade anual sobre o valor pago no veículo. Não considera a desvalorização — veja o Retorno Real para o número mais honesto."><div class="inv-out-lbl">Yield Anual (a.a.)</div><div class="inv-out-val purple">' + c.yield_aa.toFixed(1) + '%</div></div>' +
     '<div class="inv-out-card" data-tip="Quanto o carro perde de valor por mês (' + params.depreciacao_pct + '% a.a. ÷ 12). Dado real da Mobiauto (2024–2025). Você pode ajustar o % acima."><div class="inv-out-lbl">Depreciação Mensal (' + params.depreciacao_pct + '% a.a.)</div><div class="inv-out-val red">− R$ ' + brl(c.depreciacao_mes) + '</div></div>' +
