@@ -969,3 +969,43 @@
 [data-theme="dark"] .fr-hist-table tbody tr:hover td                       { background: var(--line) !important; }
 [data-theme="dark"] .adm-table tbody tr:hover td                           { background: var(--line); }
 [data-theme="dark"] .adm-ctrl-hd.open                                      { background: var(--surface-2); border-color: var(--line); }
+
+/* ── Contratos ── */
+[data-theme="dark"] .ct-table tbody tr:nth-child(even) td { background: transparent; }
+[data-theme="dark"] .ct-table tbody tr:hover td           { background: var(--line) !important; }
+[data-theme="dark"] .badge-tipo.frota                     { background: rgba(46,107,230,.18); color: #60a5fa; }
+
+/* ── Capital Investido ── */
+[data-theme="dark"] .ci-table tbody tr:nth-child(even) td { background: transparent; }
+[data-theme="dark"] .ci-table tr:hover td                 { background: var(--line) !important; }
+
+/* ── Financiamentos ── */
+[data-theme="dark"] .fin-table tr:hover td { background: var(--line); }
+
+/* ── DRE ── */
+[data-theme="dark"] .dre-l2:hover { background: var(--line); }
+
+/* ── Histórico Contratos & Vistorias (usam seletores bare) ── */
+[data-theme="dark"] thead th               { background: var(--surface-2) !important; color: var(--ink-2) !important; }
+[data-theme="dark"] tbody td               { color: var(--ink-2) !important; }
+[data-theme="dark"] tbody tr:hover         { background: var(--line) !important; }
+[data-theme="dark"] .dropdown-menu         { background: var(--surface); border-color: var(--line); }
+[data-theme="dark"] .dropdown-menu a       { color: var(--ink-2) !important; }
+[data-theme="dark"] .dropdown-menu a:hover { background: var(--line); }
+[data-theme="dark"] .badge-pendente        { background: rgba(146,64,14,.2);  color: #fbbf24; }
+[data-theme="dark"] .badge-completa        { background: rgba(6,95,70,.2);    color: #34d399; }
+[data-theme="dark"] textarea[style*="#f1f5f9"],
+[data-theme="dark"] input[style*="#f1f5f9"] { background: var(--surface-2) !important; color: var(--ink) !important; }
+
+/* ── Checklist ── */
+[data-theme="dark"] .ck-filter-bar,
+[data-theme="dark"] .ck-card,
+[data-theme="dark"] .ck-modal,
+[data-theme="dark"] .ck-item,
+[data-theme="dark"] .btn-add-item,
+[data-theme="dark"] .btn-cancel-modal      { background: var(--surface); border-color: var(--line); }
+[data-theme="dark"] .ck-card-img           { background: var(--surface-2); }
+[data-theme="dark"] .ck-item:hover         { border-color: var(--ink-4); background: var(--surface-2); }
+[data-theme="dark"] .ck-modal-close:hover  { background: var(--line); }
+[data-theme="dark"] .btn-add-item:hover    { background: rgba(255,71,19,.08); }
+[data-theme="dark"] .ck-item-del:hover     { color: #f87171; background: rgba(220,38,38,.15); }
