@@ -525,7 +525,6 @@
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:12px;color:var(--ink-3)">R$</span>
           <input type="number" class="inv-input-num" id="inv-ipva" value="5100" min="0" step="100" oninput="invCalcUpdate()">
-          <span style="font-size:11px;color:var(--ink-3)" id="inv-ipva-nota">÷ 3 = R$ 1.700/veículo/ano → R$ 141,67/mês</span>
         </div>
       </div>
       <div class="inv-input-row" style="border-bottom:none">
@@ -1729,12 +1728,6 @@ function renderCalc() {
   var params = getParams();
   var c = calcMetrics(1200, params);
 
-  /* atualiza nota IPVA */
-  var notaIpva = document.getElementById('inv-ipva-nota');
-  if (notaIpva) {
-    var por_veiculo = params.ipva_total / 3;
-    notaIpva.textContent = '÷ 3 = R$ ' + brl(por_veiculo) + '/veículo/ano → R$ ' + brl(por_veiculo / 12) + '/mês';
-  }
 
   var diffCDI  = (c.yield_aa - CDI_AA).toFixed(1);
   var diffPoup = (c.yield_aa - POUP_AA).toFixed(1);
