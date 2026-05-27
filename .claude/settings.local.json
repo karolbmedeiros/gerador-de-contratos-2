@@ -78,7 +78,10 @@
       "Bash(railway link *)",
       "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz add railway.toml)",
       "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz push)",
-      "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz add planilhas/CONTAS-A-RECEBER.xlsx)"
+      "Bash(git -C /Users/karol/Documents/Dashboard-Ativuz add planilhas/CONTAS-A-RECEBER.xlsx)",
+      "WebFetch(domain:www.tabelafipebrasil.com)",
+      "WebFetch(domain:www.uol.com.br)",
+      "WebFetch(domain:autoesporte.globo.com)"
     ]
   }
 }
