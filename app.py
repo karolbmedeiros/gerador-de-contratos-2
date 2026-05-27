@@ -2152,12 +2152,14 @@ def pagina_inadimplencia():
             i_doc   = _ci("numero do documento") or _ci("documento")
             i_unid  = _ci("unidade")
 
+            _NOMES_EXCLUIDOS = {"MARCELO BENTO DE ARAUJO"}
+
             # Count all rows per name (vencido + a vencer) for reincidence
             name_counts = Counter()
             for row in data_rows:
                 if i_nome is not None and i_nome < len(row) and row[i_nome]:
                     n = str(row[i_nome]).strip()
-                    if n:
+                    if n and n.upper() not in _NOMES_EXCLUIDOS:
                         name_counts[n] += 1
 
             def _get(row, idx):
@@ -2168,7 +2170,7 @@ def pagina_inadimplencia():
                 if not nome_raw:
                     continue
                 nome = str(nome_raw).strip()
-                if not nome:
+                if not nome or nome.upper() in _NOMES_EXCLUIDOS:
                     continue
 
                 valor    = _parse_valor_excel(_get(row, i_valor))
@@ -2466,6 +2468,8 @@ def exportar_inadimplencia():
                 if not nome_raw or not str(nome_raw).strip():
                     continue
                 nome  = str(nome_raw).strip()
+                if nome.upper() in {"MARCELO BENTO DE ARAUJO"}:
+                    continue
                 valor = _parse_valor_excel(_gv(row, i_valor))
                 if valor <= 0:
                     continue
