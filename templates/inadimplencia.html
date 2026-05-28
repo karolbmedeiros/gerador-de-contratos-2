@@ -1004,43 +1004,6 @@
 
 </div>
 
-{% if comparativo %}
-<!-- Comparativo com último relatório exportado -->
-<div style="background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 20px; margin-bottom:16px; display:flex; align-items:center; gap:24px; flex-wrap:wrap;">
-  <div style="font-size:0.7rem; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap;">
-    Variação vs. {{ comparativo.data_ref }}
-  </div>
-
-  {% set metricas = [
-    ("Total Atualizado", comparativo.total_atu),
-    ("Valor Original",   comparativo.valor_orig),
-    ("Clientes",         comparativo.clientes),
-    ("Títulos",          comparativo.titulos),
-  ] %}
-
-  {% for label, m in metricas %}
-    {% set pct = m.pct %}
-    {% if pct is not none %}
-      {% set down = pct < 0 %}
-      {% set neutral = pct == 0 %}
-      {% set cor = "#16a34a" if down else ("#6b7280" if neutral else "#dc2626") %}
-      {% set bg  = "rgba(22,163,74,.1)" if down else ("rgba(107,114,128,.1)" if neutral else "rgba(220,38,38,.1)") %}
-      {% set seta = "↓" if down else ("→" if neutral else "↑") %}
-    <div style="display:flex; flex-direction:column; gap:2px;">
-      <span style="font-size:0.65rem; color:var(--ink-4); font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">{{ label }}</span>
-      <span style="display:inline-flex; align-items:center; gap:4px; background:{{ bg }}; color:{{ cor }}; font-size:0.82rem; font-weight:700; padding:3px 8px; border-radius:6px; white-space:nowrap;">
-        {{ seta }} {{ pct | abs }}%
-      </span>
-    </div>
-    {% endif %}
-  {% endfor %}
-
-  <div style="margin-left:auto; font-size:0.67rem; color:var(--ink-4);">
-    📊 Exportar para salvar novo snapshot
-  </div>
-</div>
-{% endif %}
-
 <!-- Filter bar -->
 <div class="filter-bar">
   <!-- 1. Etapa -->
