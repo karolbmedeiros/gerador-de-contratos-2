@@ -1753,6 +1753,27 @@ function renderExecSummary() {
   var el = document.getElementById('inv-exec');
   if (!el) return;
 
+  /* ── Média real de rentabilidade líquida ── */
+  var mediaRealPct = null;
+  var mediaRealN   = 0;
+  var data = window._getAdmData ? window._getAdmData() : null;
+  if (data && data.length) {
+    var yields = [];
+    data.forEach(function(v) {
+      if ((v.modelo || '').toUpperCase().indexOf('POLO') >= 0) return;
+      var passadas = (v.semanas || []).filter(function(s){ return s.passada; });
+      if (passadas.length === 0) return;
+      var inv_rec = v.recebido_total * (85 / 15);
+      var bruto_anual = inv_rec / passadas.length * 52;
+      var liq_anual   = bruto_anual - c.custo_anual;
+      yields.push(liq_anual / params.aquisicao * 100);
+    });
+    if (yields.length) {
+      mediaRealPct = yields.reduce(function(a,b){ return a+b; }, 0) / yields.length;
+      mediaRealN   = yields.length;
+    }
+  }
+
   var diffCDI  = c.yield_aa - CDI_AA;
   var diffPoup = c.yield_aa - POUP_AA;
 
@@ -1804,7 +1825,9 @@ function renderExecSummary() {
       '<div class="inv-exec-metric" data-tooltip="Renda líquida ÷ renda bruta mensal&#10;R$ ' + brl(c.liq_mes) + ' ÷ R$ ' + brl(c.inv_mes) + ' = ' + c.margem_liq.toFixed(1) + '%"><div class="inv-exec-metric-lbl">Margem Líquida</div><div class="inv-exec-metric-val">' + c.margem_liq.toFixed(1) + '%</div><div class="inv-exec-metric-sub">da renda bruta mensal</div></div>' +
       '<div class="inv-exec-metric" data-tooltip="Renda bruta − IPVA − revisão − depreciação&#10;R$ ' + brl(c.inv_mes) + ' − R$ ' + brl(c.ipva_mes) + ' − R$ ' + brl(params.manutencao) + ' − R$ ' + brl(c.depreciacao_mes) + ' = R$ ' + brl(c.liq_mes) + '"><div class="inv-exec-metric-lbl">Renda líquida mensal</div><div class="inv-exec-metric-val">R$ ' + brl(c.liq_mes) + '</div><div class="inv-exec-metric-sub">após IPVA, revisão e depreciação</div></div>' +
       '<div class="inv-exec-metric" data-tooltip="Custo anual ÷ renda semanal ÷ 52 semanas&#10;R$ ' + brl(c.custo_anual) + ' ÷ R$ ' + brl(c.inv_sem) + ' ÷ 52 = ' + c.sem_equilibrio.toFixed(1) + ' sem. = ' + c.pct_ocupacao.toFixed(1) + '%"><div class="inv-exec-metric-lbl">Ocupação de equilíbrio</div><div class="inv-exec-metric-val">' + c.pct_ocupacao.toFixed(1) + '%</div><div class="inv-exec-metric-sub">' + c.sem_equilibrio.toFixed(1) + ' semanas/ano para cobrir custos</div></div>' +
-      '<div class="inv-exec-metric" data-tooltip="Projeção da renda líquida total acumulada ao longo do tempo, somando os rendimentos mensais."><div class="inv-exec-metric-lbl">Renda acumulada</div><div class="inv-exec-metric-val">R$ ' + brl(c.acum_ano1) + '</div><div class="inv-exec-metric-sub">1 ano · 2 anos: R$ ' + brl(c.acum_ano2) + ' · 3 anos: R$ ' + brl(c.acum_ano3) + '</div></div>' +
+      (mediaRealPct !== null
+        ? '<div class="inv-exec-metric" data-tooltip="(Recebido investidor ÷ semanas ativas × 52 − custos anuais) ÷ aquisição&#10;Média real sobre ' + mediaRealN + ' veículo' + (mediaRealN !== 1 ? 's' : '') + ' BYD ativos"><div class="inv-exec-metric-lbl">Rentabilidade líquida real</div><div class="inv-exec-metric-val ' + (mediaRealPct >= 0 ? '' : 'red') + '">' + mediaRealPct.toFixed(1) + '%</div><div class="inv-exec-metric-sub">média real · ' + mediaRealN + ' veículo' + (mediaRealN !== 1 ? 's' : '') + '</div></div>'
+        : '<div class="inv-exec-metric"><div class="inv-exec-metric-lbl">Rentabilidade líquida real</div><div class="inv-exec-metric-val" style="font-size:14px;color:var(--ink-3)">—</div><div class="inv-exec-metric-sub">sem dados de recebimento</div></div>') +
       '<div class="inv-exec-metric" data-tooltip="Aquisição ÷ renda líquida anual&#10;R$ ' + brl(params.aquisicao) + ' ÷ R$ ' + brl(c.liq_mes * 12) + ' = ' + (isFinite(c.payback) ? c.payback.toFixed(1) + ' meses' : '—') + '"><div class="inv-exec-metric-lbl">Payback estimado</div><div class="inv-exec-metric-val">' + paybackStr + '</div><div class="inv-exec-metric-sub">recuperação total</div></div>' +
       '<div class="inv-exec-metric" data-tooltip="Retorno real − CDI&#10;' + c.retorno_real_aa.toFixed(1) + '% − ' + CDI_AA + '% = ' + cdiStr + '"><div class="inv-exec-metric-lbl">vs CDI (' + CDI_AA + '% a.a.)</div><div class="inv-exec-metric-val">' + cdiStr + '</div><div class="inv-exec-metric-sub">vs Poupança: ' + poupStr + '</div></div>' +
     '</div>';
