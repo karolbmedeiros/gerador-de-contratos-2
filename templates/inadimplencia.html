@@ -1251,14 +1251,16 @@
         {% if r.dias_atraso >= 1 %}
         {% if r.tem_multa %}
         <div class="fin-row">
-          <span class="fin-lbl">Multa única (5%)</span>
+          <span class="fin-lbl">Multa única (10%)</span>
           <span class="fin-val fin-red">+ {{ r.multa_s }}</span>
         </div>
         {% endif %}
+        {% if r.dias_atraso >= 3 %}
         <div class="fin-row">
           <span class="fin-lbl">Juros mora (0,5%/dia × {{ r.dias_atraso }}d)</span>
-          <span class="fin-val fin-red">+ {{ r.juros_s }}</span>
+          <span class="fin-val fin-red">+ {{ r.juros_mora_s }}</span>
         </div>
+        {% endif %}
         <hr class="fin-sep">
         <div class="fin-row">
           <span class="fin-total-lbl">Total atualizado</span>
@@ -1438,7 +1440,7 @@ const _fin = [
     nomeN:    {{ r.nome | lower | tojson }},
     valor:    {{ r._valor }},
     multa:    {{ r._multa }},
-    juros:    {{ r._juros }},
+    juros:    {{ r._juros_mora }},
     total:    {{ r._total }},
     temMulta: {{ 'true' if r.tem_multa else 'false' }},
     fone:     {{ r._fone | tojson }}
