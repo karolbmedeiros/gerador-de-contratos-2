@@ -284,7 +284,6 @@
 .inv-exec.verde   .inv-exec-titulo { color:#15803d; }
 .inv-exec.laranja .inv-exec-titulo { color:#c2410c; }
 .inv-exec.vermelho .inv-exec-titulo { color:#be123c; }
-.inv-exec-desc { font-size:13px; color:var(--ink-2); line-height:1.55; margin-bottom:18px; }
 .inv-exec-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
 @media(max-width:640px){ .inv-exec-metrics { grid-template-columns:repeat(2,1fr); } }
 .inv-exec-metric { background:rgba(255,255,255,.7); border-radius:10px; padding:12px 14px; border:1px solid rgba(0,0,0,.06); position:relative; cursor:default; }
@@ -1859,7 +1858,6 @@ function renderExecSummary() {
       '<span class="inv-exec-icon">' + icon + '</span>' +
       '<span class="inv-exec-titulo">' + titulo + '</span>' +
     '</div>' +
-    '<div class="inv-exec-desc">' + desc + '</div>' +
     '<div class="inv-exec-metrics">' +
       '<div class="inv-exec-metric" data-tooltip="(Renda líquida + depreciação) × 12 ÷ aquisição&#10;(R$ ' + brl(c.liq_mes) + ' + R$ ' + brl(c.depreciacao_mes) + ') × 12 ÷ R$ ' + brl(params.aquisicao) + ' = ' + c.yield_sem_deprec.toFixed(1) + '%"><div class="inv-exec-metric-lbl">Yield líquido a.a.</div><div class="inv-exec-metric-val">' + c.yield_sem_deprec.toFixed(1) + '%</div><div class="inv-exec-metric-sub">por veículo BYD</div></div>' +
       '<div class="inv-exec-metric" data-tooltip="Renda líquida × 12 ÷ aquisição&#10;R$ ' + brl(c.liq_mes) + ' × 12 ÷ R$ ' + brl(params.aquisicao) + ' = ' + c.retorno_real_aa.toFixed(1) + '%"><div class="inv-exec-metric-lbl">Retorno real a.a.</div><div class="inv-exec-metric-val ' + (c.retorno_real_aa >= 0 ? '' : 'red') + '">' + c.retorno_real_aa.toFixed(1) + '%</div><div class="inv-exec-metric-sub">após depreciação de ' + params.depreciacao_pct + '% a.a.</div></div>' +
