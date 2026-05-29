@@ -121,7 +121,9 @@
       "Bash(/Users/karol/Documents/Dashboard-Ativuz/.claude/hooks/autopush-contas.sh)",
       "Bash(echo \"exit=$?\")",
       "Bash(awk -F: '$2 >= 2124 && $2 <= 2400')",
-      "Bash(.venv/bin/python *)"
+      "Bash(.venv/bin/python *)",
+      "Bash(pip show *)",
+      "Bash(pip3 list *)"
     ]
   }
 }

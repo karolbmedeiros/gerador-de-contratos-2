@@ -702,7 +702,16 @@
 
       <!-- Resultado -->
       <div id="asaas-resultado" style="display:none">
-        <div id="asaas-periodo-lbl" class="asaas-periodo"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
+          <div id="asaas-periodo-lbl" class="asaas-periodo" style="margin-bottom:0"></div>
+          <button onclick="asaasGerarPdf()" style="display:inline-flex;align-items:center;gap:6px;background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+            Gerar PDF
+          </button>
+        </div>
         <div class="asaas-cards" id="asaas-cards"></div>
         <div class="asaas-saldo-row" id="asaas-saldo-row"></div>
         <div style="margin-top:18px;">
@@ -2340,29 +2349,6 @@ document.addEventListener('click', function(e) {
       '<tbody>' + rows + '</tbody>';
   }
 
-  function _processar(file) {
-    var fd = new FormData();
-    fd.append('arquivo', file);
-    var wrap = document.getElementById('asaas-upload-wrap');
-    var res  = document.getElementById('asaas-resultado');
-    wrap.innerHTML = '<div style="text-align:center;color:var(--ink-3);font-size:13px;padding:20px">Processando…</div>';
-
-    fetch('/api/asaas-parse', { method: 'POST', body: fd })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.erro) { alert('Erro: ' + d.erro); asaasReset(); return; }
-        document.getElementById('asaas-periodo-lbl').textContent = d.periodo || '';
-        _renderCards(d);
-        _renderSaldo(d);
-        _renderMotoristas(d.transacoes);
-        _renderSaidas(d.transacoes);
-        _renderDetalhe(d.transacoes);
-        wrap.style.display = 'none';
-        res.style.display  = '';
-      })
-      .catch(function(e) { alert('Erro ao processar: ' + e); asaasReset(); });
-  }
-
   window.asaasToggleDet = function() {
     _det = !_det;
     document.getElementById('asaas-det-wrap').style.display = _det ? '' : 'none';
@@ -2400,6 +2386,148 @@ document.addEventListener('click', function(e) {
   }
 
   _bindInput();
+
+  /* ── Gerador de PDF ── */
+  var _dadosGlobais = null;
+
+  window.asaasGerarPdf = function () {
+    var d = _dadosGlobais;
+    if (!d) { alert('Processe um extrato primeiro.'); return; }
+
+    function brl(v) {
+      return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    // Motoristas agrupados
+    var motorMap = {};
+    d.transacoes.forEach(function(t) {
+      if (t.categoria !== 'aluguel' && t.categoria !== 'adesao') return;
+      var nome = t.motorista || 'Desconhecido';
+      if (!motorMap[nome]) motorMap[nome] = {aluguel:0, adesao:0, n:0};
+      if (t.categoria === 'aluguel') { motorMap[nome].aluguel += t.valor; motorMap[nome].n++; }
+      if (t.categoria === 'adesao')  motorMap[nome].adesao  += t.valor;
+    });
+
+    var totalEntradas = (d.totais.aluguel||0) + (d.totais.adesao||0);
+    var totalSaidas   = (d.totais.repasse_investidor||0) + (d.totais.taxa_ativuz||0) +
+                        (d.totais.seguro||0) + (d.totais.taxa_asaas||0);
+
+    var rowsMotoristas = Object.keys(motorMap).sort().map(function(nome) {
+      var m = motorMap[nome];
+      return '<tr>' +
+        '<td>' + nome + '</td>' +
+        '<td style="text-align:center">' + (m.n || '—') + '</td>' +
+        '<td style="text-align:right;color:#15803d">' + (m.aluguel ? brl(m.aluguel) : '—') + '</td>' +
+        '<td style="text-align:right;color:#1d4ed8">' + (m.adesao  ? brl(m.adesao)  : '—') + '</td>' +
+        '<td style="text-align:right;font-weight:700">' + brl(m.aluguel + m.adesao) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    var saidasCats = [
+      {key:'repasse_investidor', label:'Repasse ao investidor (LUZ DIVINA)', cor:'#7e22ce'},
+      {key:'taxa_ativuz',        label:'Taxas de administração (ATIVUZ)',     cor:'#c2410c'},
+      {key:'seguro',             label:'Seguros BYD',                          cor:'#0369a1'},
+      {key:'taxa_asaas',         label:'Taxas da plataforma ASAAS',           cor:'#64748b'},
+    ];
+    var rowsSaidas = saidasCats.filter(function(c){ return d.totais[c.key]; }).map(function(c) {
+      return '<tr><td style="color:' + c.cor + ';font-weight:600">' + c.label + '</td>' +
+             '<td style="text-align:right;color:#dc2626;font-weight:700">' + brl(d.totais[c.key]) + '</td></tr>';
+    }).join('');
+
+    var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+    '<title>Prestação de Contas — Ativuz Veículos</title>' +
+    '<style>' +
+      'body{font-family:Arial,sans-serif;font-size:12px;color:#0f172a;margin:0;padding:32px 40px;max-width:800px;}' +
+      'h1{font-size:20px;font-weight:800;margin:0 0 2px;color:#1e3a5f;}' +
+      '.sub{font-size:11px;color:#64748b;margin-bottom:24px;}' +
+      '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #1e3a5f;padding-bottom:14px;}' +
+      '.logo-txt{font-size:22px;font-weight:900;color:#1e3a5f;letter-spacing:.03em;}' +
+      '.logo-sub{font-size:10px;color:#64748b;font-weight:400;}' +
+      '.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;}' +
+      '.card{border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px;}' +
+      '.card.entrada{border-left:3px solid #22c55e;}' +
+      '.card.saida{border-left:3px solid #f97316;}' +
+      '.card.neutro{border-left:3px solid #94a3b8;}' +
+      '.card-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px;}' +
+      '.card-val{font-size:16px;font-weight:800;color:#0f172a;}' +
+      '.card-val.pos{color:#15803d;}.card-val.neg{color:#dc2626;}' +
+      'h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-left:3px solid #1e3a5f;padding-left:7px;margin:20px 0 8px;}' +
+      'table{width:100%;border-collapse:collapse;font-size:11.5px;}' +
+      'th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;border-bottom:2px solid #e2e8f0;padding:6px 8px;}' +
+      'td{padding:6px 8px;border-bottom:1px solid #f1f5f9;}' +
+      'tr:last-child td{border-bottom:none;}' +
+      '.saldo-row{display:flex;gap:20px;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;}' +
+      '.saldo-item label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:2px;}' +
+      '.saldo-item strong{font-size:15px;font-weight:800;}' +
+      '.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between;}' +
+      '@media print{body{padding:16px 20px;} button{display:none;}}' +
+    '</style></head><body>' +
+
+    '<div class="header">' +
+      '<div><div class="logo-txt">ATIVUZ VEÍCULOS</div><div class="logo-sub">Gestão de Frota e Investimentos</div></div>' +
+      '<div style="text-align:right"><h1>Prestação de Contas</h1><div class="sub">' + (d.periodo || '') + '</div></div>' +
+    '</div>' +
+
+    '<div class="saldo-row">' +
+      '<div class="saldo-item"><label>Saldo inicial</label><strong>' + brl(d.saldo_inicial) + '</strong></div>' +
+      '<div class="saldo-item"><label>Saldo final</label><strong style="color:' + (d.saldo_final >= d.saldo_inicial ? '#15803d':'#dc2626') + '">' + brl(d.saldo_final) + '</strong></div>' +
+      '<div class="saldo-item"><label>Total recebido</label><strong style="color:#15803d">' + brl(totalEntradas) + '</strong></div>' +
+      '<div class="saldo-item"><label>Total saídas</label><strong style="color:#dc2626">' + brl(totalSaidas) + '</strong></div>' +
+    '</div>' +
+
+    '<div class="cards">' +
+      '<div class="card entrada"><div class="card-lbl">Aluguéis semanais</div><div class="card-val pos">' + brl(d.totais.aluguel||0) + '</div></div>' +
+      '<div class="card entrada"><div class="card-lbl">Taxa de adesão</div><div class="card-val pos">' + brl(d.totais.adesao||0) + '</div></div>' +
+      '<div class="card saida"><div class="card-lbl">Repasse investidor</div><div class="card-val neg">' + brl(d.totais.repasse_investidor||0) + '</div></div>' +
+      '<div class="card saida"><div class="card-lbl">Taxas Ativuz</div><div class="card-val neg">' + brl(d.totais.taxa_ativuz||0) + '</div></div>' +
+      '<div class="card saida"><div class="card-lbl">Seguros BYD</div><div class="card-val neg">' + brl(d.totais.seguro||0) + '</div></div>' +
+      '<div class="card neutro"><div class="card-lbl">Taxas ASAAS</div><div class="card-val">' + brl(d.totais.taxa_asaas||0) + '</div></div>' +
+    '</div>' +
+
+    '<h2>Entradas por motorista</h2>' +
+    '<table><thead><tr><th>Motorista</th><th>Semanas</th><th>Aluguéis</th><th>Adesão</th><th>Total</th></tr></thead>' +
+    '<tbody>' + rowsMotoristas + '</tbody></table>' +
+
+    '<h2 style="margin-top:20px">Resumo de saídas</h2>' +
+    '<table><thead><tr><th>Categoria</th><th style="text-align:right">Valor</th></tr></thead>' +
+    '<tbody>' + rowsSaidas + '</tbody></table>' +
+
+    '<div class="footer">' +
+      '<span>Ativuz Veículos · Gestão de Frota</span>' +
+      '<span>Gerado em ' + new Date().toLocaleDateString('pt-BR') + '</span>' +
+    '</div>' +
+
+    '<div style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></div>' +
+    '</body></html>';
+
+    var w = window.open('', '_blank');
+    w.document.write(html);
+    w.document.close();
+  };
+
+  function _processar(file) {
+    var fd = new FormData();
+    fd.append('arquivo', file);
+    var wrap = document.getElementById('asaas-upload-wrap');
+    var res  = document.getElementById('asaas-resultado');
+    wrap.innerHTML = '<div style="text-align:center;color:var(--ink-3);font-size:13px;padding:20px">Processando…</div>';
+    fetch('/api/asaas-parse', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.erro) { alert('Erro: ' + d.erro); asaasReset(); return; }
+        _dadosGlobais = d;
+        document.getElementById('asaas-periodo-lbl').textContent = d.periodo || '';
+        _renderCards(d);
+        _renderSaldo(d);
+        _renderMotoristas(d.transacoes);
+        _renderSaidas(d.transacoes);
+        _renderDetalhe(d.transacoes);
+        wrap.style.display = 'none';
+        res.style.display  = '';
+      })
+      .catch(function(e) { alert('Erro ao processar: ' + e); asaasReset(); });
+  }
+
 })();
 </script>
 
