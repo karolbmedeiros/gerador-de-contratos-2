@@ -370,53 +370,45 @@ def api_asaas_parse():
     })
 
 
-_ASAAS_DIR = Path(__file__).parent / "planilhas" / "asaas_extratos"
-
-def _asaas_dir():
-    _ASAAS_DIR.mkdir(exist_ok=True)
-    return _ASAAS_DIR
-
-
 @app.route("/api/asaas-salvar", methods=["POST"])
 def api_asaas_salvar():
     dados = request.get_json(force=True)
     if not dados:
         return jsonify({"erro": "Sem dados"}), 400
-    _id = str(uuid.uuid4())
-    path = _asaas_dir() / f"{_id}.json"
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump({**dados, "id": _id}, fh, ensure_ascii=False)
-    return jsonify({"ok": True, "id": _id})
+    sb = _supabase()
+    res = sb.table("asaas_extratos").insert({
+        "periodo":       dados.get("periodo", ""),
+        "saldo_inicial": dados.get("saldo_inicial"),
+        "saldo_final":   dados.get("saldo_final"),
+        "totais":        dados.get("totais", {}),
+        "transacoes":    dados.get("transacoes", []),
+    }).execute()
+    row = (res.data or [{}])[0]
+    return jsonify({"ok": True, "id": row.get("id")})
 
 
 @app.route("/api/asaas-extratos")
 def api_asaas_extratos():
-    pasta = _asaas_dir()
+    sb = _supabase()
+    res = sb.table("asaas_extratos").select("*").order("created_at").execute()
     extratos = []
-    for f in sorted(pasta.glob("*.json")):
-        try:
-            with open(f, encoding="utf-8") as fh:
-                d = json.load(fh)
-            extratos.append({
-                "id":           d.get("id", f.stem),
-                "periodo":      d.get("periodo", ""),
-                "saldo_inicial": d.get("saldo_inicial"),
-                "saldo_final":  d.get("saldo_final"),
-                "totais":       d.get("totais", {}),
-                "transacoes":   d.get("transacoes", []),
-            })
-        except Exception:
-            pass
+    for row in (res.data or []):
+        extratos.append({
+            "id":           row["id"],
+            "periodo":      row.get("periodo", ""),
+            "saldo_inicial": row.get("saldo_inicial"),
+            "saldo_final":  row.get("saldo_final"),
+            "totais":       row.get("totais", {}),
+            "transacoes":   row.get("transacoes", []),
+        })
     return jsonify(extratos)
 
 
 @app.route("/api/asaas-extratos/<extrato_id>", methods=["DELETE"])
 def api_asaas_excluir(extrato_id):
-    path = _asaas_dir() / f"{extrato_id}.json"
-    if path.exists():
-        path.unlink()
-        return jsonify({"ok": True})
-    return jsonify({"erro": "Não encontrado"}), 404
+    sb = _supabase()
+    sb.table("asaas_extratos").delete().eq("id", extrato_id).execute()
+    return jsonify({"ok": True})
 
 
 @app.route("/admin/novo-usuario", methods=["GET", "POST"])
