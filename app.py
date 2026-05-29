@@ -355,6 +355,7 @@ def api_asaas_parse():
 
     totais = {
         "total_recebido":       _soma("aluguel") + semana_adesao,
+        "aluguel":              _soma("aluguel"),
         "caucao":               caucao_total,
         "taxa_ativuz":          _soma("taxa_ativuz"),
         "reembolso_manutencao": _soma("reembolso_manutencao"),

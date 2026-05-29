@@ -2192,6 +2192,7 @@ document.addEventListener('click', function(e) {
         totais['total_recebido'] = (totais['total_recebido'] || 0) + SEMANA;
       } else if (t.categoria === 'aluguel') {
         totais['total_recebido'] = (totais['total_recebido'] || 0) + t.valor;
+        totais['aluguel']        = (totais['aluguel']        || 0) + t.valor;
       } else {
         totais[t.categoria] = (totais[t.categoria] || 0) + t.valor;
       }
@@ -2261,7 +2262,8 @@ document.addEventListener('click', function(e) {
 
   function _renderCards(d) {
     var cards = [
-      { lbl: 'Total recebido',        val: d.totais.total_recebido || 0,          cls: 'entrada', sinal: 'pos', sub: 'Semanas de R$1.200' },
+      { lbl: 'Total recebido',        val: d.totais.total_recebido || 0,          cls: 'entrada', sinal: 'pos', sub: 'Semanais + 1ª semana das adesões' },
+      { lbl: 'Só aluguéis',           val: d.totais.aluguel || 0,                 cls: 'entrada', sinal: 'pos', sub: 'Recorrência semanal pura' },
       { lbl: 'Cauções',               val: d.totais.caucao || 0,                  cls: 'entrada', sinal: 'pos', sub: 'R$3.000 por contrato' },
       { lbl: 'Taxa adm (Ativuz)',     val: d.totais.taxa_ativuz || 0,             cls: 'saida',   sinal: 'neg', sub: 'Gestão e administração' },
       { lbl: 'Reembolso manutenção',  val: d.totais.reembolso_manutencao || 0,    cls: 'saida',   sinal: 'neg', sub: 'PIX ao motorista' },
