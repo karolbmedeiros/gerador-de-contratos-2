@@ -3253,6 +3253,10 @@ function inadSwitch(aba) {
     return s;
   }
 
+  function _waUrl(fone, msg) {
+    return 'https://web.whatsapp.com/send?phone=' + _foneWa(fone) + '&text=' + encodeURIComponent(msg);
+  }
+
   function _inicial(nome) {
     return nome.trim().charAt(0).toUpperCase();
   }
@@ -3354,7 +3358,7 @@ function inadSwitch(aba) {
     } else {
       lote.forEach(function (c, idx) {
         var gi     = _loteAtual * _loteSize + idx;
-        var waUrl  = 'https://wa.me/' + _foneWa(c.telefone) + '?text=' + encodeURIComponent(msg);
+        var waUrl  = _waUrl(c.telefone, msg);
         var ja     = !!_loteAbertos[gi];
         var card   = document.createElement('div');
         card.className = 'lt-contact-card';
@@ -3408,7 +3412,7 @@ function inadSwitch(aba) {
     var bloqueados = 0;
     lote.forEach(function (c, idx) {
       var gi    = _loteAtual * _loteSize + idx;
-      var waUrl = 'https://wa.me/' + _foneWa(c.telefone) + '?text=' + encodeURIComponent(msg);
+      var waUrl = _waUrl(c.telefone, msg);
       setTimeout(function () {
         var w = window.open(waUrl, '_blank');
         if (!w) { bloqueados++; aviso.style.display = ''; }
