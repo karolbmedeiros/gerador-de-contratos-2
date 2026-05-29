@@ -280,6 +280,8 @@ def api_asaas_parse():
             categoria = "repasse_investidor"
         elif "ativuz" in desc_n:
             categoria = "taxa_ativuz"
+        elif "ipva" in desc_n:
+            categoria = "ipva"
         elif "seguro" in desc_n:
             categoria = "seguro"
         elif "taxa" in desc_n or "notificacao" in desc_n or "notificação" in desc_n:
@@ -315,6 +317,9 @@ def api_asaas_parse():
             m = _re.search(r"BYD\s+([A-Z0-9\-]+)", desc, _re.IGNORECASE)
             placa_seguro = m.group(1).upper().replace(" ", "") if m else ""
 
+        # Relevante = tudo exceto PIX para terceiros sem relação com a operação
+        relevante = categoria != "outro"
+
         transacoes.append({
             "data":          data,
             "tipo":          tipo,
@@ -325,21 +330,22 @@ def api_asaas_parse():
             "motorista":     motorista,
             "pagador":       pagador if pagador != motorista else "",
             "placa_seguro":  placa_seguro,
+            "relevante":     relevante,
         })
 
-    # Totalizadores
+    # Totalizadores — apenas lançamentos relevantes
     def _soma(cat):
-        return sum(t["valor"] for t in transacoes if t["categoria"] == cat)
+        return sum(t["valor"] for t in transacoes if t["categoria"] == cat and t["relevante"])
 
     totais = {
         "aluguel":            _soma("aluguel"),
         "adesao":             _soma("adesao"),
         "repasse_investidor": _soma("repasse_investidor"),
         "taxa_ativuz":        _soma("taxa_ativuz"),
+        "ipva":               _soma("ipva"),
         "seguro":             _soma("seguro"),
         "taxa_asaas":         _soma("taxa_asaas"),
         "estorno":            _soma("estorno"),
-        "outro":              _soma("outro"),
     }
 
     return jsonify({

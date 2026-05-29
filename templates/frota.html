@@ -2251,6 +2251,7 @@ document.addEventListener('click', function(e) {
       adesao:             ['adesao',   'Adesão'],
       repasse_investidor: ['repasse',  'Repasse investidor'],
       taxa_ativuz:        ['ativuz',   'Taxa Ativuz'],
+      ipva:               ['seguro',   'IPVA'],
       seguro:             ['seguro',   'Seguro'],
       taxa_asaas:         ['taxa',     'Taxa ASAAS'],
       estorno:            ['estorno',  'Estorno'],
@@ -2263,17 +2264,17 @@ document.addEventListener('click', function(e) {
   function _renderCards(d) {
     var totalEntradas = (d.totais.aluguel || 0) + (d.totais.adesao || 0);
     var totalSaidas   = (d.totais.repasse_investidor || 0) + (d.totais.taxa_ativuz || 0) +
-                        (d.totais.seguro || 0) + (d.totais.taxa_asaas || 0);
+                        (d.totais.ipva || 0) + (d.totais.seguro || 0) + (d.totais.taxa_asaas || 0);
 
     var cards = [
-      { lbl: 'Total recebido',          val: totalEntradas,                      cls: 'entrada', sinal: 'pos', sub: 'Aluguéis + adesões' },
-      { lbl: 'Repasse ao investidor',   val: d.totais.repasse_investidor || 0,   cls: 'saida',   sinal: 'neg', sub: 'PIX Luz Divina' },
-      { lbl: 'Taxas Ativuz',            val: d.totais.taxa_ativuz || 0,          cls: 'saida',   sinal: 'neg', sub: 'Gestão e administração' },
-      { lbl: 'Seguros',                 val: d.totais.seguro || 0,               cls: 'saida',   sinal: 'neg', sub: 'Parcelas por veículo' },
-      { lbl: 'Taxas ASAAS',             val: d.totais.taxa_asaas || 0,           cls: 'saida',   sinal: 'neg', sub: 'Pix, WhatsApp, boleto' },
-      { lbl: 'Taxa de adesão',          val: d.totais.adesao || 0,               cls: 'entrada', sinal: 'pos', sub: 'Caução + 1ª semana' },
-      { lbl: 'Só aluguéis semanais',    val: d.totais.aluguel || 0,              cls: 'entrada', sinal: 'pos', sub: 'Recorrência semanal' },
-      { lbl: 'Estornos',                val: d.totais.estorno || 0,              cls: 'neutro',  sinal: '',    sub: '' },
+      { lbl: 'Total recebido',        val: totalEntradas,                    cls: 'entrada', sinal: 'pos', sub: 'Aluguéis + adesões' },
+      { lbl: 'Repasse ao investidor', val: d.totais.repasse_investidor || 0, cls: 'saida',   sinal: 'neg', sub: 'PIX Luz Divina' },
+      { lbl: 'Taxa adm + reembolsos', val: d.totais.taxa_ativuz || 0,        cls: 'saida',   sinal: 'neg', sub: 'Ativuz Veículos' },
+      { lbl: 'Seguros',               val: d.totais.seguro || 0,             cls: 'saida',   sinal: 'neg', sub: 'Parcelas por veículo' },
+      { lbl: 'IPVA',                  val: d.totais.ipva || 0,               cls: 'saida',   sinal: 'neg', sub: 'Por veículo' },
+      { lbl: 'Taxas ASAAS',           val: d.totais.taxa_asaas || 0,         cls: 'saida',   sinal: 'neg', sub: 'Pix, WhatsApp, boleto' },
+      { lbl: 'Taxa de adesão',        val: d.totais.adesao || 0,             cls: 'entrada', sinal: 'pos', sub: 'Caução + 1ª semana' },
+      { lbl: 'Aluguéis semanais',     val: d.totais.aluguel || 0,            cls: 'entrada', sinal: 'pos', sub: 'Recorrência semanal' },
     ];
 
     document.getElementById('asaas-cards').innerHTML = cards.map(function(c) {
@@ -2323,7 +2324,7 @@ document.addEventListener('click', function(e) {
 
   function _renderSaidas(transacoes) {
     var saidas = transacoes.filter(function(t) {
-      return ['repasse_investidor','taxa_ativuz','seguro','taxa_asaas'].indexOf(t.categoria) >= 0;
+      return t.relevante && t.valor < 0;
     });
     var rows = saidas.map(function(t) {
       return '<tr>' +
@@ -2428,9 +2429,10 @@ document.addEventListener('click', function(e) {
     }).join('');
 
     var saidasCats = [
-      {key:'repasse_investidor', label:'Repasse ao investidor (LUZ DIVINA)', cor:'#7e22ce'},
-      {key:'taxa_ativuz',        label:'Taxas de administração (ATIVUZ)',     cor:'#c2410c'},
+      {key:'repasse_investidor', label:'Repasse ao investidor (LUZ DIVINA)',  cor:'#7e22ce'},
+      {key:'taxa_ativuz',        label:'Taxa adm + reembolsos (ATIVUZ)',      cor:'#c2410c'},
       {key:'seguro',             label:'Seguros BYD',                          cor:'#0369a1'},
+      {key:'ipva',               label:'IPVA',                                 cor:'#0369a1'},
       {key:'taxa_asaas',         label:'Taxas da plataforma ASAAS',           cor:'#64748b'},
     ];
     var rowsSaidas = saidasCats.filter(function(c){ return d.totais[c.key]; }).map(function(c) {
@@ -2483,8 +2485,9 @@ document.addEventListener('click', function(e) {
       '<div class="card entrada"><div class="card-lbl">Aluguéis semanais</div><div class="card-val pos">' + brl(d.totais.aluguel||0) + '</div></div>' +
       '<div class="card entrada"><div class="card-lbl">Taxa de adesão</div><div class="card-val pos">' + brl(d.totais.adesao||0) + '</div></div>' +
       '<div class="card saida"><div class="card-lbl">Repasse investidor</div><div class="card-val neg">' + brl(d.totais.repasse_investidor||0) + '</div></div>' +
-      '<div class="card saida"><div class="card-lbl">Taxas Ativuz</div><div class="card-val neg">' + brl(d.totais.taxa_ativuz||0) + '</div></div>' +
+      '<div class="card saida"><div class="card-lbl">Taxa adm + reembolsos</div><div class="card-val neg">' + brl(d.totais.taxa_ativuz||0) + '</div></div>' +
       '<div class="card saida"><div class="card-lbl">Seguros BYD</div><div class="card-val neg">' + brl(d.totais.seguro||0) + '</div></div>' +
+      (d.totais.ipva ? '<div class="card saida"><div class="card-lbl">IPVA</div><div class="card-val neg">' + brl(d.totais.ipva) + '</div></div>' : '') +
       '<div class="card neutro"><div class="card-lbl">Taxas ASAAS</div><div class="card-val">' + brl(d.totais.taxa_asaas||0) + '</div></div>' +
     '</div>' +
 
