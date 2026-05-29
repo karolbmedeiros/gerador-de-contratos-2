@@ -2176,7 +2176,7 @@ document.addEventListener('click', function(e) {
     return {
       periodo:       periodos.filter(Boolean).join(' + '),
       saldo_inicial: 0,
-      saldo_final:   lista[lista.length - 1].saldo_final,
+      saldo_final:   transacoes.reduce(function(s, t) { return t.relevante ? s + t.valor : s; }, 0),
       totais:        totais,
       transacoes:    transacoes,
     };
