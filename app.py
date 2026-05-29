@@ -370,6 +370,55 @@ def api_asaas_parse():
     })
 
 
+_ASAAS_DIR = Path(__file__).parent / "planilhas" / "asaas_extratos"
+
+def _asaas_dir():
+    _ASAAS_DIR.mkdir(exist_ok=True)
+    return _ASAAS_DIR
+
+
+@app.route("/api/asaas-salvar", methods=["POST"])
+def api_asaas_salvar():
+    dados = request.get_json(force=True)
+    if not dados:
+        return jsonify({"erro": "Sem dados"}), 400
+    _id = str(uuid.uuid4())
+    path = _asaas_dir() / f"{_id}.json"
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump({**dados, "id": _id}, fh, ensure_ascii=False)
+    return jsonify({"ok": True, "id": _id})
+
+
+@app.route("/api/asaas-extratos")
+def api_asaas_extratos():
+    pasta = _asaas_dir()
+    extratos = []
+    for f in sorted(pasta.glob("*.json")):
+        try:
+            with open(f, encoding="utf-8") as fh:
+                d = json.load(fh)
+            extratos.append({
+                "id":           d.get("id", f.stem),
+                "periodo":      d.get("periodo", ""),
+                "saldo_inicial": d.get("saldo_inicial"),
+                "saldo_final":  d.get("saldo_final"),
+                "totais":       d.get("totais", {}),
+                "transacoes":   d.get("transacoes", []),
+            })
+        except Exception:
+            pass
+    return jsonify(extratos)
+
+
+@app.route("/api/asaas-extratos/<extrato_id>", methods=["DELETE"])
+def api_asaas_excluir(extrato_id):
+    path = _asaas_dir() / f"{extrato_id}.json"
+    if path.exists():
+        path.unlink()
+        return jsonify({"ok": True})
+    return jsonify({"erro": "Não encontrado"}), 404
+
+
 @app.route("/admin/novo-usuario", methods=["GET", "POST"])
 def admin_novo_usuario():
     token_correto = _os.environ.get("ADMIN_TOKEN", "")

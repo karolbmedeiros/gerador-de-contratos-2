@@ -687,6 +687,12 @@
     <div class="inv-bloco">
       <div class="inv-bloco-title">Extrato bancário · Entradas e saídas · Prestação de contas ao investidor</div>
 
+      <!-- Extratos salvos -->
+      <div id="asaas-extratos-lista" style="margin-bottom:14px;display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Extratos acumulados</div>
+        <div id="asaas-extratos-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+
       <!-- Upload -->
       <div id="asaas-upload-wrap">
         <label for="asaas-file-input" class="asaas-upload-area" id="asaas-drop-area">
@@ -696,12 +702,13 @@
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           <div class="asaas-upload-lbl">Clique ou arraste o extrato do ASAAS aqui</div>
-          <div class="asaas-upload-sub">Arquivo .xlsx exportado pelo ASAAS</div>
+          <div class="asaas-upload-sub">Arquivo .xlsx exportado pelo ASAAS — os extratos se acumulam automaticamente</div>
         </label>
         <input type="file" id="asaas-file-input" accept=".xlsx" style="display:none">
+        <div id="asaas-load-msg" style="display:none;text-align:center;font-size:13px;color:var(--ink-3);padding:10px 0;">Processando…</div>
       </div>
 
-      <!-- Resultado -->
+      <!-- Resultado acumulado -->
       <div id="asaas-resultado" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
           <div id="asaas-periodo-lbl" class="asaas-periodo" style="margin-bottom:0"></div>
@@ -717,21 +724,16 @@
         <div class="asaas-saldo-row" id="asaas-saldo-row"></div>
         <div style="margin-top:18px;">
           <div style="font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Entradas por motorista</div>
-          <div style="overflow-x:auto">
-            <table class="asaas-table" id="asaas-table-motoristas"></table>
-          </div>
+          <div style="overflow-x:auto"><table class="asaas-table" id="asaas-table-motoristas"></table></div>
         </div>
         <div style="margin-top:18px;">
           <div style="font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Saídas detalhadas</div>
-          <div style="overflow-x:auto">
-            <table class="asaas-table" id="asaas-table-saidas"></table>
-          </div>
+          <div style="overflow-x:auto"><table class="asaas-table" id="asaas-table-saidas"></table></div>
         </div>
         <button class="asaas-toggle-det" id="asaas-btn-det" onclick="asaasToggleDet()">Ver todas as transações</button>
         <div id="asaas-det-wrap" style="display:none;margin-top:12px;overflow-x:auto">
           <table class="asaas-table" id="asaas-table-det"></table>
         </div>
-        <button class="asaas-toggle-det" onclick="asaasReset()" style="margin-left:16px;">Carregar outro extrato</button>
       </div>
     </div>
   </div>{# /tab-investidores #}
@@ -2241,6 +2243,8 @@ document.addEventListener('click', function(e) {
 /* ══ CONCILIAÇÃO ASAAS ══ */
 (function () {
   var _det = false;
+  var _extratos = [];   // lista de extratos salvos
+  var _dadosGlobais = null;  // dados combinados exibidos
 
   function _brl(v) {
     return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -2254,13 +2258,88 @@ document.addEventListener('click', function(e) {
       taxa_ativuz:          ['ativuz',   'Taxa Ativuz'],
       reembolso_manutencao: ['ativuz',   'Reembolso manutenção'],
       ipva:                 ['seguro',   'IPVA'],
-      seguro:               ['seguro',   'Seguro'],
       taxa_asaas:           ['taxa',     'Taxa ASAAS'],
       estorno:              ['estorno',  'Estorno'],
       outro:                ['outro',    'Outro'],
     };
     var info = map[cat] || ['outro', cat];
     return '<span class="asaas-cat-badge ' + info[0] + '">' + info[1] + '</span>';
+  }
+
+  /* ── Combina todos os extratos salvos em um único objeto ── */
+  function _combinar(lista) {
+    if (!lista.length) return null;
+    var totais = {};
+    var transacoes = [];
+    var periodos = [];
+    lista.forEach(function(e) {
+      periodos.push(e.periodo || '');
+      Object.keys(e.totais || {}).forEach(function(k) {
+        totais[k] = (totais[k] || 0) + (e.totais[k] || 0);
+      });
+      (e.transacoes || []).forEach(function(t) { transacoes.push(t); });
+    });
+    return {
+      periodo:    periodos.filter(Boolean).join(' + '),
+      saldo_inicial: lista[0].saldo_inicial,
+      saldo_final:   lista[lista.length - 1].saldo_final,
+      totais:     totais,
+      transacoes: transacoes,
+    };
+  }
+
+  /* ── Carrega extratos salvos do servidor ── */
+  function _carregarExtratos() {
+    fetch('/api/asaas-extratos')
+      .then(function(r) { return r.json(); })
+      .then(function(lista) {
+        _extratos = lista;
+        _renderChips();
+        if (lista.length) {
+          _dadosGlobais = _combinar(lista);
+          _mostrarResultado(_dadosGlobais);
+        }
+      });
+  }
+
+  /* ── Chips dos extratos salvos ── */
+  function _renderChips() {
+    var wrap = document.getElementById('asaas-extratos-lista');
+    var chips = document.getElementById('asaas-extratos-chips');
+    if (!_extratos.length) { if (wrap) wrap.style.display = 'none'; return; }
+    if (wrap) wrap.style.display = '';
+    chips.innerHTML = _extratos.map(function(e) {
+      var per = (e.periodo || e.id).replace(/Período a partir de /i,'').replace(/\s*até\s*/i,' → ');
+      return '<div style="display:inline-flex;align-items:center;gap:6px;background:var(--card);' +
+             'border:1px solid var(--line);border-radius:20px;padding:4px 10px 4px 12px;font-size:11.5px;">' +
+             '<span>' + per + '</span>' +
+             '<button onclick="asaasExcluir(\'' + e.id + '\')" title="Remover" ' +
+             'style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;padding:0;">×</button>' +
+             '</div>';
+    }).join('');
+  }
+
+  window.asaasExcluir = function(id) {
+    if (!confirm('Remover este extrato?')) return;
+    fetch('/api/asaas-extratos/' + id, { method: 'DELETE' })
+      .then(function() {
+        _extratos = _extratos.filter(function(e) { return e.id !== id; });
+        _renderChips();
+        _dadosGlobais = _extratos.length ? _combinar(_extratos) : null;
+        if (_dadosGlobais) _mostrarResultado(_dadosGlobais);
+        else { document.getElementById('asaas-resultado').style.display = 'none'; }
+      });
+  };
+
+  function _mostrarResultado(d) {
+    _renderCards(d);
+    _renderSaldo(d);
+    _renderMotoristas(d.transacoes);
+    _renderSaidas(d.transacoes);
+    _renderDetalhe(d.transacoes);
+    var pl = document.getElementById('asaas-periodo-lbl');
+    if (pl) pl.textContent = d.periodo || '';
+    document.getElementById('asaas-resultado').style.display = '';
   }
 
   function _renderCards(d) {
@@ -2272,7 +2351,6 @@ document.addEventListener('click', function(e) {
       { lbl: 'IPVA',                  val: d.totais.ipva || 0,                    cls: 'saida',   sinal: 'neg', sub: 'Por veículo' },
       { lbl: 'Taxas ASAAS',           val: d.totais.taxa_asaas || 0,              cls: 'saida',   sinal: 'neg', sub: 'Pix, WhatsApp, boleto' },
     ];
-
     document.getElementById('asaas-cards').innerHTML = cards.map(function(c) {
       return '<div class="asaas-card ' + c.cls + '">' +
         '<div class="asaas-card-lbl">' + c.lbl + '</div>' +
@@ -2294,23 +2372,18 @@ document.addEventListener('click', function(e) {
     transacoes.forEach(function(t) {
       if (t.categoria !== 'aluguel' && t.categoria !== 'adesao') return;
       var nome = t.motorista || 'Desconhecido';
-      if (!map[nome]) map[nome] = { aluguel: 0, adesao: 0, n: 0, pagadores: [] };
+      if (!map[nome]) map[nome] = { aluguel: 0, adesao: 0, n: 0 };
       if (t.categoria === 'aluguel') { map[nome].aluguel += t.valor; map[nome].n++; }
-      if (t.categoria === 'adesao')  {
-        map[nome].adesao += t.valor;
-        if (t.pagador) map[nome].pagadores.push(t.pagador);
-      }
+      if (t.categoria === 'adesao')  { map[nome].adesao  += t.valor; }
     });
     var rows = Object.keys(map).sort().map(function(nome) {
       var m = map[nome];
       var total = m.aluguel + m.adesao;
-      return '<tr>' +
-        '<td>' + nome + '</td>' +
+      return '<tr><td>' + nome + '</td>' +
         '<td>' + (m.n > 0 ? m.n + ' sem.' : '—') + '</td>' +
         '<td class="pos">' + (m.aluguel ? _brl(m.aluguel) : '—') + '</td>' +
         '<td class="pos">' + (m.adesao  ? _brl(m.adesao)  : '—') + '</td>' +
-        '<td class="pos" style="font-weight:800">' + _brl(total) + '</td>' +
-      '</tr>';
+        '<td class="pos" style="font-weight:800">' + _brl(total) + '</td></tr>';
     }).join('');
     document.getElementById('asaas-table-motoristas').innerHTML =
       '<thead><tr><th>Motorista</th><th>Semanas</th><th>Aluguéis</th><th>Adesão</th><th>Total</th></tr></thead>' +
@@ -2322,12 +2395,9 @@ document.addEventListener('click', function(e) {
       return t.relevante && t.valor < 0 && t.categoria !== 'repasse_investidor';
     });
     var rows = saidas.map(function(t) {
-      return '<tr>' +
-        '<td>' + t.data + '</td>' +
-        '<td>' + _catBadge(t.categoria) + '</td>' +
+      return '<tr><td>' + t.data + '</td><td>' + _catBadge(t.categoria) + '</td>' +
         '<td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + t.descricao + '">' + t.descricao + '</td>' +
-        '<td class="neg">' + _brl(t.valor) + '</td>' +
-      '</tr>';
+        '<td class="neg">' + _brl(t.valor) + '</td></tr>';
     }).join('');
     document.getElementById('asaas-table-saidas').innerHTML =
       '<thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead>' +
@@ -2337,16 +2407,41 @@ document.addEventListener('click', function(e) {
   function _renderDetalhe(transacoes) {
     var rows = transacoes.map(function(t) {
       var pos = t.valor > 0;
-      return '<tr>' +
-        '<td>' + t.data + '</td>' +
-        '<td>' + _catBadge(t.categoria) + '</td>' +
+      return '<tr><td>' + t.data + '</td><td>' + _catBadge(t.categoria) + '</td>' +
         '<td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + t.descricao + '">' + t.descricao + '</td>' +
-        '<td class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + _brl(t.valor) + '</td>' +
-      '</tr>';
+        '<td class="' + (pos ? 'pos' : 'neg') + '">' + (pos ? '+' : '') + _brl(t.valor) + '</td></tr>';
     }).join('');
     document.getElementById('asaas-table-det').innerHTML =
       '<thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead>' +
       '<tbody>' + rows + '</tbody>';
+  }
+
+  function _processar(file) {
+    var fd = new FormData();
+    fd.append('arquivo', file);
+    var loadMsg = document.getElementById('asaas-load-msg');
+    if (loadMsg) loadMsg.style.display = '';
+    fetch('/api/asaas-parse', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.erro) { alert('Erro: ' + d.erro); return; }
+        // Salva no servidor
+        return fetch('/api/asaas-salvar', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(d)
+        }).then(function(r) { return r.json(); }).then(function(resp) {
+          if (resp.ok) {
+            d.id = resp.id;
+            _extratos.push(d);
+            _renderChips();
+            _dadosGlobais = _combinar(_extratos);
+            _mostrarResultado(_dadosGlobais);
+          }
+        });
+      })
+      .catch(function(e) { alert('Erro ao processar: ' + e); })
+      .finally(function() { if (loadMsg) loadMsg.style.display = 'none'; });
   }
 
   window.asaasToggleDet = function() {
@@ -2355,24 +2450,12 @@ document.addEventListener('click', function(e) {
     document.getElementById('asaas-btn-det').textContent    = _det ? 'Ocultar transações' : 'Ver todas as transações';
   };
 
-  window.asaasReset = function() {
-    var wrap = document.getElementById('asaas-upload-wrap');
-    var res  = document.getElementById('asaas-resultado');
-    wrap.innerHTML = '<label for="asaas-file-input" class="asaas-upload-area" id="asaas-drop-area">' +
-      '<svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">' +
-      '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>' +
-      '</svg><div class="asaas-upload-lbl">Clique ou arraste o extrato do ASAAS aqui</div>' +
-      '<div class="asaas-upload-sub">Arquivo .xlsx exportado pelo ASAAS</div></label>' +
-      '<input type="file" id="asaas-file-input" accept=".xlsx" style="display:none">';
-    wrap.style.display = '';
-    res.style.display  = 'none';
-    _bindInput();
-  };
+  window.asaasReset = function() { _bindInput(); };
 
   function _bindInput() {
     var inp = document.getElementById('asaas-file-input');
     if (inp) inp.addEventListener('change', function() {
-      if (this.files[0]) _processar(this.files[0]);
+      if (this.files[0]) { _processar(this.files[0]); this.value = ''; }
     });
     var drop = document.getElementById('asaas-drop-area');
     if (drop) {
@@ -2385,20 +2468,13 @@ document.addEventListener('click', function(e) {
     }
   }
 
-  _bindInput();
-
   /* ── Gerador de PDF ── */
-  var _dadosGlobais = null;
-
   window.asaasGerarPdf = function () {
     var d = _dadosGlobais;
-    if (!d) { alert('Processe um extrato primeiro.'); return; }
-
+    if (!d) { alert('Nenhum dado carregado.'); return; }
     function brl(v) {
       return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
     }
-
-    // Motoristas agrupados
     var motorMap = {};
     d.transacoes.forEach(function(t) {
       if (t.categoria !== 'aluguel' && t.categoria !== 'adesao') return;
@@ -2407,22 +2483,13 @@ document.addEventListener('click', function(e) {
       if (t.categoria === 'aluguel') { motorMap[nome].aluguel += t.valor; motorMap[nome].n++; }
       if (t.categoria === 'adesao')  motorMap[nome].adesao  += t.valor;
     });
-
-    var totalEntradas = (d.totais.aluguel||0) + (d.totais.adesao||0);
-    var totalSaidas   = (d.totais.repasse_investidor||0) + (d.totais.taxa_ativuz||0) +
-                        (d.totais.seguro||0) + (d.totais.taxa_asaas||0);
-
     var rowsMotoristas = Object.keys(motorMap).sort().map(function(nome) {
       var m = motorMap[nome];
-      return '<tr>' +
-        '<td>' + nome + '</td>' +
-        '<td style="text-align:center">' + (m.n || '—') + '</td>' +
+      return '<tr><td>' + nome + '</td><td style="text-align:center">' + (m.n||'—') + '</td>' +
         '<td style="text-align:right;color:#15803d">' + (m.aluguel ? brl(m.aluguel) : '—') + '</td>' +
         '<td style="text-align:right;color:#1d4ed8">' + (m.adesao  ? brl(m.adesao)  : '—') + '</td>' +
-        '<td style="text-align:right;font-weight:700">' + brl(m.aluguel + m.adesao) + '</td>' +
-      '</tr>';
+        '<td style="text-align:right;font-weight:700">' + brl(m.aluguel + m.adesao) + '</td></tr>';
     }).join('');
-
     var saidasCats = [
       {key:'taxa_ativuz',          label:'Taxa adm (ATIVUZ)',          cor:'#c2410c'},
       {key:'reembolso_manutencao', label:'Reembolso de manutenção',   cor:'#c2410c'},
@@ -2433,98 +2500,52 @@ document.addEventListener('click', function(e) {
       return '<tr><td style="color:' + c.cor + ';font-weight:600">' + c.label + '</td>' +
              '<td style="text-align:right;color:#dc2626;font-weight:700">' + brl(d.totais[c.key]) + '</td></tr>';
     }).join('');
-
     var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
     '<title>Prestação de Contas — Ativuz Veículos</title>' +
-    '<style>' +
-      'body{font-family:Arial,sans-serif;font-size:12px;color:#0f172a;margin:0;padding:32px 40px;max-width:800px;}' +
-      'h1{font-size:20px;font-weight:800;margin:0 0 2px;color:#1e3a5f;}' +
-      '.sub{font-size:11px;color:#64748b;margin-bottom:24px;}' +
-      '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #1e3a5f;padding-bottom:14px;}' +
-      '.logo-txt{font-size:22px;font-weight:900;color:#1e3a5f;letter-spacing:.03em;}' +
-      '.logo-sub{font-size:10px;color:#64748b;font-weight:400;}' +
-      '.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;}' +
-      '.card{border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px;}' +
-      '.card.entrada{border-left:3px solid #22c55e;}' +
-      '.card.saida{border-left:3px solid #f97316;}' +
-      '.card.neutro{border-left:3px solid #94a3b8;}' +
-      '.card-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px;}' +
-      '.card-val{font-size:16px;font-weight:800;color:#0f172a;}' +
-      '.card-val.pos{color:#15803d;}.card-val.neg{color:#dc2626;}' +
-      'h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-left:3px solid #1e3a5f;padding-left:7px;margin:20px 0 8px;}' +
-      'table{width:100%;border-collapse:collapse;font-size:11.5px;}' +
-      'th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;border-bottom:2px solid #e2e8f0;padding:6px 8px;}' +
-      'td{padding:6px 8px;border-bottom:1px solid #f1f5f9;}' +
-      'tr:last-child td{border-bottom:none;}' +
-      '.saldo-row{display:flex;gap:20px;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;}' +
-      '.saldo-item label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:2px;}' +
-      '.saldo-item strong{font-size:15px;font-weight:800;}' +
-      '.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between;}' +
-      '@media print{body{padding:16px 20px;} button{display:none;}}' +
-    '</style></head><body>' +
-
-    '<div class="header">' +
-      '<div><div class="logo-txt">ATIVUZ VEÍCULOS</div><div class="logo-sub">Gestão de Frota e Investimentos</div></div>' +
-      '<div style="text-align:right"><h1>Prestação de Contas</h1><div class="sub">' + (d.periodo || '') + '</div></div>' +
-    '</div>' +
-
+    '<style>body{font-family:Arial,sans-serif;font-size:12px;color:#0f172a;margin:0;padding:32px 40px;max-width:800px;}' +
+    'h1{font-size:20px;font-weight:800;margin:0 0 2px;color:#1e3a5f;}.sub{font-size:11px;color:#64748b;margin-bottom:24px;}' +
+    '.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #1e3a5f;padding-bottom:14px;}' +
+    '.logo-txt{font-size:22px;font-weight:900;color:#1e3a5f;letter-spacing:.03em;}.logo-sub{font-size:10px;color:#64748b;}' +
+    '.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px;}' +
+    '.card{border:1px solid #e2e8f0;border-radius:8px;padding:10px 13px;}' +
+    '.card.entrada{border-left:3px solid #22c55e;}.card.saida{border-left:3px solid #f97316;}.card.neutro{border-left:3px solid #94a3b8;}' +
+    '.card-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px;}' +
+    '.card-val{font-size:16px;font-weight:800;}.card-val.pos{color:#15803d;}.card-val.neg{color:#dc2626;}' +
+    'h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;border-left:3px solid #1e3a5f;padding-left:7px;margin:20px 0 8px;}' +
+    'table{width:100%;border-collapse:collapse;font-size:11.5px;}' +
+    'th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748b;border-bottom:2px solid #e2e8f0;padding:6px 8px;}' +
+    'td{padding:6px 8px;border-bottom:1px solid #f1f5f9;}tr:last-child td{border-bottom:none;}' +
+    '.saldo-row{display:flex;gap:20px;background:#f8fafc;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;}' +
+    '.saldo-item label{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;display:block;margin-bottom:2px;}' +
+    '.saldo-item strong{font-size:15px;font-weight:800;}' +
+    '.footer{margin-top:32px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;display:flex;justify-content:space-between;}' +
+    '@media print{body{padding:16px 20px;}button{display:none;}}</style></head><body>' +
+    '<div class="header"><div><div class="logo-txt">ATIVUZ VEÍCULOS</div><div class="logo-sub">Gestão de Frota e Investimentos</div></div>' +
+    '<div style="text-align:right"><h1>Prestação de Contas</h1><div class="sub">' + (d.periodo||'') + '</div></div></div>' +
     '<div class="saldo-row">' +
-      '<div class="saldo-item"><label>Saldo inicial</label><strong>' + brl(d.saldo_inicial) + '</strong></div>' +
-      '<div class="saldo-item"><label>Saldo final</label><strong style="color:' + (d.saldo_final >= d.saldo_inicial ? '#15803d':'#dc2626') + '">' + brl(d.saldo_final) + '</strong></div>' +
+    '<div class="saldo-item"><label>Saldo inicial</label><strong>' + brl(d.saldo_inicial) + '</strong></div>' +
+    '<div class="saldo-item"><label>Saldo final</label><strong style="color:' + (d.saldo_final>=d.saldo_inicial?'#15803d':'#dc2626') + '">' + brl(d.saldo_final) + '</strong></div>' +
     '</div>' +
-
     '<div class="cards">' +
-      '<div class="card entrada"><div class="card-lbl">Total recebido</div><div class="card-val pos">' + brl(d.totais.total_recebido||0) + '</div></div>' +
-      '<div class="card entrada"><div class="card-lbl">Cauções</div><div class="card-val pos">' + brl(d.totais.caucao||0) + '</div></div>' +
-      '<div class="card saida"><div class="card-lbl">Taxa adm (Ativuz)</div><div class="card-val neg">' + brl(d.totais.taxa_ativuz||0) + '</div></div>' +
-      (d.totais.reembolso_manutencao ? '<div class="card saida"><div class="card-lbl">Reembolso manutenção</div><div class="card-val neg">' + brl(d.totais.reembolso_manutencao) + '</div></div>' : '') +
-      (d.totais.ipva ? '<div class="card saida"><div class="card-lbl">IPVA</div><div class="card-val neg">' + brl(d.totais.ipva) + '</div></div>' : '') +
-      '<div class="card neutro"><div class="card-lbl">Taxas ASAAS</div><div class="card-val">' + brl(d.totais.taxa_asaas||0) + '</div></div>' +
+    '<div class="card entrada"><div class="card-lbl">Total recebido</div><div class="card-val pos">' + brl(d.totais.total_recebido||0) + '</div></div>' +
+    '<div class="card entrada"><div class="card-lbl">Cauções</div><div class="card-val pos">' + brl(d.totais.caucao||0) + '</div></div>' +
+    '<div class="card saida"><div class="card-lbl">Taxa adm (Ativuz)</div><div class="card-val neg">' + brl(d.totais.taxa_ativuz||0) + '</div></div>' +
+    (d.totais.reembolso_manutencao?'<div class="card saida"><div class="card-lbl">Reembolso manutenção</div><div class="card-val neg">'+brl(d.totais.reembolso_manutencao)+'</div></div>':'') +
+    (d.totais.ipva?'<div class="card saida"><div class="card-lbl">IPVA</div><div class="card-val neg">'+brl(d.totais.ipva)+'</div></div>':'') +
+    '<div class="card neutro"><div class="card-lbl">Taxas ASAAS</div><div class="card-val">' + brl(d.totais.taxa_asaas||0) + '</div></div>' +
     '</div>' +
-
     '<h2>Entradas por motorista</h2>' +
-    '<table><thead><tr><th>Motorista</th><th>Semanas</th><th>Aluguéis</th><th>Adesão</th><th>Total</th></tr></thead>' +
-    '<tbody>' + rowsMotoristas + '</tbody></table>' +
-
+    '<table><thead><tr><th>Motorista</th><th>Semanas</th><th>Aluguéis</th><th>Adesão</th><th>Total</th></tr></thead><tbody>' + rowsMotoristas + '</tbody></table>' +
     '<h2 style="margin-top:20px">Resumo de saídas</h2>' +
-    '<table><thead><tr><th>Categoria</th><th style="text-align:right">Valor</th></tr></thead>' +
-    '<tbody>' + rowsSaidas + '</tbody></table>' +
-
-    '<div class="footer">' +
-      '<span>Ativuz Veículos · Gestão de Frota</span>' +
-      '<span>Gerado em ' + new Date().toLocaleDateString('pt-BR') + '</span>' +
-    '</div>' +
-
+    '<table><thead><tr><th>Categoria</th><th style="text-align:right">Valor</th></tr></thead><tbody>' + rowsSaidas + '</tbody></table>' +
+    '<div class="footer"><span>Ativuz Veículos · Gestão de Frota</span><span>Gerado em ' + new Date().toLocaleDateString('pt-BR') + '</span></div>' +
     '<div style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></div>' +
     '</body></html>';
-
-    var w = window.open('', '_blank');
-    w.document.write(html);
-    w.document.close();
+    var w = window.open('', '_blank'); w.document.write(html); w.document.close();
   };
 
-  function _processar(file) {
-    var fd = new FormData();
-    fd.append('arquivo', file);
-    var wrap = document.getElementById('asaas-upload-wrap');
-    var res  = document.getElementById('asaas-resultado');
-    wrap.innerHTML = '<div style="text-align:center;color:var(--ink-3);font-size:13px;padding:20px">Processando…</div>';
-    fetch('/api/asaas-parse', { method: 'POST', body: fd })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.erro) { alert('Erro: ' + d.erro); asaasReset(); return; }
-        _dadosGlobais = d;
-        document.getElementById('asaas-periodo-lbl').textContent = d.periodo || '';
-        _renderCards(d);
-        _renderSaldo(d);
-        _renderMotoristas(d.transacoes);
-        _renderSaidas(d.transacoes);
-        _renderDetalhe(d.transacoes);
-        wrap.style.display = 'none';
-        res.style.display  = '';
-      })
-      .catch(function(e) { alert('Erro ao processar: ' + e); asaasReset(); });
-  }
+  _bindInput();
+  _carregarExtratos();
 
 })();
 </script>
