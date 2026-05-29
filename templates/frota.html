@@ -2388,12 +2388,16 @@ document.addEventListener('click', function(e) {
       if (t.categoria === 'aluguel') { motorMap[nome].aluguel += t.valor; motorMap[nome].n++; }
       if (t.categoria === 'adesao')  motorMap[nome].adesao  += t.valor;
     });
+    var SEMANA_V = 1200;
     var rowsMotoristas = Object.keys(motorMap).sort().map(function(nome) {
       var m = motorMap[nome];
+      var aluguel = m.aluguel + (m.adesao > 0 ? SEMANA_V : 0);
+      var caucao  = m.adesao > 0 ? Math.max(m.adesao - SEMANA_V, 0) : 0;
+      var total   = aluguel + caucao;
       return '<tr><td>' + nome.toUpperCase() + '</td><td style="text-align:center">' + (m.n||'—') + '</td>' +
-        '<td style="text-align:right;color:#15803d">' + (m.aluguel ? brl(m.aluguel) : '—') + '</td>' +
-        '<td style="text-align:right;color:#1d4ed8">' + (m.adesao  ? brl(m.adesao)  : '—') + '</td>' +
-        '<td style="text-align:right;font-weight:700">' + brl(m.aluguel + m.adesao) + '</td></tr>';
+        '<td style="text-align:right;color:#15803d">' + (aluguel ? brl(aluguel) : '—') + '</td>' +
+        '<td style="text-align:right;color:#1d4ed8">' + (caucao  ? brl(caucao)  : '—') + '</td>' +
+        '<td style="text-align:right;font-weight:700">' + brl(total) + '</td></tr>';
     }).join('');
     var saidasCats = [
       {key:'taxa_ativuz',          label:'Taxa adm (ATIVUZ)',          cor:'#c2410c'},
@@ -2406,15 +2410,57 @@ document.addEventListener('click', function(e) {
              '<td style="text-align:right;color:#dc2626;font-weight:700">' + brl(d.totais[c.key]) + '</td></tr>';
     }).join('');
     /* Calcula semana atual: segunda a domingo */
-    var hoje     = new Date();
-    var diaSem   = hoje.getDay(); // 0=dom, 1=seg...
-    var diffSeg  = (diaSem === 0) ? -6 : 1 - diaSem;
-    var seg      = new Date(hoje); seg.setDate(hoje.getDate() + diffSeg);
-    var dom      = new Date(seg);  dom.setDate(seg.getDate() + 6);
-    function _fmt(d) {
-      return ('0'+d.getDate()).slice(-2) + '/' + ('0'+(d.getMonth()+1)).slice(-2) + '/' + d.getFullYear();
+    var hoje    = new Date();
+    var diaSem  = hoje.getDay();
+    var diffSeg = (diaSem === 0) ? -6 : 1 - diaSem;
+    var seg     = new Date(hoje); seg.setDate(hoje.getDate() + diffSeg); seg.setHours(0,0,0,0);
+    var dom     = new Date(seg);  dom.setDate(seg.getDate() + 6);        dom.setHours(23,59,59,999);
+    function _fmt(dt) {
+      return ('0'+dt.getDate()).slice(-2) + '/' + ('0'+(dt.getMonth()+1)).slice(-2) + '/' + dt.getFullYear();
+    }
+    function _parseDataBR(s) {
+      var p = s.split('/');
+      return p.length === 3 ? new Date(+p[2], +p[1]-1, +p[0]) : null;
     }
     var semanaRef = 'Semana de ' + _fmt(seg) + ' a ' + _fmt(dom);
+
+    /* Descrição curta por categoria */
+    function _descCurta(t) {
+      var c = t.categoria;
+      if (c === 'aluguel' || c === 'adesao') {
+        var nome = (t.motorista || '').toUpperCase().split(' ')[0];
+        return c === 'adesao' ? 'Adesão — ' + nome : 'Aluguel — ' + nome;
+      }
+      if (c === 'taxa_ativuz')          return 'Taxa Adm — Ativuz';
+      if (c === 'reembolso_manutencao') return 'Reembolso manutenção';
+      if (c === 'ipva') {
+        var m = (t.placa_seguro || t.descricao).match(/TSW[\w-]+/i);
+        return 'IPVA' + (m ? ' — ' + m[0].toUpperCase() : '');
+      }
+      if (c === 'taxa_asaas')           return 'Taxa ASAAS';
+      return t.descricao.substring(0, 40);
+    }
+
+    /* Filtra transações da semana atual */
+    var CATS_SEMANA = ['aluguel','adesao','taxa_ativuz','reembolso_manutencao','ipva','taxa_asaas'];
+    var txSemana = d.transacoes.filter(function(t) {
+      if (CATS_SEMANA.indexOf(t.categoria) < 0) return false;
+      var dt = _parseDataBR(t.data);
+      return dt && dt >= seg && dt <= dom;
+    }).sort(function(a, b) {
+      return _parseDataBR(a.data) - _parseDataBR(b.data);
+    });
+    var rowsSemana = txSemana.length
+      ? txSemana.map(function(t) {
+          var pos = t.valor > 0;
+          return '<tr>' +
+            '<td>' + t.data + '</td>' +
+            '<td>' + _descCurta(t) + '</td>' +
+            '<td style="text-align:right;font-weight:700;color:' + (pos?'#15803d':'#dc2626') + '">' +
+              (pos ? '+' : '−') + ' R$ ' + Math.abs(t.valor).toLocaleString('pt-BR',{minimumFractionDigits:2}) +
+            '</td></tr>';
+        }).join('')
+      : '<tr><td colspan="3" style="color:#94a3b8;text-align:center;padding:12px">Nenhuma movimentação nesta semana</td></tr>';
 
     var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
     '<title>Prestação de Contas — Ativuz Veículos</title>' +
@@ -2450,9 +2496,11 @@ document.addEventListener('click', function(e) {
     (d.totais.ipva?'<div class="card saida"><div class="card-lbl">IPVA</div><div class="card-val neg">'+brl(d.totais.ipva)+'</div></div>':'') +
     '<div class="card neutro"><div class="card-lbl">Taxas ASAAS</div><div class="card-val">' + brl(d.totais.taxa_asaas||0) + '</div></div>' +
     '</div>' +
-    '<h2>Entradas por motorista</h2>' +
-    '<table><thead><tr><th>Motorista</th><th>Semanas</th><th>Aluguéis</th><th>Adesão</th><th>Total</th></tr></thead><tbody>' + rowsMotoristas + '</tbody></table>' +
-    '<h2 style="margin-top:20px">Resumo de saídas</h2>' +
+    '<h2>Extrato da semana — ' + semanaRef + '</h2>' +
+    '<table><thead><tr><th>Data</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead><tbody>' + rowsSemana + '</tbody></table>' +
+    '<h2 style="margin-top:24px">Acumulado por motorista</h2>' +
+    '<table><thead><tr><th>Motorista</th><th>Semanas</th><th style="text-align:right">Aluguéis</th><th style="text-align:right">Caução</th><th style="text-align:right">Total</th></tr></thead><tbody>' + rowsMotoristas + '</tbody></table>' +
+    '<h2 style="margin-top:24px">Resumo de saídas acumulado</h2>' +
     '<table><thead><tr><th>Categoria</th><th style="text-align:right">Valor</th></tr></thead><tbody>' + rowsSaidas + '</tbody></table>' +
     '<div class="footer"><span>Ativuz Veículos · Gestão de Frota</span><span>Gerado em ' + new Date().toLocaleDateString('pt-BR') + '</span></div>' +
     '<div style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;">Imprimir / Salvar PDF</button></div>' +
