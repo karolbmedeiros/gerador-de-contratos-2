@@ -1821,13 +1821,9 @@ function getParams() {
   var ipva_pago  = Math.abs(d.totais.ipva || 0);
   var ipva_real  = ipva_pago > 0 ? (ipva_pago * 3 / n_veiculos) : base.ipva_total;
 
-  // Manutenção anualizada por veículo (~1 mês de dados → ×12)
-  var manut_pago = Math.abs(d.totais.reembolso_manutencao || 0);
-  var manut_real = manut_pago > 0 ? (manut_pago * 12 / n_veiculos) : (base.manutencao * 12);
-
   return {
     aquisicao:       base.aquisicao,
-    manutencao:      manut_real / 12,
+    manutencao:      base.manutencao,   // R$258/mês — fixo
     ipva_total:      ipva_real,
     depreciacao_pct: base.depreciacao_pct,
   };
