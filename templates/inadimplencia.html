@@ -3177,7 +3177,15 @@ function inadSwitch(aba) {
 
       <!-- Passo 2: enviar em lotes -->
       <div id="lt-step2" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+
+        <!-- Aviso fixo de popups -->
+        <div style="background:#fef9c3;border:1px solid #fde047;border-radius:8px;
+             padding:9px 13px;font-size:.76rem;color:#713f12;line-height:1.5;">
+          <strong>⚠️ Antes de usar "Abrir todos do lote":</strong> permita popups para este site.<br>
+          No Chrome: clique no ícone 🔒 na barra de endereços → <em>Permissões do site</em> → <em>Pop-ups</em> → Permitir.
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="font-size:.8rem;color:var(--text-muted);">
             <strong id="lt-total-contatos">0</strong> contatos com telefone cadastrado
           </div>
@@ -3219,10 +3227,10 @@ function inadSwitch(aba) {
         </div>
 
         <!-- Alerta bloqueio de popups -->
-        <div id="lt-popup-aviso" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;
-             padding:10px 13px;font-size:.77rem;color:#713f12;line-height:1.5;">
-          <strong>Dica:</strong> Se o navegador bloqueou os popups, clique no ícone de bloqueio na barra de endereços e permita popups para este site.
-          Ou use os botões individuais de cada contato.
+        <div id="lt-popup-aviso" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;
+             padding:10px 13px;font-size:.77rem;color:#7f1d1d;line-height:1.5;">
+          <strong>Popups bloqueados.</strong> O navegador impediu a abertura das abas.<br>
+          Clique no ícone 🔒 na barra de endereços → <em>Pop-ups e redirecionamentos</em> → <strong>Permitir</strong> — depois clique "Abrir todos do lote" novamente.
         </div>
       </div>
 
@@ -3395,15 +3403,18 @@ function inadSwitch(aba) {
   window.ltAbrirTodos = function () {
     var lote    = _contatosDoLote(_loteAtual);
     var msg     = document.getElementById('lt-msg').value.trim();
-    var blocked = false;
+    var aviso   = document.getElementById('lt-popup-aviso');
+    aviso.style.display = 'none';
+    var bloqueados = 0;
     lote.forEach(function (c, idx) {
       var gi    = _loteAtual * _loteSize + idx;
       var waUrl = 'https://wa.me/' + _foneWa(c.telefone) + '?text=' + encodeURIComponent(msg);
-      var w = window.open(waUrl, '_blank');
-      if (!w) blocked = true;
-      ltRegistrarAberto(gi);
+      setTimeout(function () {
+        var w = window.open(waUrl, '_blank');
+        if (!w) { bloqueados++; aviso.style.display = ''; }
+        else ltRegistrarAberto(gi);
+      }, idx * 350);
     });
-    document.getElementById('lt-popup-aviso').style.display = blocked ? '' : 'none';
   };
 
   window.ltProximoLote = function () {
