@@ -492,6 +492,225 @@
     gap: 0.75rem;
   }
 
+  /* ── Lista de Transmissão ── */
+  .lt-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .lt-overlay.open { display: flex; }
+  .lt-modal {
+    background: #fff;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    overflow: hidden;
+  }
+  [data-theme="dark"] .lt-modal { background: #1e2130; }
+  .lt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .lt-title {
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lt-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    transition: color .12s;
+  }
+  .lt-close:hover { color: var(--text); }
+  .lt-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .lt-textarea {
+    width: 100%;
+    min-height: 120px;
+    resize: vertical;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: .87rem;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg-input, #fff);
+    outline: none;
+    transition: border-color .12s;
+    box-sizing: border-box;
+    line-height: 1.55;
+  }
+  [data-theme="dark"] .lt-textarea { background: #252840; }
+  .lt-textarea:focus { border-color: #25D366; }
+  .lt-chars {
+    font-size: .72rem;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: -10px;
+  }
+  .lt-btn-green {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #25D366;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: inherit;
+  }
+  .lt-btn-green:hover { background: #1da851; }
+  .lt-btn-green:disabled { background: #94a3b8; cursor: not-allowed; }
+  .lt-btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: .82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .12s;
+    font-family: inherit;
+  }
+  .lt-btn-outline:hover { border-color: #25D366; color: #25D366; }
+  .lt-progress-bar {
+    background: #e2e8f0;
+    border-radius: 999px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .lt-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #25D366, #1da851);
+    border-radius: 999px;
+    transition: width .3s ease;
+  }
+  .lt-batch-info {
+    font-size: .78rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .lt-contact-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    transition: border-color .12s;
+  }
+  .lt-contact-card:hover { border-color: #25D366; }
+  .lt-contact-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #25D366 0%, #1da851 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .85rem;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .lt-contact-name { font-size: .84rem; font-weight: 600; color: var(--text); }
+  .lt-contact-phone { font-size: .75rem; color: var(--text-muted); margin-top: 1px; }
+  .lt-wa-link {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #25D366;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 11px;
+    font-size: .77rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+  .lt-wa-link:hover { background: #1da851; }
+  .lt-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .lt-step-indicator {
+    display: flex;
+    gap: 4px;
+  }
+  .lt-step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background .2s;
+  }
+  .lt-step-dot.done { background: #25D366; }
+  .lt-step-dot.current { background: #1da851; width: 18px; border-radius: 999px; }
+  .lt-empty {
+    text-align: center;
+    padding: 28px 0;
+    color: var(--text-muted);
+    font-size: .85rem;
+  }
+  .btn-transmissao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #25D366;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s;
+  }
+  .btn-transmissao:hover { background: #1da851; }
+
   /* Responsive */
   @media (max-width: 1200px) {
     .inad-cards { grid-template-columns: repeat(3, 1fr); }
@@ -1101,15 +1320,23 @@
         </div>
       </div>
     </div>
-    <button id="sort-toggle" class="btn-sort" style="align-self:flex-start;">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-        <line x1="8" y1="18" x2="21" y2="18"/>
-        <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
-        <line x1="3" y1="18" x2="3.01" y2="18"/>
-      </svg>
-      <span id="sort-label">↓ Mais atrasado primeiro</span>
-    </button>
+    <div style="display:flex;gap:8px;align-self:flex-start;flex-wrap:wrap;">
+      <button id="sort-toggle" class="btn-sort">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        <span id="sort-label">↓ Mais atrasado primeiro</span>
+      </button>
+      <button class="btn-transmissao" onclick="ltAbrir()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 10.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012.86 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.1 6.1l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+        </svg>
+        Lista de Transmissão
+      </button>
+    </div>
   </div>
 </div>
 
@@ -2908,5 +3135,292 @@ function inadSwitch(aba) {
     </div>
   </div>
 </div>
+
+<!-- ── Modal Lista de Transmissão ── -->
+<div id="lt-overlay" class="lt-overlay" onclick="ltFecharFora(event)">
+  <div class="lt-modal" onclick="event.stopPropagation()">
+    <div class="lt-header">
+      <div class="lt-title">
+        <svg width="16" height="16" fill="none" stroke="#25D366" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.95 10.5a19.79 19.79 0 01-3.07-8.67A2 2 0 012.86 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.1 6.1l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+        </svg>
+        Lista de Transmissão
+      </div>
+      <button class="lt-close" onclick="ltFechar()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="lt-body">
+
+      <!-- Passo 1: escrever mensagem -->
+      <div id="lt-step1">
+        <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px;">
+          Escreva a mensagem que será enviada para todos os clientes cadastrados.
+        </div>
+        <textarea id="lt-msg" class="lt-textarea"
+                  placeholder="Digite sua mensagem aqui…&#10;&#10;Exemplo:&#10;Olá, temos uma novidade especial para você! 🎉"
+                  oninput="ltContarChars()"></textarea>
+        <div class="lt-chars"><span id="lt-char-count">0</span> caracteres</div>
+        <button class="lt-btn-green" style="width:100%;justify-content:center;margin-top:4px;"
+                onclick="ltPreparar()" id="lt-btn-preparar">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Buscar contatos e preparar envio
+        </button>
+        <div id="lt-load" style="display:none;text-align:center;font-size:.8rem;color:var(--text-muted);padding:8px 0;">
+          Buscando contatos…
+        </div>
+      </div>
+
+      <!-- Passo 2: enviar em lotes -->
+      <div id="lt-step2" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+          <div style="font-size:.8rem;color:var(--text-muted);">
+            <strong id="lt-total-contatos">0</strong> contatos com telefone cadastrado
+          </div>
+          <button class="lt-btn-outline" onclick="ltVoltarMsg()" style="padding:5px 10px;font-size:.76rem;">
+            ← Editar mensagem
+          </button>
+        </div>
+
+        <!-- Progresso -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div class="lt-batch-info" id="lt-batch-label">Lote 1 de 1</div>
+            <div class="lt-batch-info" id="lt-sent-label" style="color:#25D366;">0 abertos</div>
+          </div>
+          <div class="lt-progress-bar">
+            <div class="lt-progress-fill" id="lt-progress-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Dots -->
+        <div class="lt-step-indicator" id="lt-dots"></div>
+
+        <!-- Cards de contatos do lote atual -->
+        <div id="lt-cards" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+        <!-- Navegação -->
+        <div class="lt-nav" style="margin-top:4px;">
+          <button class="lt-btn-outline" id="lt-btn-prev" onclick="ltLoteAnterior()">← Anterior</button>
+          <div style="display:flex;gap:8px;">
+            <button class="lt-btn-green" id="lt-btn-abrir-todos" onclick="ltAbrirTodos()"
+                    style="font-size:.8rem;padding:8px 13px;">
+              <svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              Abrir todos do lote
+            </button>
+            <button class="lt-btn-outline" id="lt-btn-next" onclick="ltProximoLote()" style="border-color:#25D366;color:#25D366;">
+              Próximo →
+            </button>
+          </div>
+        </div>
+
+        <!-- Alerta bloqueio de popups -->
+        <div id="lt-popup-aviso" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:8px;
+             padding:10px 13px;font-size:.77rem;color:#713f12;line-height:1.5;">
+          <strong>Dica:</strong> Se o navegador bloqueou os popups, clique no ícone de bloqueio na barra de endereços e permita popups para este site.
+          Ou use os botões individuais de cada contato.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════ LISTA DE TRANSMISSÃO ═══════════════════ */
+(function () {
+  var _contatos     = [];
+  var _loteAtual    = 0;
+  var _loteSize     = 5;
+  var _totalAbertos = 0;
+  var _loteAbertos  = {};
+
+  function _foneWa(fone) {
+    var s = fone.replace(/\D/g, '');
+    if (s.length >= 10 && !s.startsWith('55')) s = '55' + s;
+    return s;
+  }
+
+  function _inicial(nome) {
+    return nome.trim().charAt(0).toUpperCase();
+  }
+
+  function _totalLotes() {
+    return Math.max(1, Math.ceil(_contatos.length / _loteSize));
+  }
+
+  function _contatosDoLote(idx) {
+    return _contatos.slice(idx * _loteSize, (idx + 1) * _loteSize);
+  }
+
+  window.ltAbrir = function () {
+    document.getElementById('lt-overlay').classList.add('open');
+    document.getElementById('lt-step1').style.display = '';
+    document.getElementById('lt-step2').style.display = 'none';
+    setTimeout(function () { document.getElementById('lt-msg').focus(); }, 80);
+  };
+
+  window.ltFechar = function () {
+    document.getElementById('lt-overlay').classList.remove('open');
+  };
+
+  window.ltFecharFora = function (e) {
+    if (e.target === document.getElementById('lt-overlay')) ltFechar();
+  };
+
+  window.ltContarChars = function () {
+    document.getElementById('lt-char-count').textContent =
+      document.getElementById('lt-msg').value.length;
+  };
+
+  window.ltVoltarMsg = function () {
+    document.getElementById('lt-step1').style.display = '';
+    document.getElementById('lt-step2').style.display = 'none';
+  };
+
+  window.ltPreparar = function () {
+    var msg = document.getElementById('lt-msg').value.trim();
+    if (!msg) { document.getElementById('lt-msg').focus(); return; }
+    var btn  = document.getElementById('lt-btn-preparar');
+    var load = document.getElementById('lt-load');
+    btn.disabled = true;
+    load.style.display = '';
+    fetch('/api/todos-telefones')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        _contatos     = data;
+        _loteAtual    = 0;
+        _totalAbertos = 0;
+        _loteAbertos  = {};
+        document.getElementById('lt-total-contatos').textContent = _contatos.length;
+        document.getElementById('lt-step1').style.display = 'none';
+        document.getElementById('lt-step2').style.display = '';
+        document.getElementById('lt-popup-aviso').style.display = 'none';
+        _renderLote();
+      })
+      .catch(function () { alert('Erro ao buscar contatos.'); })
+      .finally(function () { btn.disabled = false; load.style.display = 'none'; });
+  };
+
+  function _esc(s) {
+    return String(s || '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function _renderLote() {
+    var total = _totalLotes();
+    var lote  = _contatosDoLote(_loteAtual);
+    var msg   = document.getElementById('lt-msg').value.trim();
+    var inicio = _loteAtual * _loteSize + 1;
+    var fim    = Math.min((_loteAtual + 1) * _loteSize, _contatos.length);
+    var pct    = Math.round(((_loteAtual + 1) / total) * 100);
+
+    document.getElementById('lt-batch-label').textContent =
+      'Lote ' + (_loteAtual + 1) + ' de ' + total + ' (contatos ' + inicio + '–' + fim + ')';
+    document.getElementById('lt-sent-label').textContent =
+      _totalAbertos + ' aberto' + (_totalAbertos !== 1 ? 's' : '');
+    document.getElementById('lt-progress-fill').style.width = pct + '%';
+
+    /* Dots — máx 14 pontos visíveis */
+    var dots = document.getElementById('lt-dots');
+    dots.innerHTML = '';
+    var maxDots = 14;
+    var step = total <= maxDots ? 1 : Math.ceil(total / maxDots);
+    for (var i = 0; i < total; i += step) {
+      var d = document.createElement('div');
+      d.className = 'lt-step-dot' +
+        (i < _loteAtual ? ' done' : i === _loteAtual ? ' current' : '');
+      dots.appendChild(d);
+    }
+
+    /* Cards */
+    var cards = document.getElementById('lt-cards');
+    cards.innerHTML = '';
+    if (!lote.length) {
+      cards.innerHTML = '<div class="lt-empty">Nenhum contato com telefone cadastrado.</div>';
+    } else {
+      lote.forEach(function (c, idx) {
+        var gi     = _loteAtual * _loteSize + idx;
+        var waUrl  = 'https://wa.me/' + _foneWa(c.telefone) + '?text=' + encodeURIComponent(msg);
+        var ja     = !!_loteAbertos[gi];
+        var card   = document.createElement('div');
+        card.className = 'lt-contact-card';
+        card.id = 'lt-card-' + gi;
+        if (ja) { card.style.borderColor = '#25D366'; card.style.background = '#f0fdf4'; }
+        card.innerHTML =
+          '<div class="lt-contact-avatar">' + _inicial(c.nome) + '</div>' +
+          '<div style="flex:1;min-width:0;overflow:hidden;">' +
+            '<div class="lt-contact-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + _esc(c.nome) + '</div>' +
+            '<div class="lt-contact-phone">' + _esc(c.telefone) + '</div>' +
+          '</div>' +
+          '<a class="lt-wa-link" href="' + _esc(waUrl) + '" target="_blank" rel="noopener" ' +
+             'onclick="ltRegistrarAberto(' + gi + ')">' +
+            (ja ? '✓ Aberto' :
+              '<svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Abrir') +
+          '</a>';
+        cards.appendChild(card);
+      });
+    }
+
+    var isFirst = _loteAtual === 0;
+    var isLast  = _loteAtual >= total - 1;
+    var prev = document.getElementById('lt-btn-prev');
+    var next = document.getElementById('lt-btn-next');
+    prev.disabled = isFirst; prev.style.opacity = isFirst ? '.35' : '1';
+    next.disabled = isLast;  next.style.opacity = isLast ? '.35' : '1';
+    next.textContent = isLast ? 'Fim ✓' : 'Próximo →';
+  }
+
+  window.ltRegistrarAberto = function (gi) {
+    if (!_loteAbertos[gi]) {
+      _loteAbertos[gi] = true;
+      _totalAbertos++;
+    }
+    var card = document.getElementById('lt-card-' + gi);
+    if (card) {
+      card.style.borderColor = '#25D366';
+      card.style.background  = '#f0fdf4';
+      var link = card.querySelector('.lt-wa-link');
+      if (link) link.textContent = '✓ Aberto';
+    }
+    document.getElementById('lt-sent-label').textContent =
+      _totalAbertos + ' aberto' + (_totalAbertos !== 1 ? 's' : '');
+  };
+
+  window.ltAbrirTodos = function () {
+    var lote    = _contatosDoLote(_loteAtual);
+    var msg     = document.getElementById('lt-msg').value.trim();
+    var blocked = false;
+    lote.forEach(function (c, idx) {
+      var gi    = _loteAtual * _loteSize + idx;
+      var waUrl = 'https://wa.me/' + _foneWa(c.telefone) + '?text=' + encodeURIComponent(msg);
+      var w = window.open(waUrl, '_blank');
+      if (!w) blocked = true;
+      ltRegistrarAberto(gi);
+    });
+    document.getElementById('lt-popup-aviso').style.display = blocked ? '' : 'none';
+  };
+
+  window.ltProximoLote = function () {
+    if (_loteAtual < _totalLotes() - 1) {
+      _loteAtual++;
+      _renderLote();
+    }
+  };
+
+  window.ltLoteAnterior = function () {
+    if (_loteAtual > 0) { _loteAtual--; _renderLote(); }
+  };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') ltFechar();
+  });
+})();
+</script>
 
 {% endblock %}

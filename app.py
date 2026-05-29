@@ -164,6 +164,45 @@ def api_clientes():
     return jsonify(clientes[:30])
 
 
+@app.route("/api/todos-telefones")
+def api_todos_telefones():
+    import openpyxl, unicodedata
+    path = Path(__file__).parent / "planilhas" / "DADOS_CLIENTES_CONS.xlsx"
+    if not path.exists():
+        return jsonify([])
+    wb = openpyxl.load_workbook(str(path), read_only=True, data_only=True)
+    ws = wb.active
+    rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+    if len(rows) < 2:
+        return jsonify([])
+    def _norm(s):
+        s = unicodedata.normalize("NFD", str(s or "").lower())
+        return "".join(c for c in s if unicodedata.category(c) != "Mn")
+    headers = [_norm(h) for h in rows[0]]
+    def _col(name):
+        n = _norm(name)
+        return next((i for i, h in enumerate(headers) if n in h), None)
+    i_nome = _col("cliente")
+    i_tel  = _col("telefone")
+    def _v(row, i): return str(row[i] or "").strip() if i is not None and i < len(row) else ""
+    resultado = []
+    vistos = set()
+    for row in rows[1:]:
+        if i_nome is None or i_nome >= len(row) or not row[i_nome]:
+            continue
+        nome = str(row[i_nome]).strip()
+        fone = _v(row, i_tel)
+        if not fone or not nome:
+            continue
+        chave = (nome.lower(), fone)
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        resultado.append({"nome": nome, "telefone": fone})
+    return jsonify(resultado)
+
+
 @app.route("/admin/novo-usuario", methods=["GET", "POST"])
 def admin_novo_usuario():
     token_correto = _os.environ.get("ADMIN_TOKEN", "")

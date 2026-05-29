@@ -120,7 +120,8 @@
       "Bash(launchctl list *)",
       "Bash(/Users/karol/Documents/Dashboard-Ativuz/.claude/hooks/autopush-contas.sh)",
       "Bash(echo \"exit=$?\")",
-      "Bash(awk -F: '$2 >= 2124 && $2 <= 2400')"
+      "Bash(awk -F: '$2 >= 2124 && $2 <= 2400')",
+      "Bash(.venv/bin/python *)"
     ]
   }
 }
